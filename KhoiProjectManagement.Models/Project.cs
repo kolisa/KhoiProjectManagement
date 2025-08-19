@@ -1,0 +1,42 @@
+﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.Linq;
+using System.Net.Mail;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace KhoiProjectManagement.Models
+{
+    public class Project
+    {
+        public int Id { get; set; }
+
+        [Required]
+        [StringLength(200)]
+        public string Name { get; set; } = string.Empty;
+
+        [StringLength(1000)]
+        public string Description { get; set; } = string.Empty;
+
+        [Required]
+        public string Status { get; set; } = "active"; // active, inactive, completed
+
+        [Required]
+        public string Priority { get; set; } = "medium"; // low, medium, high
+
+        public DateTime StartDate { get; set; }
+        public DateTime EndDate { get; set; }
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
+        public int CreatedBy { get; set; }
+        public virtual User Creator { get; set; } = null!;
+
+        // Navigation properties
+        public virtual ICollection<ProjectUser> ProjectUsers { get; set; } = new List<ProjectUser>();
+        public virtual ICollection<ProjectTask> Tasks { get; set; } = new List<ProjectTask>();
+        public virtual ICollection<ProjectTag> ProjectTags { get; set; } = new List<ProjectTag>();
+        public virtual ICollection<Attachment> Attachments { get; set; } = new List<Attachment>();
+    }
+}

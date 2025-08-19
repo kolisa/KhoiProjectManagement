@@ -1,0 +1,6 @@
+@KhoiProjectManagementApi_HostAddress = http://localhost:5278
+
+GET {{KhoiProjectManagementApi_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
