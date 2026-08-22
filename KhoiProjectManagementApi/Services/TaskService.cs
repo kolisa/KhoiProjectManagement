@@ -119,11 +119,23 @@ namespace KhoiProjectManagementApi.Services
                             taskId: task.Id
                         );
 
-                        await _emailService.SendTaskAssignmentEmailAsync(
-                            assignedUser.Email,
-                            task.Title,
-                            project.Name
-                        );
+                        if (await _notificationService.IsEmailEnabledAsync(task.AssignedToId.Value, NotificationTypes.Assignment))
+                        {
+                            // A failed SMTP send must never fail task creation - the task itself already
+                            // committed. EmailService already records the failure to EmailLog.
+                            try
+                            {
+                                await _emailService.SendTaskAssignmentEmailAsync(
+                                    assignedUser.Email,
+                                    task.Title,
+                                    project.Name
+                                );
+                            }
+                            catch
+                            {
+                                // Already logged to EmailLog by EmailService - intentionally swallowed.
+                            }
+                        }
                     }
                 }
 
@@ -204,11 +216,21 @@ namespace KhoiProjectManagementApi.Services
                             taskId: task.Id
                         );
 
-                        await _emailService.SendTaskAssignmentEmailAsync(
-                            assignedUser.Email,
-                            task.Title,
-                            project.Name
-                        );
+                        if (await _notificationService.IsEmailEnabledAsync(updateTaskDto.AssignedToId.Value, NotificationTypes.Assignment))
+                        {
+                            try
+                            {
+                                await _emailService.SendTaskAssignmentEmailAsync(
+                                    assignedUser.Email,
+                                    task.Title,
+                                    project.Name
+                                );
+                            }
+                            catch
+                            {
+                                // Already logged to EmailLog by EmailService - intentionally swallowed.
+                            }
+                        }
                     }
                 }
 

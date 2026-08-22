@@ -28,6 +28,14 @@ namespace KhoiProjectManagement.Models
         public int? ProjectId { get; set; }
         public virtual Project? Project { get; set; }
 
+        // Added for the "mention" type (see NotificationPreference) - mirrors TaskId/ProjectId's
+        // sparse-per-feature FK pattern rather than introducing a generic polymorphic reference.
+        public int? WikiPageId { get; set; }
+        public virtual WikiPage? WikiPage { get; set; }
+
+        public int? IdeaId { get; set; }
+        public virtual Idea? Idea { get; set; }
+
         public bool IsRead { get; set; } = false;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? ReadAt { get; set; }

@@ -1,8 +1,5 @@
-export const hasPermission = (userRole, action) => {
-  const permissions = {
-    admin: ['create', 'edit', 'delete', 'assign', 'reports', 'manage_users'],
-    manager: ['create', 'edit', 'assign', 'reports'],
-    member: ['create', 'edit']
-  };
-  return permissions[userRole]?.includes(action) || false;
+// Driven by the backend-issued permission list (see AuthContext/ApiService), not a hardcoded map -
+// `permissions` is the flat array of "resource.action" names returned by /api/auth/login and /api/auth/me.
+export const hasPermission = (permissions, permissionName) => {
+  return permissions?.includes(permissionName) ?? false;
 };

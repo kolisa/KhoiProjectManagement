@@ -35,7 +35,7 @@ namespace KhoiProjectManagementApi.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = "admin,manager")]
+        [Authorize(Policy = "projects.create")]
         public async Task<ActionResult<ProjectDto>> CreateProject(CreateProjectDto createProjectDto)
         {
             var project = await _projectService.CreateProjectAsync(createProjectDto);
@@ -43,7 +43,7 @@ namespace KhoiProjectManagementApi.Controllers
         }
 
         [HttpPut("{id}")]
-        [Authorize(Roles = "admin,manager")]
+        [Authorize(Policy = "projects.edit")]
         public async Task<IActionResult> UpdateProject(int id, UpdateProjectDto updateProjectDto)
         {
             var updated = await _projectService.UpdateProjectAsync(id, updateProjectDto);
@@ -54,7 +54,7 @@ namespace KhoiProjectManagementApi.Controllers
         }
 
         [HttpDelete("{id}")]
-        [Authorize(Roles = "admin")]
+        [Authorize(Policy = "projects.delete")]
         public async Task<IActionResult> DeleteProject(int id)
         {
             var deleted = await _projectService.DeleteProjectAsync(id);

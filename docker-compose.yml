@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: khoi_dev
+      POSTGRES_PASSWORD: khoi_dev_local_only
+      POSTGRES_DB: ProjectManagementDB
+    ports:
+      # Host port 5433 (not 5432) - a native PostgreSQL install may already be using 5432 on this machine.
+      - "5433:5432"
+    volumes:
+      - khoi_pgdata:/var/lib/postgresql/data
+
+volumes:
+  khoi_pgdata:

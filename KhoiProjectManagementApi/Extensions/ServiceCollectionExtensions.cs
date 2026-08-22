@@ -1,6 +1,9 @@
-﻿using KhoiProjectManagementApi.Data;
+﻿using KhoiProjectManagementApi.Authorization;
+using KhoiProjectManagementApi.Data;
 using KhoiProjectManagementApi.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
@@ -14,7 +17,14 @@ namespace KhoiProjectManagementApi.Extensions
         {
             // Database
             services.AddDbContext<ProjectManagementContext>(options =>
-                options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
+                options.UseNpgsql(configuration.GetConnectionString("DefaultConnection")));
+
+            // Data Protection key ring persisted to the same Postgres DB (default is local filesystem,
+            // which doesn't survive multi-instance deployment) - used by IVaultEncryptionService to
+            // encrypt vault secrets at rest.
+            services.AddDataProtection()
+                .PersistKeysToDbContext<ProjectManagementContext>()
+                .SetApplicationName("KhoiProjectManagement");
 
             // Authentication
             services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -33,10 +43,56 @@ namespace KhoiProjectManagementApi.Extensions
                     };
                 });
 
+            // Authorization: flat, policy-based checks for fixed CRUD resources (PermissionPolicyProvider
+            // synthesizes a policy for any "resource.action" name on the fly) plus resource-based checks
+            // for Space-scoped items (SpacePermissionAuthorizationHandler) - both registered together,
+            // one authorization pipeline serving two authorization styles.
+            services.AddMemoryCache();
+            services.AddAuthorization();
+            services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
+            services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
+            services.AddScoped<IAuthorizationHandler, SpacePermissionAuthorizationHandler>();
+            services.AddScoped<ISpacePermissionResolver, SpacePermissionResolver>();
+            services.AddScoped<ISpaceService, SpaceService>();
+            services.AddHttpContextAccessor();
+
+            // Vault (first Space-scoped consumer)
+            services.AddScoped<IVaultEncryptionService, VaultEncryptionService>();
+            services.AddScoped<IVaultAuditService, VaultAuditService>();
+            services.AddScoped<IVaultService, VaultService>();
+
+            // Wiki (second Space-scoped consumer)
+            services.AddScoped<IWikiService, WikiService>();
+
+            // Library (third Space-scoped consumer)
+            services.AddScoped<ILibraryService, LibraryService>();
+
+            // HR onboarding (flat, not Space-scoped)
+            services.AddScoped<IHrService, HrService>();
+
+            // Finance/invoicing (flat, Admin-only)
+            services.AddScoped<IInvoiceService, InvoiceService>();
+
+            // Runtime role/permission configuration
+            services.AddScoped<IRoleService, RoleService>();
+
+            // Timesheets (flat, ownership-based)
+            services.AddScoped<ITimesheetService, TimesheetService>();
+
+            // Ideas board (company-wide, flat)
+            services.AddScoped<IIdeaService, IdeaService>();
+
+            // Company calendar (birthdays/events/promotions)
+            services.AddScoped<ICalendarService, CalendarService>();
+
+            // Configurable dashboard widgets
+            services.AddScoped<IDashboardWidgetService, DashboardWidgetService>();
+
             // Services
             services.AddScoped<IProjectService, ProjectService>();
             services.AddScoped<ITaskService, TaskService>();
             services.AddScoped<IUserService, UserService>();
+            services.AddScoped<IAuthService, AuthService>();
             services.AddScoped<INotificationService, NotificationService>();
             services.AddScoped<IReportService, ReportService>();
             services.AddScoped<IEmailService, EmailService>();

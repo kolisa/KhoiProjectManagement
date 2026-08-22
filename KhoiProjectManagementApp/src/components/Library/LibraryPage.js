@@ -1,0 +1,318 @@
+// src/components/Library/LibraryPage.js
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Upload, FolderOpen, FolderPlus, Download, Trash2, History, Plus } from 'lucide-react';
+import SpaceTree from '../Spaces/SpaceTree';
+import LibraryVersionHistory from './LibraryVersionHistory';
+import { hasSpaceLevel } from '../../utils/spaceLevel';
+import { hasPermission } from '../../utils/permissions';
+import { formatFileSize } from '../../utils/formatFileSize';
+import ShareButton from '../Common/ShareButton';
+
+const LibraryPage = ({ apiService, user, deepLink }) => {
+  const [selectedSpace, setSelectedSpace] = useState(null);
+  const [files, setFiles] = useState([]);
+  const [loadingFiles, setLoadingFiles] = useState(false);
+  const [error, setError] = useState(null);
+  const [expandedFileId, setExpandedFileId] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [treeKey, setTreeKey] = useState(0);
+  const [showNewFolder, setShowNewFolder] = useState(false);
+  const [newFolderName, setNewFolderName] = useState('');
+  const [creatingFolder, setCreatingFolder] = useState(false);
+  const uploadInputRef = useRef(null);
+  const versionInputRef = useRef(null);
+  const versionTargetIdRef = useRef(null);
+
+  const loadFiles = async (spaceId) => {
+    setLoadingFiles(true);
+    try {
+      const result = await apiService.getLibraryFiles(spaceId);
+      setFiles(result || []);
+      setError(null);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoadingFiles(false);
+    }
+  };
+
+  // Only loads files here - expandedFileId is reset by handleSelectSpace (genuine user navigation),
+  // never as a blanket side effect of selectedSpace changing. See WikiPage.js for why: a ref-timing
+  // approach here previously broke under React 18 StrictMode's dev-mode double effect invocation,
+  // which replayed the "reset to null" branch after a deep link had already set expandedFileId.
+  useEffect(() => {
+    if (selectedSpace) {
+      loadFiles(selectedSpace.id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedSpace]);
+
+  const handleSelectSpace = useCallback((space) => {
+    setSelectedSpace(space);
+    setExpandedFileId(null);
+  }, []);
+
+  // A shared link jumps straight to the linked folder - if the recipient doesn't have Read access,
+  // getSpace fails exactly the same way normal browsing would (a shortcut, not a bypass).
+  useEffect(() => {
+    if (!deepLink?.spaceId) return;
+    (async () => {
+      try {
+        const space = await apiService.getSpace(Number(deepLink.spaceId));
+        setSelectedSpace(space);
+        if (deepLink.fileId) setExpandedFileId(Number(deepLink.fileId));
+      } catch (err) {
+        setError(err.message);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deepLink]);
+
+  const handleUploadNew = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file || !selectedSpace) return;
+    setUploading(true);
+    try {
+      await apiService.uploadLibraryFile(selectedSpace.id, file);
+      await loadFiles(selectedSpace.id);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleUploadVersion = async (e) => {
+    const file = e.target.files?.[0];
+    const fileId = versionTargetIdRef.current;
+    e.target.value = '';
+    if (!file || !fileId) return;
+    setUploading(true);
+    try {
+      await apiService.uploadLibraryFileVersion(fileId, file);
+      await loadFiles(selectedSpace.id);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleDownload = async (file) => {
+    try {
+      await apiService.downloadLibraryFile(file.id, file.fileName);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const handleDelete = async (file) => {
+    if (!window.confirm(`Delete "${file.fileName}"?`)) return;
+    try {
+      await apiService.deleteLibraryFile(file.id);
+      await loadFiles(selectedSpace.id);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const canWrite = selectedSpace && hasSpaceLevel(selectedSpace.myEffectiveLevel, 'Write');
+  const canManage = selectedSpace && hasSpaceLevel(selectedSpace.myEffectiveLevel, 'Manage');
+
+  // Creating a root folder needs spaces.manage (matches SpacesController.CreateSpace's rule for a
+  // parentless Space); creating a subfolder just needs Manage on the currently selected folder.
+  const canCreateFolder = selectedSpace
+    ? hasSpaceLevel(selectedSpace.myEffectiveLevel, 'Manage')
+    : hasPermission(user?.permissions, 'spaces.manage');
+
+  const handleCreateFolder = async () => {
+    if (!newFolderName.trim()) return;
+    setCreatingFolder(true);
+    try {
+      await apiService.createSpace({
+        name: newFolderName.trim(),
+        description: '',
+        parentSpaceId: selectedSpace?.id ?? null,
+        spaceType: 'Generic',
+        inheritPermissions: true,
+      });
+      setShowNewFolder(false);
+      setNewFolderName('');
+      setTreeKey((k) => k + 1);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setCreatingFolder(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-3xl font-bold text-gray-900 flex items-center">
+          <FolderOpen className="h-7 w-7 mr-2 text-gray-700" />
+          File Library
+        </h2>
+        <p className="text-gray-600">Shared files, organized by folder, with version history</p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="md:col-span-1 bg-white rounded-lg shadow p-3">
+          <div className="flex justify-between items-center mb-2 px-1">
+            <span className="text-xs font-semibold text-gray-500 uppercase">Folders</span>
+            {canCreateFolder && (
+              <button
+                onClick={() => { setError(null); setShowNewFolder(true); }}
+                className="text-gray-400 hover:text-gray-600"
+                aria-label={selectedSpace ? 'New subfolder' : 'New root folder'}
+                title={selectedSpace ? `New subfolder under "${selectedSpace.name}"` : 'New root folder'}
+              >
+                <FolderPlus className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+          <SpaceTree key={treeKey} apiService={apiService} selectedSpaceId={selectedSpace?.id} onSelect={handleSelectSpace} />
+        </div>
+
+        <div className="md:col-span-3 space-y-4">
+          {!selectedSpace && (
+            <div className="bg-white rounded-lg shadow p-8 text-center text-gray-400">
+              Select a folder on the left to view its files.
+            </div>
+          )}
+
+          {selectedSpace && (
+            <>
+              <div className="flex justify-between items-center">
+                <h3 className="text-xl font-semibold text-gray-900">{selectedSpace.name}</h3>
+                {canWrite && (
+                  <>
+                    <button
+                      onClick={() => uploadInputRef.current?.click()}
+                      disabled={uploading}
+                      className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center disabled:opacity-50"
+                    >
+                      <Upload className="h-5 w-5 mr-2" />
+                      {uploading ? 'Uploading...' : 'Upload File'}
+                    </button>
+                    <input ref={uploadInputRef} type="file" className="hidden" onChange={handleUploadNew} />
+                    <input ref={versionInputRef} type="file" className="hidden" onChange={handleUploadVersion} />
+                  </>
+                )}
+              </div>
+
+              {error && <div className="text-red-600 text-sm">{error}</div>}
+              {loadingFiles && <div className="text-gray-400">Loading files...</div>}
+
+              {!loadingFiles && (
+                <div className="bg-white rounded-lg shadow divide-y">
+                  {files.length === 0 && (
+                    <div className="p-6 text-center text-gray-400">No files in this folder yet.</div>
+                  )}
+                  {files.map((file) => (
+                    <div key={file.id}>
+                      <div className="p-4 flex justify-between items-center">
+                        <div>
+                          <div className="font-medium text-gray-900">{file.fileName}</div>
+                          <div className="text-sm text-gray-500">
+                            v{file.currentVersionNumber} · {formatFileSize(file.fileSize)} · {file.creatorName}
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                          <button
+                            onClick={() => handleDownload(file)}
+                            className="text-blue-600 hover:text-blue-800"
+                            aria-label="Download"
+                          >
+                            <Download className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => setExpandedFileId(expandedFileId === file.id ? null : file.id)}
+                            className="text-gray-400 hover:text-gray-600"
+                            aria-label="Version history"
+                          >
+                            <History className="h-4 w-4" />
+                          </button>
+                          <ShareButton
+                            url={`${window.location.origin}${window.location.pathname}?tab=library&spaceId=${selectedSpace.id}&fileId=${file.id}`}
+                            label={file.fileName}
+                          />
+                          {canWrite && (
+                            <button
+                              onClick={() => { versionTargetIdRef.current = file.id; versionInputRef.current?.click(); }}
+                              className="text-gray-400 hover:text-gray-600"
+                              aria-label="Upload new version"
+                            >
+                              <Plus className="h-4 w-4" />
+                            </button>
+                          )}
+                          {canManage && (
+                            <button
+                              onClick={() => handleDelete(file)}
+                              className="text-red-400 hover:text-red-600"
+                              aria-label="Delete"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      {expandedFileId === file.id && (
+                        <div className="px-4 pb-4">
+                          <LibraryVersionHistory apiService={apiService} file={file} />
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+
+      {showNewFolder && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-sm">
+            <h3 className="text-lg font-semibold text-gray-900 mb-1">
+              {selectedSpace ? `New subfolder under "${selectedSpace.name}"` : 'New root folder'}
+            </h3>
+            <p className="text-sm text-gray-500 mb-4">
+              {selectedSpace
+                ? 'Creates a folder nested under the currently selected folder.'
+                : 'Creates a new top-level folder, visible in the tree.'}
+            </p>
+            <input
+              type="text"
+              autoFocus
+              value={newFolderName}
+              onChange={(e) => setNewFolderName(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleCreateFolder(); }}
+              placeholder="Folder name"
+              className="w-full border rounded-lg px-3 py-2 mb-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            {error && <div className="text-red-600 text-sm mb-2">{error}</div>}
+            <div className="flex justify-end space-x-2">
+              <button
+                onClick={() => { setShowNewFolder(false); setNewFolderName(''); }}
+                className="px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-100"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateFolder}
+                disabled={creatingFolder || !newFolderName.trim()}
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              >
+                {creatingFolder ? 'Creating...' : 'Create'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default LibraryPage;

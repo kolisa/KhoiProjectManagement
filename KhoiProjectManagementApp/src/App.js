@@ -1,240 +1,17 @@
 // src/App.js - Complete Project Management Frontend
-import React, { useState, useEffect, createContext, useContext } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, Search, Calendar, Users, CheckCircle, Clock, AlertCircle, Trash2, Edit3, User, Bell, FileText, Tag, Download, Upload, Flag, Shield, UserCheck, Eye, LogOut, Menu, X } from 'lucide-react';
-
-// API Configuration and Service
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:905/api';
-
-class ApiService {
-    constructor() {
-        this.token = localStorage.getItem('jwt_token') || null;
-    }
-
-    async request(endpoint, options = {}) {
-        const url = `${API_BASE_URL}${endpoint}`;
-        const config = {
-            headers: {
-                'Content-Type': 'application/json',
-                ...(this.token && { Authorization: `Bearer ${this.token}` }),
-                ...options.headers,
-            },
-            ...options,
-        };
-
-        try {
-            const response = await fetch(url, config);
-
-            if (response.status === 401) {
-                this.token = null;
-                localStorage.removeItem('jwt_token');
-                window.location.reload();
-                return null;
-            }
-
-            if (!response.ok) {
-                throw new Error(`API Error: ${response.status} ${response.statusText}`);
-            }
-
-            const contentType = response.headers.get('content-type');
-            if (contentType && contentType.includes('application/json')) {
-                return await response.json();
-            }
-
-            return response;
-        } catch (error) {
-            console.error('API Request failed:', error);
-            throw error;
-        }
-    }
-
-    // Authentication
-    async login(email, password) {
-        const response = await this.request('/auth/login', {
-            method: 'POST',
-            body: JSON.stringify({ email, password }),
-        });
-
-        if (response?.token) {
-            this.token = response.token;
-            localStorage.setItem('jwt_token', response.token);
-        }
-
-        return response;
-    }
-
-    async register(userData) {
-        return await this.request('/auth/register', {
-            method: 'POST',
-            body: JSON.stringify(userData),
-        });
-    }
-
-    // Projects
-    async getProjects() {
-        return await this.request('/projects');
-    }
-
-    async createProject(projectData) {
-        return await this.request('/projects', {
-            method: 'POST',
-            body: JSON.stringify(projectData),
-        });
-    }
-
-    async updateProject(id, projectData) {
-        return await this.request(`/projects/${id}`, {
-            method: 'PUT',
-            body: JSON.stringify(projectData),
-        });
-    }
-
-    async deleteProject(id) {
-        return await this.request(`/projects/${id}`, {
-            method: 'DELETE',
-        });
-    }
-
-    // Tasks
-    async getTasks(filter = {}) {
-        const queryParams = new URLSearchParams();
-        Object.keys(filter).forEach(key => {
-            if (filter[key] !== null && filter[key] !== undefined && filter[key] !== '') {
-                queryParams.append(key, filter[key]);
-            }
-        });
-        const queryString = queryParams.toString();
-        return await this.request(`/tasks${queryString ? `?${queryString}` : ''}`);
-    }
-
-    async createTask(taskData) {
-        return await this.request('/tasks', {
-            method: 'POST',
-            body: JSON.stringify(taskData),
-        });
-    }
-
-    async updateTaskStatus(id, status) {
-        return await this.request(`/tasks/${id}/status`, {
-            method: 'PUT',
-            body: JSON.stringify(status),
-        });
-    }
-
-    async deleteTask(id) {
-        return await this.request(`/tasks/${id}`, {
-            method: 'DELETE',
-        });
-    }
-
-    // Users
-    async getUsers() {
-        return await this.request('/users');
-    }
-
-    async createUser(userData) {
-        return await this.request('/users', {
-            method: 'POST',
-            body: JSON.stringify(userData),
-        });
-    }
-
-    // Reports
-    async getProjectSummaryReport() {
-        return await this.request('/reports/project-summary');
-    }
-
-    async getTeamPerformanceReport() {
-        return await this.request('/reports/team-performance');
-    }
-
-    async getOverdueTasksReport() {
-        return await this.request('/reports/overdue-tasks');
-    }
-
-    // Notifications
-    async getNotifications() {
-        return await this.request('/notifications');
-    }
-
-    async markNotificationAsRead(id) {
-        return await this.request(`/notifications/${id}/read`, {
-            method: 'PUT',
-        });
-    }
-
-    // Dashboard
-    async getDashboardStats() {
-        return await this.request('/dashboard/statistics');
-    }
-
-    logout() {
-        this.token = null;
-        localStorage.removeItem('jwt_token');
-    }
-}
-
-// Context for Authentication
-const AuthContext = createContext();
-
-const AuthProvider = ({ children }) => {
-    const [user, setUser] = useState(null);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        const token = localStorage.getItem('jwt_token');
-        if (token) {
-            try {
-                const payload = JSON.parse(atob(token.split('.')[1]));
-                if (payload.exp * 1000 > Date.now()) {
-                    setUser({
-                        id: parseInt(payload.nameid),
-                        name: payload.unique_name,
-                        email: payload.email,
-                        role: payload.role
-                    });
-                } else {
-                    localStorage.removeItem('jwt_token');
-                }
-            } catch (error) {
-                console.error('Invalid token:', error);
-                localStorage.removeItem('jwt_token');
-            }
-        }
-        setLoading(false);
-    }, []);
-
-    const login = async (email, password) => {
-        const apiService = new ApiService();
-        const response = await apiService.login(email, password);
-        if (response?.user) {
-            setUser(response.user);
-            return response;
-        }
-        throw new Error('Login failed');
-    };
-
-    const logout = () => {
-        setUser(null);
-        localStorage.removeItem('jwt_token');
-    };
-
-    const value = {
-        user,
-        login,
-        logout,
-        loading
-    };
-
-    return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-};
-
-const useAuth = () => {
-    const context = useContext(AuthContext);
-    if (!context) {
-        throw new Error('useAuth must be used within AuthProvider');
-    }
-    return context;
-};
+import ApiService from './services/ApiService';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { hasPermission } from './utils/permissions';
+import VaultPage from './components/Vault/VaultPage';
+import WikiPage from './components/Wiki/WikiPage';
+import LibraryPage from './components/Library/LibraryPage';
+import NotificationPreferences from './components/Settings/NotificationPreferences';
+import DashboardWidgetSettings from './components/Settings/DashboardWidgetSettings';
+import IdeasPage from './components/Ideas/IdeasPage';
+import InvoicesPage from './components/Finance/InvoicesPage';
+import khoiLogo from './assets/khoi-logo.png';
 
 // Utility Components
 const StatusBadge = ({ status }) => {
@@ -354,8 +131,8 @@ const LoginForm = () => {
         <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
             <div className="max-w-md w-full space-y-8">
                 <div>
-                    <div className="mx-auto h-12 w-12 flex items-center justify-center rounded-full bg-blue-100">
-                        <CheckCircle className="h-8 w-8 text-blue-600" />
+                    <div className="mx-auto h-14 w-auto flex items-center justify-center">
+                        <img src={khoiLogo} alt="Khoi" className="h-12 w-auto" />
                     </div>
                     <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
                         Sign in to Khoi Pro
@@ -427,6 +204,8 @@ const ProjectManagementSystem = () => {
     const [tasks, setTasks] = useState([]);
     const [teamMembers, setTeamMembers] = useState([]);
     const [notifications, setNotifications] = useState([]);
+    const [widgetPrefs, setWidgetPrefs] = useState([]);
+    const [pendingTimesheets, setPendingTimesheets] = useState([]);
     const [dashboardStats, setDashboardStats] = useState({
         totalProjects: 0,
         activeProjects: 0,
@@ -448,8 +227,41 @@ const ProjectManagementSystem = () => {
     });
     const [errors, setErrors] = useState({});
 
+    // A shared link (Wiki "Share"/Library "Share" button) carries ?tab=wiki&spaceId=..&pageId=.. -
+    // read once at mount, before the tab-restore fallback, so an incoming share link always wins over
+    // wherever the recipient happened to be last. The link is a shortcut into the app, not a bypass -
+    // whoever opens it must still log in and still goes through the normal Space permission checks.
+    const [deepLink] = useState(() => {
+        const params = new URLSearchParams(window.location.search);
+        const tab = params.get('tab');
+        if (!tab) return null;
+        return {
+            tab,
+            spaceId: params.get('spaceId'),
+            pageId: params.get('pageId'),
+            fileId: params.get('fileId'),
+        };
+    });
+
     // UI state
-    const [activeTab, setActiveTab] = useState('dashboard');
+    // Restores the tab the user was on before an auto-logout (session expiry) reloads the page -
+    // AuthContext.logout() clears this on an explicit manual logout, so that path always starts fresh
+    // at the dashboard instead of jumping back to wherever the user happened to be. An incoming share
+    // link (deepLink) takes priority over both.
+    const [activeTab, setActiveTab] = useState(() => deepLink?.tab || localStorage.getItem('khoi_last_tab') || 'dashboard');
+
+    useEffect(() => {
+        localStorage.setItem('khoi_last_tab', activeTab);
+    }, [activeTab]);
+
+    // Consume the share link's query string once so a later manual refresh doesn't keep re-forcing
+    // navigation back to the shared item over whatever the user has since clicked into.
+    useEffect(() => {
+        if (deepLink) {
+            window.history.replaceState({}, '', window.location.pathname);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterStatus, setFilterStatus] = useState('all');
     const [showAddProject, setShowAddProject] = useState(false);
@@ -487,29 +299,28 @@ const ProjectManagementSystem = () => {
         password: ''
     });
 
-    // Permission checking
-    const hasPermission = (action) => {
-        const permissions = {
-            admin: ['create', 'edit', 'delete', 'assign', 'reports', 'manage_users'],
-            manager: ['create', 'edit', 'assign', 'reports'],
-            member: ['create', 'edit']
-        };
-        return permissions[user?.role]?.includes(action) || false;
-    };
-
     // Data loading functions
     const loadDashboardData = async () => {
         setLoading(prev => ({ ...prev, dashboard: true }));
         try {
-            const [stats, recentTasks, notifs] = await Promise.all([
+            const canApproveTimesheets = hasPermission(user?.permissions, 'timesheets.approve');
+            const [stats, recentTasks, notifs, widgetPrefsResult, timesheetsResult] = await Promise.all([
                 apiService.getDashboardStats(),
                 apiService.getTasks({ limit: 5 }),
-                apiService.getNotifications()
+                apiService.getNotifications(),
+                apiService.getMyDashboardWidgetPreferences(),
+                apiService.getTimesheets(undefined, canApproveTimesheets ? 'Submitted' : undefined),
             ]);
 
             setDashboardStats(stats || dashboardStats);
             setTasks(recentTasks || []);
             setNotifications(notifs || []);
+            setWidgetPrefs(widgetPrefsResult || []);
+            setPendingTimesheets(
+                canApproveTimesheets
+                    ? (timesheetsResult || [])
+                    : (timesheetsResult || []).filter((t) => t.status === 'Draft' || t.status === 'Rejected')
+            );
             setErrors(prev => ({ ...prev, dashboard: null }));
         } catch (error) {
             setErrors(prev => ({ ...prev, dashboard: error.message }));
@@ -569,13 +380,14 @@ const ProjectManagementSystem = () => {
         }
     };
 
-    // Initial data loading
+    // Reloads whenever the Dashboard tab becomes active (not just on first mount) - otherwise a
+    // widget preference change made in Settings would never show up until a full page reload, since
+    // widgetPrefs/pendingTimesheets/etc. are only fetched here. Matches the existing reload-on-tab-
+    // switch pattern already used for Projects/Tasks/Team below.
     useEffect(() => {
-        loadDashboardData();
-    }, []);
-
-    useEffect(() => {
-        if (activeTab === 'projects') {
+        if (activeTab === 'dashboard') {
+            loadDashboardData();
+        } else if (activeTab === 'projects') {
             loadProjects();
         } else if (activeTab === 'tasks') {
             loadTasks();
@@ -670,7 +482,7 @@ const ProjectManagementSystem = () => {
 
     const handleAddMember = async (e) => {
         e.preventDefault();
-        if (!hasPermission('manage_users')) {
+        if (!hasPermission(user?.permissions, 'users.create')) {
             alert('You do not have permission to add team members');
             return;
         }
@@ -703,11 +515,6 @@ const ProjectManagementSystem = () => {
     };
 
     const updateTaskStatus = async (taskId, newStatus) => {
-        if (!hasPermission('edit')) {
-            alert('You do not have permission to update tasks');
-            return;
-        }
-
         try {
             await apiService.updateTaskStatus(taskId, newStatus);
 
@@ -726,7 +533,7 @@ const ProjectManagementSystem = () => {
     };
 
     const deleteTask = async (taskId) => {
-        if (!hasPermission('delete')) {
+        if (!hasPermission(user?.permissions, 'tasks.delete')) {
             alert('You do not have permission to delete tasks');
             return;
         }
@@ -745,7 +552,7 @@ const ProjectManagementSystem = () => {
     };
 
     const deleteProject = async (projectId) => {
-        if (!hasPermission('delete')) {
+        if (!hasPermission(user?.permissions, 'projects.delete')) {
             alert('You do not have permission to delete projects');
             return;
         }
@@ -822,7 +629,7 @@ const ProjectManagementSystem = () => {
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex justify-between items-center py-4">
                         <div className="flex items-center">
-                            <CheckCircle className="h-8 w-8 text-blue-600 mr-3" />
+                            <img src={khoiLogo} alt="Khoi" className="h-8 w-auto mr-3" />
                             <h1 className="text-2xl font-bold text-gray-900">Khoi Pro</h1>
                         </div>
 
@@ -917,7 +724,7 @@ const ProjectManagementSystem = () => {
             {mobileMenuOpen && (
                 <div className="md:hidden bg-white border-b">
                     <div className="px-4 py-2 space-y-1">
-                        {['dashboard', 'projects', 'tasks', 'team', 'reports'].map((tab) => (
+                        {['dashboard', 'projects', 'tasks', 'team', 'vault', 'wiki', 'library', 'ideas', 'finance', 'reports', 'settings'].map((tab) => (
                             <button
                                 key={tab}
                                 onClick={() => {
@@ -946,7 +753,7 @@ const ProjectManagementSystem = () => {
             <nav className="bg-white border-b hidden md:block">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex space-x-8">
-                        {['dashboard', 'projects', 'tasks', 'team', 'reports'].map((tab) => (
+                        {['dashboard', 'projects', 'tasks', 'team', 'vault', 'wiki', 'library', 'ideas', 'finance', 'reports', 'settings'].map((tab) => (
                             <button
                                 key={tab}
                                 onClick={() => setActiveTab(tab)}
@@ -978,10 +785,14 @@ const ProjectManagementSystem = () => {
                             <ErrorMessage message={errors.dashboard} onRetry={loadDashboardData} />
                         )}
 
-                        {!loading.dashboard && !errors.dashboard && (
-                            <>
-                                {/* Stats Grid */}
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+                        {!loading.dashboard && !errors.dashboard && (() => {
+                            // Widgets are ordered/shown per the user's own Settings > Dashboard Widgets
+                            // choices (see DashboardWidgetSettings.js), constrained to whatever the admin
+                            // has left enabled in the company-wide allow-list. Stat cards stay together in
+                            // one grid (only which cards appear is configurable, not full interleaving with
+                            // the full-width sections below) - a deliberate scope boundary, not an oversight.
+                            const STAT_CARDS = {
+                                total_projects: (
                                     <div className="bg-white p-6 rounded-lg shadow">
                                         <div className="flex items-center">
                                             <CheckCircle className="h-8 w-8 text-blue-600 mr-3" />
@@ -991,7 +802,8 @@ const ProjectManagementSystem = () => {
                                             </div>
                                         </div>
                                     </div>
-
+                                ),
+                                active_projects: (
                                     <div className="bg-white p-6 rounded-lg shadow">
                                         <div className="flex items-center">
                                             <Clock className="h-8 w-8 text-green-600 mr-3" />
@@ -1001,7 +813,8 @@ const ProjectManagementSystem = () => {
                                             </div>
                                         </div>
                                     </div>
-
+                                ),
+                                total_tasks: (
                                     <div className="bg-white p-6 rounded-lg shadow">
                                         <div className="flex items-center">
                                             <AlertCircle className="h-8 w-8 text-yellow-600 mr-3" />
@@ -1011,7 +824,8 @@ const ProjectManagementSystem = () => {
                                             </div>
                                         </div>
                                     </div>
-
+                                ),
+                                overdue_tasks: (
                                     <div className="bg-white p-6 rounded-lg shadow">
                                         <div className="flex items-center">
                                             <Flag className="h-8 w-8 text-red-600 mr-3" />
@@ -1021,7 +835,8 @@ const ProjectManagementSystem = () => {
                                             </div>
                                         </div>
                                     </div>
-
+                                ),
+                                completion_rate: (
                                     <div className="bg-white p-6 rounded-lg shadow">
                                         <div className="flex items-center">
                                             <Users className="h-8 w-8 text-purple-600 mr-3" />
@@ -1031,56 +846,119 @@ const ProjectManagementSystem = () => {
                                             </div>
                                         </div>
                                     </div>
-                                </div>
+                                ),
+                            };
 
-                                {/* Overdue Tasks Alert */}
-                                {dashboardStats.overdueTasks > 0 && (
-                                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                                        <div className="flex items-center">
-                                            <Flag className="h-5 w-5 text-red-600 mr-2" />
-                                            <h3 className="text-red-800 font-medium">Attention: {dashboardStats.overdueTasks} overdue tasks</h3>
+                            const visibleKeys = widgetPrefs.filter((w) => w.isVisible).map((w) => w.widgetKey);
+                            const isVisible = (key) => visibleKeys.includes(key) || widgetPrefs.length === 0;
+                            const orderedStatKeys = widgetPrefs.length > 0
+                                ? widgetPrefs.map((w) => w.widgetKey).filter((k) => STAT_CARDS[k] && isVisible(k))
+                                : Object.keys(STAT_CARDS);
+                            const sectionOrder = widgetPrefs.length > 0
+                                ? widgetPrefs.map((w) => w.widgetKey)
+                                : ['recent_tasks', 'recent_mentions', 'pending_timesheets'];
+
+                            const recentMentions = notifications.filter((n) => n.type === 'mention').slice(0, 5);
+
+                            return (
+                                <>
+                                    {orderedStatKeys.length > 0 && (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+                                            {orderedStatKeys.map((key) => (
+                                                <React.Fragment key={key}>{STAT_CARDS[key]}</React.Fragment>
+                                            ))}
                                         </div>
-                                        <p className="text-red-700 text-sm mt-1">Review and update these tasks to keep projects on track.</p>
-                                    </div>
-                                )}
+                                    )}
 
-                                {/* Recent Tasks */}
-                                <div className="bg-white rounded-lg shadow">
-                                    <div className="px-6 py-4 border-b border-gray-200">
-                                        <h3 className="text-lg font-medium text-gray-900">Recent Tasks</h3>
-                                    </div>
-                                    <div className="divide-y divide-gray-200">
-                                        {tasks.length === 0 ? (
-                                            <div className="px-6 py-8 text-center text-gray-500">
-                                                No tasks found
+                                    {/* Overdue Tasks Alert - tied to the overdue_tasks widget's visibility */}
+                                    {isVisible('overdue_tasks') && dashboardStats.overdueTasks > 0 && (
+                                        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                                            <div className="flex items-center">
+                                                <Flag className="h-5 w-5 text-red-600 mr-2" />
+                                                <h3 className="text-red-800 font-medium">Attention: {dashboardStats.overdueTasks} overdue tasks</h3>
                                             </div>
-                                        ) : (
-                                            tasks.slice(0, 5).map((task) => (
-                                                <div key={task.id} className="px-6 py-4 flex items-center justify-between">
-                                                    <div className="flex-1">
-                                                        <div className="flex items-center">
-                                                            <h4 className="text-sm font-medium text-gray-900">{task.title}</h4>
-                                                            {task.isOverdue && <Flag className="h-4 w-4 text-red-500 ml-2" />}
-                                                        </div>
-                                                        <p className="text-sm text-gray-500">{task.projectName || getProjectName(task.projectId)}</p>
-                                                        {task.tags && task.tags.length > 0 && (
-                                                            <div className="mt-1">
-                                                                <TagsList tags={task.tags} />
+                                            <p className="text-red-700 text-sm mt-1">Review and update these tasks to keep projects on track.</p>
+                                        </div>
+                                    )}
+
+                                    {sectionOrder.filter((k) => k === 'recent_tasks' && isVisible(k)).map(() => (
+                                        <div key="recent_tasks" className="bg-white rounded-lg shadow">
+                                            <div className="px-6 py-4 border-b border-gray-200">
+                                                <h3 className="text-lg font-medium text-gray-900">Recent Tasks</h3>
+                                            </div>
+                                            <div className="divide-y divide-gray-200">
+                                                {tasks.length === 0 ? (
+                                                    <div className="px-6 py-8 text-center text-gray-500">
+                                                        No tasks found
+                                                    </div>
+                                                ) : (
+                                                    tasks.slice(0, 5).map((task) => (
+                                                        <div key={task.id} className="px-6 py-4 flex items-center justify-between">
+                                                            <div className="flex-1">
+                                                                <div className="flex items-center">
+                                                                    <h4 className="text-sm font-medium text-gray-900">{task.title}</h4>
+                                                                    {task.isOverdue && <Flag className="h-4 w-4 text-red-500 ml-2" />}
+                                                                </div>
+                                                                <p className="text-sm text-gray-500">{task.projectName || getProjectName(task.projectId)}</p>
+                                                                {task.tags && task.tags.length > 0 && (
+                                                                    <div className="mt-1">
+                                                                        <TagsList tags={task.tags} />
+                                                                    </div>
+                                                                )}
                                                             </div>
-                                                        )}
-                                                    </div>
-                                                    <div className="flex items-center space-x-4">
-                                                        <StatusBadge status={task.status} />
-                                                        <PriorityBadge priority={task.priority} />
-                                                        <span className="text-sm text-gray-500">{task.assignedToName || getTeamMemberName(task.assignedToId)}</span>
-                                                    </div>
-                                                </div>
-                                            ))
-                                        )}
-                                    </div>
-                                </div>
-                            </>
-                        )}
+                                                            <div className="flex items-center space-x-4">
+                                                                <StatusBadge status={task.status} />
+                                                                <PriorityBadge priority={task.priority} />
+                                                                <span className="text-sm text-gray-500">{task.assignedToName || getTeamMemberName(task.assignedToId)}</span>
+                                                            </div>
+                                                        </div>
+                                                    ))
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
+
+                                    {sectionOrder.filter((k) => k === 'recent_mentions' && isVisible(k)).map(() => (
+                                        <div key="recent_mentions" className="bg-white rounded-lg shadow">
+                                            <div className="px-6 py-4 border-b border-gray-200">
+                                                <h3 className="text-lg font-medium text-gray-900">Recent Mentions</h3>
+                                            </div>
+                                            <div className="divide-y divide-gray-200">
+                                                {recentMentions.length === 0 ? (
+                                                    <div className="px-6 py-8 text-center text-gray-500">No mentions yet</div>
+                                                ) : (
+                                                    recentMentions.map((n) => (
+                                                        <div key={n.id} className="px-6 py-4 text-sm text-gray-700">
+                                                            {n.message}
+                                                        </div>
+                                                    ))
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
+
+                                    {sectionOrder.filter((k) => k === 'pending_timesheets' && isVisible(k)).map(() => (
+                                        <div key="pending_timesheets" className="bg-white rounded-lg shadow">
+                                            <div className="px-6 py-4 border-b border-gray-200">
+                                                <h3 className="text-lg font-medium text-gray-900">Pending Timesheets</h3>
+                                            </div>
+                                            <div className="divide-y divide-gray-200">
+                                                {pendingTimesheets.length === 0 ? (
+                                                    <div className="px-6 py-8 text-center text-gray-500">Nothing pending</div>
+                                                ) : (
+                                                    pendingTimesheets.map((t) => (
+                                                        <div key={t.id} className="px-6 py-4 flex items-center justify-between text-sm">
+                                                            <span className="text-gray-900">{t.userName} &middot; {new Date(t.periodStart).toLocaleDateString()}</span>
+                                                            <StatusBadge status={t.status.toLowerCase()} />
+                                                        </div>
+                                                    ))
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </>
+                            );
+                        })()}
                     </div>
                 )}
 
@@ -1092,7 +970,7 @@ const ProjectManagementSystem = () => {
                                 <h2 className="text-3xl font-bold text-gray-900">Projects</h2>
                                 <p className="text-gray-600">Manage your projects</p>
                             </div>
-                            {hasPermission('create') && (
+                            {hasPermission(user?.permissions, 'projects.create') && (
                                 <button
                                     onClick={() => setShowAddProject(true)}
                                     className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center"
@@ -1113,7 +991,7 @@ const ProjectManagementSystem = () => {
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                 {projects.length === 0 ? (
                                     <div className="col-span-full text-center py-8 text-gray-500">
-                                        No projects found. {hasPermission('create') && 'Create your first project!'}
+                                        No projects found. {hasPermission(user?.permissions, 'projects.create') && 'Create your first project!'}
                                     </div>
                                 ) : (
                                     projects.map((project) => (
@@ -1121,12 +999,12 @@ const ProjectManagementSystem = () => {
                                             <div className="flex justify-between items-start mb-4">
                                                 <h3 className="text-lg font-semibold text-gray-900">{project.name}</h3>
                                                 <div className="flex space-x-2">
-                                                    {hasPermission('edit') && (
+                                                    {hasPermission(user?.permissions, 'projects.edit') && (
                                                         <button className="text-gray-400 hover:text-gray-600">
                                                             <Edit3 className="h-4 w-4" />
                                                         </button>
                                                     )}
-                                                    {hasPermission('delete') && (
+                                                    {hasPermission(user?.permissions, 'projects.delete') && (
                                                         <button
                                                             onClick={() => deleteProject(project.id)}
                                                             className="text-red-400 hover:text-red-600"
@@ -1174,15 +1052,13 @@ const ProjectManagementSystem = () => {
                                 <h2 className="text-3xl font-bold text-gray-900">Tasks</h2>
                                 <p className="text-gray-600">Manage all tasks</p>
                             </div>
-                            {hasPermission('create') && (
-                                <button
-                                    onClick={() => setShowAddTask(true)}
-                                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center"
-                                >
-                                    <Plus className="h-5 w-5 mr-2" />
-                                    New Task
-                                </button>
-                            )}
+                            <button
+                                onClick={() => setShowAddTask(true)}
+                                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center"
+                            >
+                                <Plus className="h-5 w-5 mr-2" />
+                                New Task
+                            </button>
                         </div>
 
                         <div className="flex space-x-4 mb-6">
@@ -1251,19 +1127,15 @@ const ProjectManagementSystem = () => {
                                                             {task.assignedToName || getTeamMemberName(task.assignedToId)}
                                                         </td>
                                                         <td className="px-6 py-4 whitespace-nowrap">
-                                                            {hasPermission('edit') ? (
-                                                                <select
-                                                                    value={task.status}
-                                                                    onChange={(e) => updateTaskStatus(task.id, e.target.value)}
-                                                                    className="text-sm border border-gray-300 rounded px-2 py-1"
-                                                                >
-                                                                    <option value="todo">To Do</option>
-                                                                    <option value="in-progress">In Progress</option>
-                                                                    <option value="completed">Completed</option>
-                                                                </select>
-                                                            ) : (
-                                                                <StatusBadge status={task.status} />
-                                                            )}
+                                                            <select
+                                                                value={task.status}
+                                                                onChange={(e) => updateTaskStatus(task.id, e.target.value)}
+                                                                className="text-sm border border-gray-300 rounded px-2 py-1"
+                                                            >
+                                                                <option value="todo">To Do</option>
+                                                                <option value="in-progress">In Progress</option>
+                                                                <option value="completed">Completed</option>
+                                                            </select>
                                                         </td>
                                                         <td className="px-6 py-4 whitespace-nowrap">
                                                             <PriorityBadge priority={task.priority} />
@@ -1276,7 +1148,7 @@ const ProjectManagementSystem = () => {
                                                                 <button className="text-blue-600 hover:text-blue-900">
                                                                     <Eye className="h-4 w-4" />
                                                                 </button>
-                                                                {hasPermission('delete') && (
+                                                                {hasPermission(user?.permissions, 'tasks.delete') && (
                                                                     <button
                                                                         onClick={() => deleteTask(task.id)}
                                                                         className="text-red-600 hover:text-red-900"
@@ -1305,7 +1177,7 @@ const ProjectManagementSystem = () => {
                                 <h2 className="text-3xl font-bold text-gray-900">Team</h2>
                                 <p className="text-gray-600">Manage team members</p>
                             </div>
-                            {hasPermission('manage_users') && (
+                            {hasPermission(user?.permissions, 'users.create') && (
                                 <button
                                     onClick={() => setShowAddMember(true)}
                                     className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center"
@@ -1357,6 +1229,39 @@ const ProjectManagementSystem = () => {
                     </div>
                 )}
 
+                {/* Vault Tab */}
+                {activeTab === 'vault' && (
+                    <VaultPage apiService={apiService} />
+                )}
+
+                {/* Wiki Tab */}
+                {activeTab === 'wiki' && (
+                    <WikiPage apiService={apiService} user={user} deepLink={deepLink?.tab === 'wiki' ? deepLink : null} />
+                )}
+
+                {/* Library Tab */}
+                {activeTab === 'library' && (
+                    <LibraryPage apiService={apiService} user={user} deepLink={deepLink?.tab === 'library' ? deepLink : null} />
+                )}
+
+                {/* Ideas Tab */}
+                {activeTab === 'ideas' && (
+                    <IdeasPage apiService={apiService} user={user} />
+                )}
+
+                {/* Finance Tab */}
+                {activeTab === 'finance' && (
+                    <InvoicesPage apiService={apiService} user={user} />
+                )}
+
+                {/* Settings Tab */}
+                {activeTab === 'settings' && (
+                    <div className="space-y-10">
+                        <NotificationPreferences apiService={apiService} />
+                        <DashboardWidgetSettings apiService={apiService} user={user} />
+                    </div>
+                )}
+
                 {/* Reports Tab */}
                 {activeTab === 'reports' && (
                     <div className="space-y-6">
@@ -1365,7 +1270,7 @@ const ProjectManagementSystem = () => {
                             <p className="text-gray-600">Generate and download reports</p>
                         </div>
 
-                        {hasPermission('reports') ? (
+                        {hasPermission(user?.permissions, 'reports.view') ? (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                 <div className="bg-white rounded-lg shadow p-6">
                                     <div className="flex items-center mb-4">
@@ -1630,7 +1535,7 @@ const ProjectManagementSystem = () => {
                             >
                                 <option value="member">Member</option>
                                 <option value="manager">Manager</option>
-                                {user?.role === 'admin' && <option value="admin">Admin</option>}
+                                {hasPermission(user?.permissions, 'users.manage_roles') && <option value="admin">Admin</option>}
                             </select>
                             <input
                                 type="text"

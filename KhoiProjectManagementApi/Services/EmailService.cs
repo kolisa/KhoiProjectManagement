@@ -65,6 +65,24 @@ namespace KhoiProjectManagementApi.Services
             await SendEmailAsync(toEmail, subject, body, "project_created");
         }
 
+        public async Task SendMentionEmailAsync(string toEmail, string mentionedByName, string contextLabel, string contextTitle, string commentBody)
+        {
+            var subject = $"{mentionedByName} mentioned you in a comment";
+            // commentBody is free-form user input embedded in an HTML email - encode it, unlike the
+            // other templates here which only ever interpolate system-controlled strings (titles/names).
+            var encodedBody = System.Net.WebUtility.HtmlEncode(commentBody);
+            var body = $@"
+                <h2>You were mentioned in a comment</h2>
+                <p><strong>{mentionedByName}</strong> mentioned you in a comment on {contextLabel} <strong>{contextTitle}</strong>:</p>
+                <blockquote style=""border-left: 3px solid #ccc; margin: 0; padding-left: 1em; color: #555;"">{encodedBody}</blockquote>
+                <p>Please log in to the Project Management System to view and reply.</p>
+                <br>
+                <p>Best regards,<br>Project Management Team</p>
+            ";
+
+            await SendEmailAsync(toEmail, subject, body, "mention");
+        }
+
         private async Task SendEmailAsync(string toEmail, string subject, string htmlBody, string emailType)
         {
             try

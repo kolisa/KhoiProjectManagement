@@ -9,11 +9,15 @@ namespace KhoiProjectManagementApi.Services
     {
         private readonly ProjectManagementContext _context;
         private readonly INotificationService _notificationService;
+        private readonly ISpaceService _spaceService;
+        private readonly IEmailService _emailService;
 
-        public ProjectService(ProjectManagementContext context, INotificationService notificationService)
+        public ProjectService(ProjectManagementContext context, INotificationService notificationService, ISpaceService spaceService, IEmailService emailService)
         {
             _context = context;
             _notificationService = notificationService;
+            _spaceService = spaceService;
+            _emailService = emailService;
         }
 
         public async Task<IEnumerable<ProjectDto>> GetAllProjectsAsync()
@@ -74,6 +78,9 @@ namespace KhoiProjectManagementApi.Services
                     });
 
                     _context.ProjectUsers.AddRange(projectUsers);
+
+                    var spaceId = await _spaceService.EnsureProjectSpaceAsync(project.Id, project.CreatedBy);
+                    await _spaceService.SyncSpaceMembersAsync(spaceId, createProjectDto.TeamMemberIds, PermissionLevel.Write, project.CreatedBy);
                 }
 
                 // Add tags
@@ -96,6 +103,26 @@ namespace KhoiProjectManagementApi.Services
                             $"You have been added to project '{project.Name}'",
                             projectId: project.Id
                         );
+
+                        // Previously unused - SendProjectCreatedEmailAsync existed on IEmailService but
+                        // was never actually called anywhere; wiring it up here now that email sends are
+                        // gated by preference, not before.
+                        if (await _notificationService.IsEmailEnabledAsync(userId, NotificationTypes.ProjectCreated))
+                        {
+                            var member = await _context.Users.FindAsync(userId);
+                            if (member != null)
+                            {
+                                try
+                                {
+                                    await _emailService.SendProjectCreatedEmailAsync(member.Email, project.Name);
+                                }
+                                catch
+                                {
+                                    // Project already committed - a failed SMTP send must never fail
+                                    // project creation. Already logged to EmailLog by EmailService.
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -140,6 +167,14 @@ namespace KhoiProjectManagementApi.Services
                         UserId = userId
                     });
                     _context.ProjectUsers.AddRange(projectUsers);
+
+                    var spaceId = await _spaceService.EnsureProjectSpaceAsync(project.Id, project.CreatedBy);
+                    await _spaceService.SyncSpaceMembersAsync(spaceId, updateProjectDto.TeamMemberIds, PermissionLevel.Write, project.CreatedBy);
+                }
+                else if (project.SpaceId.HasValue)
+                {
+                    // All team members were removed - clear the project Space's member grants too.
+                    await _spaceService.SyncSpaceMembersAsync(project.SpaceId.Value, Array.Empty<int>(), PermissionLevel.Write, project.CreatedBy);
                 }
 
                 // Update tags

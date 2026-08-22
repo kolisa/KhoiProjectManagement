@@ -5,18 +5,36 @@ module.exports = {
     ],
     theme: {
         extend: {
+            // Every button/link/badge in this app is built with Tailwind's built-in `blue-*` classes
+            // (bg-blue-600, hover:bg-blue-700, text-blue-600, etc.) - overriding the scale here rebrands
+            // the entire app to Khoi's actual color with zero changes to any component. 600 is pinned to
+            // the exact value sampled from the khoi.africa logo (#0000D3); the rest of the scale is
+            // interpolated tints/shades around it so contrast still behaves the way Tailwind's default
+            // blue scale did (50 lightest, 900 darkest).
             colors: {
+                blue: {
+                    50: '#E6E6FB',
+                    100: '#C2C2F5',
+                    200: '#9999EE',
+                    300: '#6666E6',
+                    400: '#3333DC',
+                    500: '#1414D8',
+                    600: '#0000D3',
+                    700: '#0000A6',
+                    800: '#000080',
+                    900: '#00004D',
+                },
                 primary: {
-                    50: '#eff6ff',
-                    100: '#dbeafe',
-                    200: '#bfdbfe',
-                    300: '#93c5fd',
-                    400: '#60a5fa',
-                    500: '#3b82f6',
-                    600: '#2563eb',
-                    700: '#1d4ed8',
-                    800: '#1e40af',
-                    900: '#1e3a8a',
+                    50: '#E6E6FB',
+                    100: '#C2C2F5',
+                    200: '#9999EE',
+                    300: '#6666E6',
+                    400: '#3333DC',
+                    500: '#1414D8',
+                    600: '#0000D3',
+                    700: '#0000A6',
+                    800: '#000080',
+                    900: '#00004D',
                 }
             },
             fontFamily: {
@@ -45,5 +63,5 @@ module.exports = {
             }
         },
     },
-    plugins: [],
+    plugins: [require('@tailwindcss/typography')],
 }

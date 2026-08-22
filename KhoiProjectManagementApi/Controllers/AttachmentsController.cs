@@ -79,7 +79,7 @@ namespace KhoiProjectManagementApi.Controllers
 
 
         [HttpDelete("{id}")]
-        [Authorize(Roles = "admin,manager")]
+        [Authorize(Policy = "attachments.delete")]
         public async Task<IActionResult> DeleteFile(int id)
         {
             var deleted = await _attachmentService.DeleteAttachmentAsync(id);

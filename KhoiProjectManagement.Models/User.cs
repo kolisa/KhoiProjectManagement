@@ -32,6 +32,10 @@ namespace KhoiProjectManagement.Models
         public DateTime? LastLoginAt { get; set; }
         public bool IsActive { get; set; } = true;
 
+        // New PII for the company calendar feed (Phase 12) - the API only ever exposes month/day from
+        // this, never the birth year, to anyone other than the user themselves or a users.edit caller.
+        public DateTime? DateOfBirth { get; set; }
+
         // Navigation properties
         public virtual ICollection<ProjectUser> ProjectUsers { get; set; } = new List<ProjectUser>();
         public virtual ICollection<ProjectTask> AssignedTasks { get; set; } = new List<ProjectTask>();

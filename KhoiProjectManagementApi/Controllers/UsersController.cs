@@ -35,7 +35,7 @@ namespace KhoiProjectManagementApi.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = "admin")]
+        [Authorize(Policy = "users.create")]
         public async Task<ActionResult<TeamMemberDto>> CreateUser(CreateUserDto createUserDto)
         {
             try
@@ -50,8 +50,8 @@ namespace KhoiProjectManagementApi.Controllers
         }
 
         [HttpPut("{id}")]
-        [Authorize(Roles = "admin,manager")]
-        public async Task<IActionResult> UpdateUser(int id, UpdateUserDto updateUserDto)
+        [Authorize(Policy = "users.edit")]
+        public async Task<IActionResult> UpdateUser(int id, UpdateUserProfileDto updateUserDto)
         {
             var updated = await _userService.UpdateUserAsync(id, updateUserDto);
             if (!updated)
@@ -60,8 +60,19 @@ namespace KhoiProjectManagementApi.Controllers
             return NoContent();
         }
 
+        [HttpPut("{id}/roles")]
+        [Authorize(Policy = "users.manage_roles")]
+        public async Task<IActionResult> AssignRoles(int id, AssignUserRolesDto assignUserRolesDto)
+        {
+            var assigned = await _userService.AssignRolesAsync(id, assignUserRolesDto.RoleIds);
+            if (!assigned)
+                return NotFound();
+
+            return NoContent();
+        }
+
         [HttpDelete("{id}")]
-        [Authorize(Roles = "admin")]
+        [Authorize(Policy = "users.delete")]
         public async Task<IActionResult> DeactivateUser(int id)
         {
             var deactivated = await _userService.DeactivateUserAsync(id);

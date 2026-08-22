@@ -57,10 +57,17 @@ namespace KhoiProjectManagementApi.Services
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
 
+            var matchingRole = await _context.Roles.FirstOrDefaultAsync(r => r.Name.ToLower() == createUserDto.Role.ToLower());
+            if (matchingRole != null)
+            {
+                _context.UserRoles.Add(new UserRole { UserId = user.Id, RoleId = matchingRole.Id });
+                await _context.SaveChangesAsync();
+            }
+
             return MapToDto(user);
         }
 
-        public async Task<bool> UpdateUserAsync(int id, UpdateUserDto updateUserDto)
+        public async Task<bool> UpdateUserAsync(int id, UpdateUserProfileDto updateUserDto)
         {
             var user = await _context.Users.FindAsync(id);
             if (user == null)
@@ -68,12 +75,38 @@ namespace KhoiProjectManagementApi.Services
 
             user.Name = updateUserDto.Name;
             user.Email = updateUserDto.Email;
-            user.Role = updateUserDto.Role;
             user.Position = updateUserDto.Position;
 
             if (!string.IsNullOrEmpty(updateUserDto.Password))
             {
                 user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(updateUserDto.Password);
+            }
+
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<bool> AssignRolesAsync(int userId, List<int> roleIds)
+        {
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null)
+                return false;
+
+            var roles = await _context.Roles.Where(r => roleIds.Contains(r.Id)).ToListAsync();
+            if (roles.Count != roleIds.Distinct().Count())
+                return false; // One or more RoleIds don't exist.
+
+            var existingUserRoles = await _context.UserRoles.Where(ur => ur.UserId == userId).ToListAsync();
+            _context.UserRoles.RemoveRange(existingUserRoles);
+            _context.UserRoles.AddRange(roles.Select(r => new UserRole { UserId = userId, RoleId = r.Id }));
+
+            // Dual-write the legacy single-string Role column during the transition period. With
+            // multiple roles now possible, pick the highest-privilege one (lowest seeded Id) for the
+            // legacy field's display purposes - it's a fallback, not the source of truth going forward.
+            var primaryRole = roles.OrderBy(r => r.Id).FirstOrDefault();
+            if (primaryRole != null)
+            {
+                user.Role = primaryRole.Name.ToLower();
             }
 
             await _context.SaveChangesAsync();

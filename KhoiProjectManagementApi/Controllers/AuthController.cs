@@ -1,10 +1,8 @@
-﻿using KhoiProjectManagement.Models.DTOs;
-using KhoiProjectManagementApi.Services;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Text;
+using KhoiProjectManagement.Models.DTOs;
+using KhoiProjectManagementApi.Services;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
 namespace KhoiProjectManagementApi.Controllers
 {
@@ -13,39 +11,24 @@ namespace KhoiProjectManagementApi.Controllers
     public class AuthController : ControllerBase
     {
         private readonly IUserService _userService;
-        private readonly IConfiguration _configuration;
+        private readonly IAuthService _authService;
 
-        public AuthController(IUserService userService, IConfiguration configuration)
+        public AuthController(IUserService userService, IAuthService authService)
         {
             _userService = userService;
-            _configuration = configuration;
+            _authService = authService;
         }
 
         [HttpPost("login")]
         public async Task<ActionResult<LoginResponseDto>> Login(LoginRequestDto request)
         {
-            var isValid = await _userService.ValidateUserCredentialsAsync(request.Email, request.Password);
-            if (!isValid)
+            var response = await _authService.LoginAsync(request.Email, request.Password);
+            if (response == null)
             {
                 return Unauthorized(new { message = "Invalid email or password" });
             }
 
-            var user = await _userService.GetUserByEmailAsync(request.Email);
-            if (user == null)
-            {
-                return Unauthorized(new { message = "User not found" });
-            }
-
-            await _userService.UpdateLastLoginAsync(user.Id);
-
-            var token = GenerateJwtToken(user);
-
-            return Ok(new LoginResponseDto
-            {
-                Token = token,
-                User = user,
-                ExpiresAt = DateTime.UtcNow.AddHours(int.Parse(_configuration["Jwt:ExpiryInHours"] ?? "24"))
-            });
+            return Ok(response);
         }
 
         [HttpPost("register")]
@@ -74,71 +57,58 @@ namespace KhoiProjectManagementApi.Controllers
         [HttpPost("refresh")]
         public async Task<ActionResult<LoginResponseDto>> RefreshToken(RefreshTokenRequestDto request)
         {
-            try
-            {
-                var tokenHandler = new JwtSecurityTokenHandler();
-                var key = Encoding.UTF8.GetBytes(_configuration["Jwt:SecretKey"]!);
-
-                var principal = tokenHandler.ValidateToken(request.Token, new TokenValidationParameters
-                {
-                    ValidateIssuer = true,
-                    ValidateAudience = true,
-                    ValidateLifetime = false, // We don't validate lifetime for refresh
-                    ValidateIssuerSigningKey = true,
-                    ValidIssuer = _configuration["Jwt:Issuer"],
-                    ValidAudience = _configuration["Jwt:Audience"],
-                    IssuerSigningKey = new SymmetricSecurityKey(key),
-                    ClockSkew = TimeSpan.Zero
-                }, out SecurityToken validatedToken);
-
-                var userIdClaim = principal.FindFirst(ClaimTypes.NameIdentifier);
-                if (userIdClaim == null)
-                {
-                    return Unauthorized();
-                }
-
-                var user = await _userService.GetUserByIdAsync(int.Parse(userIdClaim.Value));
-                if (user == null)
-                {
-                    return Unauthorized();
-                }
-
-                var newToken = GenerateJwtToken(user);
-
-                return Ok(new LoginResponseDto
-                {
-                    Token = newToken,
-                    User = user,
-                    ExpiresAt = DateTime.UtcNow.AddHours(int.Parse(_configuration["Jwt:ExpiryInHours"] ?? "24"))
-                });
-            }
-            catch
+            var response = await _authService.RefreshAsync(request.Token);
+            if (response == null)
             {
                 return Unauthorized();
             }
+
+            return Ok(response);
         }
 
-        private string GenerateJwtToken(TeamMemberDto user)
+        [HttpPost("logout")]
+        public async Task<IActionResult> Logout(RefreshTokenRequestDto request)
         {
-            var tokenHandler = new JwtSecurityTokenHandler();
-            var key = Encoding.UTF8.GetBytes(_configuration["Jwt:SecretKey"]!);
-            var tokenDescriptor = new SecurityTokenDescriptor
-            {
-                Subject = new ClaimsIdentity(new[]
-                {
-                    new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                    new Claim(ClaimTypes.Name, user.Name),
-                    new Claim(ClaimTypes.Email, user.Email),
-                    new Claim(ClaimTypes.Role, user.Role)
-                }),
-                Expires = DateTime.UtcNow.AddHours(int.Parse(_configuration["Jwt:ExpiryInHours"] ?? "24")),
-                Issuer = _configuration["Jwt:Issuer"],
-                Audience = _configuration["Jwt:Audience"],
-                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
-            };
+            await _authService.LogoutAsync(request.Token);
+            return NoContent();
+        }
 
-            var token = tokenHandler.CreateToken(tokenDescriptor);
-            return tokenHandler.WriteToken(token);
+        [HttpPost("logout-all")]
+        [Authorize]
+        public async Task<IActionResult> LogoutAll()
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim == null)
+            {
+                return Unauthorized();
+            }
+
+            await _authService.LogoutAllAsync(int.Parse(userIdClaim.Value));
+            return NoContent();
+        }
+
+        // Returns the current user + their permissions straight from the ClaimsPrincipal - the
+        // permissions are already JWT claims (see AuthService.GenerateAccessToken), so this needs no
+        // database round-trip for authorization data, only one lookup for the full user record.
+        [HttpGet("me")]
+        [Authorize]
+        public async Task<ActionResult<MeResponseDto>> Me()
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim == null)
+            {
+                return Unauthorized();
+            }
+
+            var user = await _userService.GetUserByIdAsync(int.Parse(userIdClaim.Value));
+            if (user == null)
+            {
+                return Unauthorized();
+            }
+
+            var permissions = User.FindAll("permission").Select(c => c.Value).ToList();
+
+            return Ok(new MeResponseDto { User = user, Permissions = permissions });
         }
     }
 }

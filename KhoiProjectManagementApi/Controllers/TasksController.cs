@@ -62,7 +62,7 @@ namespace KhoiProjectManagementApi.Controllers
         }
 
         [HttpDelete("{id}")]
-        [Authorize(Roles = "admin,manager")]
+        [Authorize(Policy = "tasks.delete")]
         public async Task<IActionResult> DeleteTask(int id)
         {
             var deleted = await _taskService.DeleteTaskAsync(id);

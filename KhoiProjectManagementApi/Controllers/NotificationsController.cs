@@ -1,4 +1,5 @@
 ﻿using KhoiProjectManagement.Models;
+using KhoiProjectManagement.Models.DTOs;
 using KhoiProjectManagementApi.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -38,11 +39,39 @@ namespace KhoiProjectManagementApi.Controllers
         }
 
         [HttpPost("check-overdue")]
-        [Authorize(Roles = "admin,manager")]
+        [Authorize(Policy = "notifications.check_overdue")]
         public async Task<IActionResult> CheckOverdueTasks()
         {
             await _notificationService.CheckOverdueTasksAsync();
             return Ok(new { message = "Overdue tasks checked and notifications sent" });
+        }
+
+        // Personal preferences - always self, no permission needed beyond being logged in.
+        [HttpGet("preferences")]
+        public async Task<ActionResult<List<NotificationPreferenceDto>>> GetPreferences()
+        {
+            var userId = GetUserId();
+            return Ok(await _notificationService.GetPreferencesAsync(userId));
+        }
+
+        [HttpPut("preferences")]
+        public async Task<IActionResult> SetPreferences(List<UpdateNotificationPreferenceDto> updates)
+        {
+            try
+            {
+                await _notificationService.SetPreferencesAsync(GetUserId(), updates);
+                return NoContent();
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        private int GetUserId()
+        {
+            var claim = User.FindFirst(ClaimTypes.NameIdentifier)!;
+            return int.Parse(claim.Value);
         }
     }
 }

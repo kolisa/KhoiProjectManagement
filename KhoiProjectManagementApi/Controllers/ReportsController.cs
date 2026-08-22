@@ -7,7 +7,7 @@ namespace KhoiProjectManagementApi.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize(Roles = "admin,manager")]
+    [Authorize(Policy = "reports.view")]
     public class ReportsController : ControllerBase
     {
         private readonly IReportService _reportService;

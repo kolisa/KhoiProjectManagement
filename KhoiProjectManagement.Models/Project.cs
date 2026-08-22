@@ -33,6 +33,11 @@ namespace KhoiProjectManagement.Models
         public int CreatedBy { get; set; }
         public virtual User Creator { get; set; } = null!;
 
+        // Lazily created (see ProjectService.EnsureProjectSpaceAsync) home Space for this project's
+        // planning docs/collaboration content - null until first use, not at project creation.
+        public int? SpaceId { get; set; }
+        public virtual Space? Space { get; set; }
+
         // Navigation properties
         public virtual ICollection<ProjectUser> ProjectUsers { get; set; } = new List<ProjectUser>();
         public virtual ICollection<ProjectTask> Tasks { get; set; } = new List<ProjectTask>();
