@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using System.Linq;
+using System.Net;
 using System.Text.Json;
 
 namespace KhoiProjectManagementApi.Middleware
@@ -39,6 +40,19 @@ namespace KhoiProjectManagementApi.Middleware
 
             switch (exception)
             {
+                case FluentValidation.ValidationException validationException:
+                    // Defense-in-depth: ValidationActionFilter already short-circuits invalid requests
+                    // before an action runs, but this covers any ValidateAndThrowAsync call made
+                    // directly from a service rather than through a controller action argument.
+                    context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
+                    response = new
+                    {
+                        errors = validationException.Errors
+                            .GroupBy(e => e.PropertyName)
+                            .ToDictionary(g => g.Key, g => g.Select(e => e.ErrorMessage).ToArray())
+                    };
+                    break;
+
                 case UnauthorizedAccessException:
                     context.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
                     response = new { message = "Unauthorized access" };

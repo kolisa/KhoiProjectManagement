@@ -1,5 +1,5 @@
-using KhoiProjectManagement.Models.DTOs;
-using KhoiProjectManagementApi.Services;
+using KhoiProjectManagement.Application;
+using KhoiProjectManagement.Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -20,6 +20,12 @@ namespace KhoiProjectManagementApi.Controllers
             _wikiService = wikiService;
         }
 
+        [HttpGet("search")]
+        public async Task<ActionResult<IEnumerable<WikiSearchResultDto>>> Search([FromQuery] string q)
+        {
+            return Ok(await _wikiService.SearchPagesAsync(q, User));
+        }
+
         [HttpGet("pages")]
         public async Task<ActionResult<IEnumerable<WikiPageSummaryDto>>> GetPages([FromQuery] int spaceId, [FromQuery] int? parentPageId)
         {
@@ -34,7 +40,7 @@ namespace KhoiProjectManagementApi.Controllers
             }
         }
 
-        [HttpGet("pages/{id}")]
+        [HttpGet("pages/{id:int}")]
         public async Task<ActionResult<WikiPageDetailDto>> GetPage(int id)
         {
             try
@@ -65,7 +71,7 @@ namespace KhoiProjectManagementApi.Controllers
             }
         }
 
-        [HttpPut("pages/{id}")]
+        [HttpPut("pages/{id:int}")]
         public async Task<IActionResult> UpdatePage(int id, UpdateWikiPageDto dto)
         {
             try
@@ -82,13 +88,72 @@ namespace KhoiProjectManagementApi.Controllers
             }
         }
 
-        [HttpDelete("pages/{id}")]
+        [HttpDelete("pages/{id:int}")]
         public async Task<IActionResult> DeletePage(int id)
         {
             try
             {
                 var deleted = await _wikiService.DeletePageAsync(id, User);
                 if (!deleted)
+                    return NotFound();
+
+                return NoContent();
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
+            }
+        }
+
+        [HttpPut("pages/{id}/move")]
+        public async Task<IActionResult> MovePage(int id, MoveWikiPageDto dto)
+        {
+            try
+            {
+                var moved = await _wikiService.MovePageAsync(id, dto, User);
+                if (!moved)
+                    return NotFound();
+
+                return NoContent();
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [HttpPut("pages/reorder")]
+        public async Task<IActionResult> ReorderPages([FromQuery] int spaceId, [FromQuery] int? parentPageId, ReorderWikiPagesDto dto)
+        {
+            try
+            {
+                var reordered = await _wikiService.ReorderPagesAsync(spaceId, parentPageId, dto, User);
+                if (!reordered)
+                    return NotFound();
+
+                return NoContent();
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [HttpPut("pages/{id}/labels")]
+        public async Task<IActionResult> SetLabels(int id, SetWikiPageLabelsDto dto)
+        {
+            try
+            {
+                var updated = await _wikiService.SetLabelsAsync(id, dto, User);
+                if (!updated)
                     return NotFound();
 
                 return NoContent();

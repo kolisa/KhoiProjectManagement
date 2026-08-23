@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<IsPackable>false</IsPackable>
+		<IsTestProject>true</IsTestProject>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.NET.Test.Sdk" />
+		<PackageReference Include="xunit" />
+		<PackageReference Include="xunit.runner.visualstudio">
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+			<PrivateAssets>all</PrivateAssets>
+		</PackageReference>
+		<PackageReference Include="coverlet.collector">
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+			<PrivateAssets>all</PrivateAssets>
+		</PackageReference>
+		<!-- Reflection-based project-reference-graph assertions (Mono.Cecil under the hood) - these tests
+		     reference every assembly under audit by ProjectReference below purely so NetArchTest can load
+		     and inspect them; production code never references this project. -->
+		<PackageReference Include="NetArchTest.Rules" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<!-- Every layer under audit needs to be referenced so its assembly is loadable and its types are
+		     inspectable - this project is the one deliberate exception to the dependency-direction rules
+		     it enforces, since a test harness has to see all layers to check the relationships between them. -->
+		<ProjectReference Include="..\..\KhoiProjectManagement.Domain\KhoiProjectManagement.Domain.csproj" />
+		<ProjectReference Include="..\..\KhoiProjectManagement.Application\KhoiProjectManagement.Application.csproj" />
+		<ProjectReference Include="..\..\KhoiProjectManagement.Infrastructure\KhoiProjectManagement.Infrastructure.csproj" />
+		<ProjectReference Include="..\..\KhoiProjectManagement.Quartz\KhoiProjectManagement.Quartz.csproj" />
+		<ProjectReference Include="..\..\KhoiProjectManagementApi\KhoiProjectManagementApi.csproj" />
+	</ItemGroup>
+
+</Project>

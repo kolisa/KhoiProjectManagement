@@ -1,77 +1,135 @@
-using KhoiProjectManagementApi;
-using KhoiProjectManagementApi.BackgroundServices;
-using KhoiProjectManagementApi.Data;
+using KhoiProjectManagement.Infrastructure;
+using KhoiProjectManagement.Infrastructure.Data;
+using KhoiProjectManagement.Quartz;
+using Quartz;
 using KhoiProjectManagementApi.Extensions;
+using KhoiProjectManagementApi.Filters;
+using KhoiProjectManagementApi.Hubs;
 using KhoiProjectManagementApi.Middleware;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 
-var builder = WebApplication.CreateBuilder(args);
-
-// Add services to the container.
-// Add Serilog
+// Bootstrap logger: active only until the host is built, so startup failures (bad config, DB
+// unreachable during migration, etc.) are never lost before the real Serilog pipeline is wired up.
 Log.Logger = new LoggerConfiguration()
-    .ReadFrom.Configuration(builder.Configuration)
-    .CreateLogger();
+    .WriteTo.Console()
+    .CreateBootstrapLogger();
 
-builder.Host.UseSerilog();
-
-// Add services
-builder.Services.AddApplicationServices(builder.Configuration);
-builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(c =>
+try
 {
-    c.SwaggerDoc("v1", new() { Title = "Project Management API", Version = "v1" });
-    c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.OpenApiSecurityScheme
+    Log.Information("Starting KhoiProjectManagementApi");
+
+    var builder = WebApplication.CreateBuilder(args);
+
+    // Reconfigures Log.Logger from the "Serilog" section in appsettings*.json (sinks, levels,
+    // enrichers - see appsettings.json) plus anything registered in the DI container via ReadFrom.Services.
+    builder.Host.UseSerilog((context, services, configuration) => configuration
+        .ReadFrom.Configuration(context.Configuration)
+        .ReadFrom.Services(services)
+        .Enrich.FromLogContext());
+
+    // Add services
+    builder.Services.AddApplicationServices(builder.Configuration);
+    builder.Services.AddScoped<ValidationActionFilter>();
+    builder.Services.AddControllers(options => options.Filters.Add<ValidationActionFilter>());
+    builder.Services.AddEndpointsApiExplorer();
+    builder.Services.AddSwaggerGen(c =>
     {
-        Description = "JWT Authorization header using the Bearer scheme",
-        Type = Microsoft.OpenApi.SecuritySchemeType.Http,
-        Scheme = "bearer",
-        BearerFormat = "JWT"
-    });
-    c.AddSecurityRequirement(document => new Microsoft.OpenApi.OpenApiSecurityRequirement
-    {
+        c.SwaggerDoc("v1", new() { Title = "Project Management API", Version = "v1" });
+        c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.OpenApiSecurityScheme
         {
-            new Microsoft.OpenApi.OpenApiSecuritySchemeReference("Bearer", document),
-            new List<string>()
-        }
+            Description = "JWT Authorization header using the Bearer scheme",
+            Type = Microsoft.OpenApi.SecuritySchemeType.Http,
+            Scheme = "bearer",
+            BearerFormat = "JWT"
+        });
+        c.AddSecurityRequirement(document => new Microsoft.OpenApi.OpenApiSecurityRequirement
+        {
+            {
+                new Microsoft.OpenApi.OpenApiSecuritySchemeReference("Bearer", document),
+                new List<string>()
+            }
+        });
     });
-});
-// Add background services
-builder.Services.AddHostedService<OverdueTaskCheckerService>();
-var app = builder.Build();
+    // Background jobs (Quartz.NET) - see KhoiProjectManagement.Quartz for the IJob implementations.
+    // Recurring triggers are deliberately started 1 hour out rather than "now" - the trigger's start
+    // time is computed eagerly right here (not lazily at actual scheduler startup), and this app's
+    // migration+seed step can take upwards of ten seconds. A trigger whose nominal start time has
+    // already passed by the time the scheduler actually starts gets raced between normal trigger
+    // acquisition and Quartz's misfire recovery pass, and was observed firing twice as a result. An
+    // hour of headroom makes that race impossible; the "check on boot" behavior the old
+    // BackgroundServices had is reproduced deliberately below via TriggerJob, not via trigger timing.
+    var overdueJobKey = new JobKey("OverdueTaskCheck");
+    var reminderJobKey = new JobKey("ReminderDueCheck");
+    var firstRecurrence = DateBuilder.FutureDate(1, IntervalUnit.Hour);
 
-// Configure middleware
-if (app.Environment.IsDevelopment() || app.Environment.IsProduction())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
-
-app.UseMiddleware<ErrorHandlingMiddleware>();
-app.UseHttpsRedirection();
-app.UseCors("AllowReactApp");
-app.UseAuthentication();
-app.UseAuthorization();
-app.MapControllers();
-
-using (var scope = app.Services.CreateScope())
-{
-    var context = scope.ServiceProvider.GetRequiredService<ProjectManagementContext>();
-    try
+    builder.Services.AddQuartz(q =>
     {
+        q.AddJob<OverdueTaskCheckJob>(opts => opts.WithIdentity(overdueJobKey));
+        q.AddTrigger(opts => opts
+            .ForJob(overdueJobKey)
+            .WithIdentity("OverdueTaskCheck-trigger")
+            .StartAt(firstRecurrence)
+            .WithSimpleSchedule(s => s.WithIntervalInHours(1).RepeatForever()));
+
+        q.AddJob<ReminderDueCheckJob>(opts => opts.WithIdentity(reminderJobKey));
+        q.AddTrigger(opts => opts
+            .ForJob(reminderJobKey)
+            .WithIdentity("ReminderDueCheck-trigger")
+            .StartAt(firstRecurrence)
+            .WithSimpleSchedule(s => s.WithIntervalInHours(1).RepeatForever()));
+    });
+    builder.Services.AddQuartzHostedService(opts => opts.WaitForJobsToComplete = true);
+
+    var app = builder.Build();
+
+    // Configure middleware
+    if (app.Environment.IsDevelopment() || app.Environment.IsProduction())
+    {
+        app.UseSwagger();
+        app.UseSwaggerUI();
+    }
+
+    app.UseMiddleware<ErrorHandlingMiddleware>();
+    app.UseSerilogRequestLogging();
+    app.UseHttpsRedirection();
+    app.UseCors("AllowReactApp");
+    app.UseAuthentication();
+    app.UseAuthorization();
+    app.MapControllers();
+    app.MapHub<WikiHub>("/hubs/wiki");
+
+    using (var scope = app.Services.CreateScope())
+    {
+        var context = scope.ServiceProvider.GetRequiredService<ProjectManagementContext>();
         await context.Database.MigrateAsync();
 
         // Call the manual seeding method
         await DatabaseSeeder.SeedAsync(context);
 
         Log.Information("Database initialized and seeded successfully");
+
+        // Ad-hoc immediate run, queued before the scheduler starts (see the AddQuartz comment above for
+        // why this isn't done via the trigger's start time) - reproduces the old BackgroundServices'
+        // "check immediately on boot" behavior deliberately and exactly once.
+        var schedulerFactory = scope.ServiceProvider.GetRequiredService<ISchedulerFactory>();
+        var scheduler = await schedulerFactory.GetScheduler();
+        await scheduler.TriggerJob(overdueJobKey);
+        await scheduler.TriggerJob(reminderJobKey);
     }
-    catch (Exception ex)
-    {
-        Log.Fatal(ex, "Database initialization failed");
-        throw;
-    }
+
+    await app.RunAsync();
 }
-app.Run();
+catch (Exception ex)
+{
+    Log.Fatal(ex, "Application terminated unexpectedly");
+}
+finally
+{
+    await Log.CloseAndFlushAsync();
+}
+
+// Top-level statements generate an internal Program class by default - WebApplicationFactory<Program>
+// (used by the Integration/Functional test projects) needs it public to bootstrap the app in-process.
+// No behavior change; this is Microsoft's documented pattern for testing minimal-hosting apps.
+public partial class Program { }

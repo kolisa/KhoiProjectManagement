@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RunSettings>
+  <DataCollectionRunSettings>
+    <DataCollectors>
+      <DataCollector friendlyName="XPlat code coverage">
+        <Configuration>
+          <Format>cobertura</Format>
+          <!-- EF migrations and the generated model snapshot are thousands of auto-generated lines
+               that read as "covered" simply because Program.cs's MigrateAsync() runs them on every
+               WebApplicationFactory startup - not meaningfully tested business logic, and including
+               them inflates the coverage number the way the test brief warns against (section 43:
+               "exclude generated migrations... do not exclude difficult business logic merely to
+               raise the percentage" - this is the opposite direction, excluding easy/generated lines
+               so the number stays honest). Program's own bootstrap (top-level statements) and the
+               OpenApi/compiler-generated noise are excluded for the same reason. -->
+          <Exclude>[*]*.Migrations.*,[*]*ModelSnapshot,[KhoiProjectManagementApi]Program,[*]Microsoft.AspNetCore.OpenApi.Generated.*</Exclude>
+        </Configuration>
+      </DataCollector>
+    </DataCollectors>
+  </DataCollectionRunSettings>
+</RunSettings>

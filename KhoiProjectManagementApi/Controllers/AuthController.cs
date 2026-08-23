@@ -1,6 +1,6 @@
 using System.Security.Claims;
-using KhoiProjectManagement.Models.DTOs;
-using KhoiProjectManagementApi.Services;
+using KhoiProjectManagement.Application;
+using KhoiProjectManagement.Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -64,6 +64,27 @@ namespace KhoiProjectManagementApi.Controllers
             }
 
             return Ok(response);
+        }
+
+        [HttpPost("forgot-password")]
+        public async Task<IActionResult> ForgotPassword(ForgotPasswordRequestDto request)
+        {
+            // Always 204, whether or not the email exists - the response must not leak which emails
+            // are registered.
+            await _authService.RequestPasswordResetAsync(request.Email);
+            return NoContent();
+        }
+
+        [HttpPost("reset-password")]
+        public async Task<IActionResult> ResetPassword(ResetPasswordRequestDto request)
+        {
+            var success = await _authService.ResetPasswordAsync(request.Token, request.NewPassword);
+            if (!success)
+            {
+                return BadRequest(new { message = "Invalid or expired reset link" });
+            }
+
+            return NoContent();
         }
 
         [HttpPost("logout")]

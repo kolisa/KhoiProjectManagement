@@ -1,6 +1,6 @@
-﻿using System.Security.Claims;
-using KhoiProjectManagement.Models.DTOs;
-using KhoiProjectManagementApi.Services;
+using System.Security.Claims;
+using KhoiProjectManagement.Application;
+using KhoiProjectManagement.Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 

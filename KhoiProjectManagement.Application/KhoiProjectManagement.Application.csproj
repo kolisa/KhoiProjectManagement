@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<ItemGroup>
+		<!-- Provider-agnostic EF Core only - for IQueryable<T> composition (.Include/.Where/EF.Functions)
+		     against IRepository<T>.Query(). Never Npgsql.EntityFrameworkCore.PostgreSQL and never the
+		     concrete ProjectManagementContext - those stay Infrastructure-only. -->
+		<PackageReference Include="Microsoft.EntityFrameworkCore" />
+		<PackageReference Include="Microsoft.AspNetCore.Authorization" />
+		<PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" />
+		<PackageReference Include="Microsoft.AspNetCore.Http.Features" />
+		<PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
+		<PackageReference Include="BCrypt.Net-Next" />
+		<PackageReference Include="System.IdentityModel.Tokens.Jwt" />
+		<PackageReference Include="FluentValidation.AspNetCore" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\KhoiProjectManagement.Domain\KhoiProjectManagement.Domain.csproj" />
+	</ItemGroup>
+
+</Project>

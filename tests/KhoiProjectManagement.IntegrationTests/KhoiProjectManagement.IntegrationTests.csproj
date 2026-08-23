@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<IsPackable>false</IsPackable>
+		<IsTestProject>true</IsTestProject>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.NET.Test.Sdk" />
+		<PackageReference Include="xunit" />
+		<PackageReference Include="xunit.runner.visualstudio">
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+			<PrivateAssets>all</PrivateAssets>
+		</PackageReference>
+		<PackageReference Include="coverlet.collector">
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+			<PrivateAssets>all</PrivateAssets>
+		</PackageReference>
+		<!-- Boots the real Api in-process via WebApplicationFactory<Program> against a throwaway
+		     Testcontainers Postgres instance - see Infrastructure/ for the shared fixture. -->
+		<PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+		<PackageReference Include="Testcontainers.PostgreSql" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\..\KhoiProjectManagementApi\KhoiProjectManagementApi.csproj" />
+		<ProjectReference Include="..\..\KhoiProjectManagement.Infrastructure\KhoiProjectManagement.Infrastructure.csproj" />
+	</ItemGroup>
+
+</Project>

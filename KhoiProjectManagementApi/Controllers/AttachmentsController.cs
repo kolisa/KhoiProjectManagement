@@ -1,5 +1,5 @@
-﻿using KhoiProjectManagement.Models.DTOs;
-using KhoiProjectManagementApi.Services;
+using KhoiProjectManagement.Application;
+using KhoiProjectManagement.Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
@@ -13,11 +13,13 @@ namespace KhoiProjectManagementApi.Controllers
     {
         private readonly IAttachmentService _attachmentService;
         private readonly IConfiguration _configuration;
+        private readonly ILogger<AttachmentsController> _logger;
 
-        public AttachmentsController(IAttachmentService attachmentService, IConfiguration configuration)
+        public AttachmentsController(IAttachmentService attachmentService, IConfiguration configuration, ILogger<AttachmentsController> logger)
         {
             _attachmentService = attachmentService;
             _configuration = configuration;
+            _logger = logger;
         }
 
         [HttpPost("upload")]
@@ -72,7 +74,7 @@ namespace KhoiProjectManagementApi.Controllers
             }
             catch (Exception ex)
             {
-                // optionally log ex here
+                _logger.LogError(ex, "Failed to read attachment {AttachmentId} from disk at {FilePath}", id, filePath);
                 return StatusCode(500, "An error occurred while reading the file.");
             }
         }

@@ -1,5 +1,5 @@
 // src/services/ApiService.js
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://localhost:7148/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://localhost:7148/api';
 
 class ApiService {
   constructor() {
@@ -20,8 +20,17 @@ class ApiService {
 
     try {
       const response = await fetch(url, config);
-      
+
       if (response.status === 401) {
+        // A 401 from /auth/login itself just means "wrong credentials" - not an expired session -
+        // so it must reach LoginForm's own catch block and show an inline error, not trigger the
+        // full-page reload below (which was silently discarding that error before the user ever saw
+        // it - found via an E2E test against a real browser; jsdom stubs location.reload() as a
+        // no-op, which is why component-level tests never caught this).
+        if (endpoint === '/auth/login') {
+          throw new Error('Invalid email or password');
+        }
+
         this.token = null;
         localStorage.removeItem('jwt_token');
         window.location.reload();
@@ -67,6 +76,20 @@ class ApiService {
     return await this.request('/auth/register', {
       method: 'POST',
       body: JSON.stringify(userData),
+    });
+  }
+
+  async forgotPassword(email) {
+    return await this.request('/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+  }
+
+  async resetPassword(token, newPassword) {
+    return await this.request('/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify({ token, newPassword }),
     });
   }
 
@@ -289,6 +312,10 @@ class ApiService {
   }
 
   // Wiki
+  async searchWiki(query) {
+    return await this.request(`/wiki/search?q=${encodeURIComponent(query)}`);
+  }
+
   async getWikiPages(spaceId, parentPageId) {
     const parentQuery = parentPageId !== undefined && parentPageId !== null ? `&parentPageId=${parentPageId}` : '';
     return await this.request(`/wiki/pages?spaceId=${spaceId}${parentQuery}`);
@@ -315,6 +342,28 @@ class ApiService {
   async deleteWikiPage(id) {
     return await this.request(`/wiki/pages/${id}`, {
       method: 'DELETE',
+    });
+  }
+
+  async moveWikiPage(id, newParentPageId) {
+    return await this.request(`/wiki/pages/${id}/move`, {
+      method: 'PUT',
+      body: JSON.stringify({ newParentPageId }),
+    });
+  }
+
+  async reorderWikiPages(spaceId, parentPageId, orderedPageIds) {
+    const parentQuery = parentPageId !== undefined && parentPageId !== null ? `&parentPageId=${parentPageId}` : '';
+    return await this.request(`/wiki/pages/reorder?spaceId=${spaceId}${parentQuery}`, {
+      method: 'PUT',
+      body: JSON.stringify({ orderedPageIds }),
+    });
+  }
+
+  async setWikiPageLabels(id, labels) {
+    return await this.request(`/wiki/pages/${id}/labels`, {
+      method: 'PUT',
+      body: JSON.stringify({ labels }),
     });
   }
 
@@ -521,6 +570,105 @@ class ApiService {
   async deleteIdeaAttachmentAnnotation(annotationId) {
     return await this.request(`/ideas/annotations/${annotationId}`, {
       method: 'DELETE',
+    });
+  }
+
+  // --- Reminders ---
+
+  async getReminders(filters = {}) {
+    const params = new URLSearchParams();
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') params.set(key, value);
+    });
+    const qs = params.toString();
+    return await this.request(`/reminders${qs ? `?${qs}` : ''}`);
+  }
+
+  async getReminderSummary() {
+    return await this.request('/reminders/summary');
+  }
+
+  async getReminder(id) {
+    return await this.request(`/reminders/${id}`);
+  }
+
+  async createReminder(dto) {
+    return await this.request('/reminders', {
+      method: 'POST',
+      body: JSON.stringify(dto),
+    });
+  }
+
+  async updateReminder(id, dto) {
+    return await this.request(`/reminders/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(dto),
+    });
+  }
+
+  async deleteReminder(id) {
+    return await this.request(`/reminders/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async completeReminder(id) {
+    return await this.request(`/reminders/${id}/complete`, {
+      method: 'POST',
+    });
+  }
+
+  async reopenReminder(id) {
+    return await this.request(`/reminders/${id}/reopen`, {
+      method: 'POST',
+    });
+  }
+
+  async snoozeReminder(id, snoozeUntil) {
+    return await this.request(`/reminders/${id}/snooze`, {
+      method: 'POST',
+      body: JSON.stringify({ snoozeUntil }),
+    });
+  }
+
+  async duplicateReminder(id) {
+    return await this.request(`/reminders/${id}/duplicate`, {
+      method: 'POST',
+    });
+  }
+
+  async bulkCompleteReminders(ids) {
+    return await this.request('/reminders/bulk/complete', {
+      method: 'POST',
+      body: JSON.stringify({ ids }),
+    });
+  }
+
+  async bulkDeleteReminders(ids) {
+    return await this.request('/reminders/bulk', {
+      method: 'DELETE',
+      body: JSON.stringify({ ids }),
+    });
+  }
+
+  async bulkRescheduleReminders(ids, dueAt) {
+    return await this.request('/reminders/bulk/reschedule', {
+      method: 'PUT',
+      body: JSON.stringify({ ids, dueAt }),
+    });
+  }
+
+  async bulkPriorityReminders(ids, priority) {
+    return await this.request('/reminders/bulk/priority', {
+      method: 'PUT',
+      body: JSON.stringify({ ids, priority }),
+    });
+  }
+
+  async bulkAssignReminders(ids, assignedToId) {
+    return await this.request('/reminders/bulk/assign', {
+      method: 'PUT',
+      body: JSON.stringify({ ids, assignedToId }),
     });
   }
 

@@ -1,0 +1,58 @@
+// e2e/project-crud.spec.js - critical journey #2: create, edit, and delete a project through the
+// real UI/API/DB.
+import { test, expect } from '@playwright/test';
+
+const ADMIN_EMAIL = 'kholisa@khoitech.Africa';
+const ADMIN_PASSWORD = 'admin123';
+
+test.describe('Project CRUD', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/');
+    await page.getByPlaceholder('Email address').fill(ADMIN_EMAIL);
+    await page.getByPlaceholder('Password').fill(ADMIN_PASSWORD);
+    await page.getByRole('button', { name: /sign in/i }).click();
+    await expect(page.getByRole('heading', { name: /^dashboard$/i })).toBeVisible();
+
+    await page.getByRole('button', { name: /^projects$/i }).click();
+  });
+
+  test('creates a project, edits it, then deletes it', async ({ page }) => {
+    // window.confirm() (delete) and window.alert() (success messages) both need an explicit accept -
+    // Playwright dismisses dialogs by default, which would make confirm() return false.
+    page.on('dialog', (dialog) => dialog.accept());
+
+    const projectName = `E2E Project ${Date.now()}`;
+    const updatedName = `${projectName} (edited)`;
+
+    await page.getByRole('button', { name: /new project/i }).click();
+    await page.getByPlaceholder('Project Name').fill(projectName);
+    await page.getByPlaceholder('Description').fill('Created by a Playwright E2E test');
+    const today = new Date().toISOString().slice(0, 10);
+    const nextMonth = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    await page.locator('input[type="date"]').nth(0).fill(today);
+    await page.locator('input[type="date"]').nth(1).fill(nextMonth);
+    await page.getByRole('button', { name: /^add project$/i }).click();
+
+    await expect(page.getByRole('heading', { name: projectName })).toBeVisible();
+
+    // Edit it - the card's action area holds Edit3 then Trash2 icon buttons (Admin holds both
+    // projects.edit and projects.delete), so the edit button is the first of the two.
+    let card = page.locator('div', { has: page.getByRole('heading', { name: projectName }) }).last();
+    await card.getByRole('button').first().click();
+
+    await expect(page.getByRole('heading', { name: /edit project/i })).toBeVisible();
+    const nameField = page.getByPlaceholder('Project Name');
+    await expect(nameField).toHaveValue(projectName);
+    await nameField.fill(updatedName);
+    await page.getByRole('button', { name: /save changes/i }).click();
+
+    await expect(page.getByRole('heading', { name: updatedName })).toBeVisible();
+    await expect(page.getByRole('heading', { name: projectName, exact: true })).not.toBeVisible();
+
+    // Delete it via the trash icon on that (now renamed) card.
+    card = page.locator('div', { has: page.getByRole('heading', { name: updatedName }) }).last();
+    await card.getByRole('button').last().click();
+
+    await expect(page.getByRole('heading', { name: updatedName })).not.toBeVisible();
+  });
+});

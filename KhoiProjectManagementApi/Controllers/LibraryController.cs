@@ -1,4 +1,5 @@
-using KhoiProjectManagementApi.Services;
+using KhoiProjectManagement.Application;
+using KhoiProjectManagement.Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 

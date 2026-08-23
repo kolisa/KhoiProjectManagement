@@ -1,38 +1,30 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+<Project Sdk="Microsoft.NET.Sdk.Web">
 
 	<ItemGroup>
-		<PackageReference Include="Microsoft.EntityFrameworkCore" />
-		<PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
-		<PackageReference Include="Microsoft.EntityFrameworkCore.Tools">
-		  <PrivateAssets>all</PrivateAssets>
-		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-		</PackageReference>
+		<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
+		<PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+		<PackageReference Include="Swashbuckle.AspNetCore" />
+		<PackageReference Include="Serilog.AspNetCore" />
+		<PackageReference Include="Serilog.Sinks.File" />
+		<!-- dotnet ef requires Design on the STARTUP project specifically - Infrastructure's own
+		     reference (PrivateAssets="all") doesn't flow transitively for tooling purposes. Design-time
+		     only, unrelated to anything the app needs at runtime. -->
 		<PackageReference Include="Microsoft.EntityFrameworkCore.Design">
 		  <PrivateAssets>all</PrivateAssets>
 		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
-		<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
-		<PackageReference Include="Microsoft.AspNetCore.DataProtection.EntityFrameworkCore" />
-		<PackageReference Include="Microsoft.AspNetCore.OpenApi" />
-		<PackageReference Include="Swashbuckle.AspNetCore" />
-		<PackageReference Include="BCrypt.Net-Next" />
-		<PackageReference Include="System.IdentityModel.Tokens.Jwt" />
-		<PackageReference Include="MailKit" />
-		<PackageReference Include="MimeKit" />
-		<PackageReference Include="Serilog.AspNetCore" />
-		<PackageReference Include="Serilog.Sinks.File" />
-		<PackageReference Include="AutoMapper" />
-		<PackageReference Include="AutoMapper.Extensions.Microsoft.DependencyInjection" />
-		<PackageReference Include="FluentValidation.AspNetCore" />
 	</ItemGroup>
 
 	<ItemGroup>
 		<Folder Include="wwwroot\uploads\" />
-		<Folder Include="wwwroot\uploads\" />
 		<Folder Include="Logs\" />
 	</ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\KhoiProjectManagement.Models\KhoiProjectManagement.Models.csproj" />
-  </ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\KhoiProjectManagement.Domain\KhoiProjectManagement.Domain.csproj" />
+		<ProjectReference Include="..\KhoiProjectManagement.Infrastructure\KhoiProjectManagement.Infrastructure.csproj" />
+		<ProjectReference Include="..\KhoiProjectManagement.Application\KhoiProjectManagement.Application.csproj" />
+		<ProjectReference Include="..\KhoiProjectManagement.Quartz\KhoiProjectManagement.Quartz.csproj" />
+	</ItemGroup>
 
 </Project>
