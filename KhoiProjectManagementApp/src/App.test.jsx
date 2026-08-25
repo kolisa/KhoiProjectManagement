@@ -49,6 +49,24 @@ describe('App (LoginForm / AuthGuard)', () => {
     expect(screen.getByPlaceholderText(/email address/i)).toBeInTheDocument();
   });
 
+  it('shows a "couldn\'t reach the server" error (not "wrong password") when the request never reaches the API', async () => {
+    // Regression test: a CORS block, a dead connection, or a timeout must not be misreported as
+    // "Invalid email or password" - that sends people chasing the wrong problem entirely (this exact
+    // confusion is what prompted this fix). HttpResponse.error() simulates a real network-level
+    // failure, same as an actual CORS-blocked or unreachable request would produce.
+    server.use(http.post(`${API_BASE_URL}/auth/login`, () => HttpResponse.error()));
+    const user = userEvent.setup();
+    render(<App />);
+    await screen.findByText(/sign in to khoi pro/i);
+
+    await user.type(screen.getByPlaceholderText(/email address/i), 'admin@khoitech.africa');
+    await user.type(screen.getByPlaceholderText(/^password$/i), 'admin123');
+    await user.click(screen.getByRole('button', { name: /sign in/i }));
+
+    expect(await screen.findByText(/couldn't reach the server/i)).toBeInTheDocument();
+    expect(screen.queryByText(/invalid email or password/i)).not.toBeInTheDocument();
+  });
+
   it('reaches the authenticated dashboard shell after a successful login', async () => {
     const loginResponse = {
       token: 'fake-jwt-token',

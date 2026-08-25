@@ -1,7 +1,7 @@
 // src/App.js - Complete Project Management Frontend
 import React, { useState, useEffect } from 'react';
 import { Plus, Search, Calendar, Users, CheckCircle, Clock, AlertCircle, Trash2, Edit3, User, Bell, FileText, Tag, Download, Upload, Flag, Shield, UserCheck, Eye, LogOut, Menu, X, Mail, Lock, ChevronDown } from 'lucide-react';
-import ApiService from './services/ApiService';
+import ApiService, { NetworkError } from './services/ApiService';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { hasPermission } from './utils/permissions';
 import { validateProject, validateTask, hasErrors } from './utils/validation';
@@ -126,7 +126,15 @@ const LoginForm = ({ onForgotPassword }) => {
         try {
             await login(email, password);
         } catch (error) {
-            setError('Invalid email or password');
+            // A NetworkError means the request never reached the server at all (CORS block, offline,
+            // timeout, DNS failure) - blaming the password for that is actively misleading and sends
+            // people chasing the wrong problem (this exact confusion is why this distinction exists -
+            // see ApiService.js's NetworkError).
+            setError(
+                error instanceof NetworkError
+                    ? "Couldn't reach the server. Check your connection, or that this site is allowed to call the API (CORS)."
+                    : 'Invalid email or password'
+            );
         } finally {
             setLoading(false);
         }
