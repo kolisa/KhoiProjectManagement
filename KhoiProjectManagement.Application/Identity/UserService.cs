@@ -38,13 +38,20 @@ namespace KhoiProjectManagement.Application
 
         public async Task<TeamMemberDto?> GetUserByEmailAsync(string email)
         {
-            var user = await _userRepo.Query().FirstOrDefaultAsync(u => u.Email == email);
+            // Case-insensitive - email addresses are conventionally treated as case-insensitive
+            // everywhere (login forms, "forgot password", etc.), but Postgres' default column
+            // collation is case-sensitive, so a plain == silently fails to find an existing user for
+            // any differently-cased but otherwise-correct email (e.g. the seeded
+            // kholisa@khoitech.Africa vs someone typing kholisa@khoitech.africa) - this was reported
+            // as "wrong password" even with the right password, since the user lookup itself failed
+            // before the password was ever checked.
+            var user = await _userRepo.Query().FirstOrDefaultAsync(u => u.Email.ToLower() == email.ToLower());
             return user == null ? null : MapToDto(user);
         }
 
         public async Task<TeamMemberDto> CreateUserAsync(CreateUserDto createUserDto)
         {
-            var existingUser = await _userRepo.Query().FirstOrDefaultAsync(u => u.Email == createUserDto.Email);
+            var existingUser = await _userRepo.Query().FirstOrDefaultAsync(u => u.Email.ToLower() == createUserDto.Email.ToLower());
             if (existingUser != null)
             {
                 throw new InvalidOperationException("User with this email already exists");
@@ -132,7 +139,10 @@ namespace KhoiProjectManagement.Application
 
         public async Task<bool> ValidateUserCredentialsAsync(string email, string password)
         {
-            var user = await _userRepo.Query().FirstOrDefaultAsync(u => u.Email == email && u.IsActive);
+            // Case-insensitive on the email - see GetUserByEmailAsync's comment above. The password
+            // itself stays case-sensitive (BCrypt.Verify below), which is correct - only the email
+            // lookup was ever the problem.
+            var user = await _userRepo.Query().FirstOrDefaultAsync(u => u.Email.ToLower() == email.ToLower() && u.IsActive);
             if (user == null)
                 return false;
 
