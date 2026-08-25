@@ -1,6 +1,7 @@
 {
   "outputDirectory": "build",
   "rewrites": [
+    { "source": "/api/(.*)", "destination": "http://160.119.249.227/api/$1" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
