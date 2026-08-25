@@ -1,0 +1,22 @@
+{
+  "_comment": "Copy this file to appsettings.Production.json (gitignored - never commit the real one) and fill in real values. ASP.NET Core layers appsettings.{ASPNETCORE_ENVIRONMENT}.json on top of appsettings.json automatically, so anything you don't override here still falls back to the base file's value.",
+
+  "ConnectionStrings": {
+    "DefaultConnection": "Host=127.0.0.1;Port=5432;Database=your_production_db;Username=your_api_user;Password=REPLACE_ME"
+  },
+
+  "Jwt": {
+    "_comment": "The base appsettings.json's SecretKey is a shared dev value - generate and set a real one here for production; anyone with that key can forge valid tokens.",
+    "SecretKey": "REPLACE_ME_WITH_A_LONG_RANDOM_PRODUCTION_SECRET"
+  },
+
+  "App": {
+    "FrontendBaseUrl": "https://your-production-frontend-domain",
+    "_comment_AutoMigrateOnStartup": "false so the API never silently applies schema changes (or seeds the documented demo accounts) against a real database just by starting - run 'dotnet ef database update' as its own deliberate step instead. See README.md's Deploying to a server section.",
+    "AutoMigrateOnStartup": false
+  },
+
+  "Cors": {
+    "AllowedOrigins": [ "https://your-production-frontend-domain" ]
+  }
+}

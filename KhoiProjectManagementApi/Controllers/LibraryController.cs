@@ -69,7 +69,7 @@ namespace KhoiProjectManagementApi.Controllers
         }
 
         [HttpPost("files")]
-        public async Task<IActionResult> UploadFile([FromForm] int spaceId, [FromForm] IFormFile file)
+        public async Task<IActionResult> UploadFile([FromForm] int spaceId, IFormFile file)
         {
             try
             {
@@ -83,7 +83,7 @@ namespace KhoiProjectManagementApi.Controllers
         }
 
         [HttpPost("files/{id}/versions")]
-        public async Task<IActionResult> UploadNewVersion(int id, [FromForm] IFormFile file, [FromForm] string? comment)
+        public async Task<IActionResult> UploadNewVersion(int id, IFormFile file, [FromForm] string? comment)
         {
             try
             {

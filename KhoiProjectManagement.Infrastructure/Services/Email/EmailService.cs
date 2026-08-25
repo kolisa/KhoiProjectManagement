@@ -126,7 +126,16 @@ namespace KhoiProjectManagement.Infrastructure.Services
                 };
                 message.Body = bodyBuilder.ToMessageBody();
 
-                using var client = new SmtpClient();
+                using var client = new SmtpClient
+                {
+                    // MailKit's default per-operation socket timeout is 100 seconds - on a slow or
+                    // unreachable SMTP relay that means Connect/Authenticate/Send can each individually
+                    // hang for up to 100s before failing, and callers like AuthService.RequestPasswordResetAsync
+                    // await this send synchronously (they only swallow the eventual exception, not the
+                    // wait itself), so a slow mail server would otherwise stall the whole HTTP response
+                    // for that long. Bounded to a much shorter, still-generous timeout instead.
+                    Timeout = 20_000
+                };
                 await client.ConnectAsync(
                     smtpHost,
                     int.Parse(_configuration["Email:SmtpPort"] ?? "587"),

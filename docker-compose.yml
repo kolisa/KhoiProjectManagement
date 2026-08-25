@@ -10,6 +10,40 @@ services:
       - "5433:5432"
     volumes:
       - khoi_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U khoi_dev -d ProjectManagementDB"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Optional - only needed if you want the API itself running in Docker too (see README.md's
+  # "Run everything in Docker" section). If you'd rather run the API with `dotnet run` on your host
+  # against just the postgres service above, don't start this one (`docker compose up postgres -d`).
+  api:
+    build:
+      context: .
+      dockerfile: KhoiProjectManagementApi/Dockerfile
+    ports:
+      # Same 5278 the http launchSettings.json profile and the frontend's .env.local already assume -
+      # only run the API one way (this container or `dotnet run`) at a time, not both, to avoid a
+      # port clash.
+      - "5278:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      # Overrides appsettings.json's connection string (localhost:5433, for a host-side `dotnet run`)
+      # with the Postgres container's own network - "postgres" resolves via Docker Compose's internal
+      # DNS to the postgres service above, on its *container* port 5432, not the host-mapped 5433.
+      ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=ProjectManagementDB;Username=khoi_dev;Password=khoi_dev_local_only"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      # Uploaded attachments/invoices/wiki files and daily log files survive `docker compose down`/
+      # image rebuilds instead of living only in the container's writable layer.
+      - khoi_api_uploads:/app/wwwroot
+      - khoi_api_logs:/app/Logs
 
 volumes:
   khoi_pgdata:
+  khoi_api_uploads:
+  khoi_api_logs:

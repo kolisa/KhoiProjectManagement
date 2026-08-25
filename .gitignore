@@ -1,3 +1,11 @@
+## Real per-environment secrets (server connection strings, production SMTP/JWT overrides) - unlike
+## appsettings.json/appsettings.Development.json (already committed, no real secrets in the latter),
+## anything named appsettings.<Environment>.json beyond those two is assumed to hold real credentials
+## and must never be committed. See appsettings.Production.json.example for the tracked template and
+## README.md's "Deploying to a server" section for how this gets used.
+KhoiProjectManagementApi/appsettings.Production.json
+KhoiProjectManagementApi/appsettings.*.local.json
+
 ## Test output (backend/frontend/E2E - added alongside the test foundation)
 TestResults/
 KhoiProjectManagementApp/coverage/

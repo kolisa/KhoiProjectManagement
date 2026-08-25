@@ -15,6 +15,7 @@ import InvoicesPage from './components/Finance/InvoicesPage';
 import RemindersPage from './components/Reminders/RemindersPage';
 import ForgotPasswordForm from './components/Auth/ForgotPasswordForm';
 import ResetPasswordForm from './components/Auth/ResetPasswordForm';
+import OfflineBanner from './components/Common/OfflineBanner';
 import khoiLogo from './assets/khoi-logo.png';
 
 // Utility Components
@@ -1685,6 +1686,7 @@ const App = () => {
     return (
         <AuthProvider>
             <div className="App">
+                <OfflineBanner />
                 <AuthGuard />
             </div>
         </AuthProvider>

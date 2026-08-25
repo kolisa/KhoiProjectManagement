@@ -88,7 +88,7 @@ namespace KhoiProjectManagementApi.Controllers
 
         [HttpPost("{id}/upload")]
         [Authorize(Policy = "finance.manage")]
-        public async Task<IActionResult> UploadFile(int id, [FromForm] IFormFile file)
+        public async Task<IActionResult> UploadFile(int id, IFormFile file)
         {
             var result = await _invoiceService.UploadFileAsync(id, file);
             if (result == null)

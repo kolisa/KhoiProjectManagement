@@ -150,7 +150,7 @@ namespace KhoiProjectManagementApi.Controllers
         }
 
         [HttpPost("{id}/attachments")]
-        public async Task<IActionResult> UploadAttachment(int id, [FromForm] IFormFile file)
+        public async Task<IActionResult> UploadAttachment(int id, IFormFile file)
         {
             var attachment = await _ideaService.UploadAttachmentAsync(id, file, User);
             if (attachment == null)

@@ -1,13 +1,60 @@
 // src/services/ApiService.js
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://localhost:7148/api';
 
+// Plain JSON requests get a fairly generous bound - long enough to tolerate a genuinely slow (not
+// just laggy) connection without the caller's loading spinner spinning forever with no way out.
+// File transfers (requestMultipart/downloadBlob) get their own, much longer bound below - a slow
+// connection needs *more* time to move bytes, not less.
+const DEFAULT_TIMEOUT_MS = 20_000;
+const UPLOAD_TIMEOUT_MS = 120_000;
+
+// Thrown for "never got a response at all" (timed out, offline, DNS/connection failure) - distinct
+// from a normal HTTP error response, so callers/UI can tell "the server said no" apart from
+// "we couldn't reach the server," which matters for what to tell the user and whether retrying makes
+// sense at all.
+export class NetworkError extends Error {
+  constructor(message, { cause } = {}) {
+    super(message);
+    this.name = 'NetworkError';
+    this.isNetworkError = true;
+    if (cause) this.cause = cause;
+  }
+}
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// fetchWithTimeout above already converts every network-level failure (timeout, offline, DNS/
+// connection failure) into a NetworkError before it reaches here - a real HTTP error response
+// (thrown just below as a plain Error) is never retried.
+const isTransientFetchFailure = (error) => error instanceof NetworkError;
+
 class ApiService {
   constructor() {
     this.token = localStorage.getItem('jwt_token') || null;
     this.refreshToken = localStorage.getItem('refresh_token') || null;
   }
 
-  async request(endpoint, options = {}) {
+  async fetchWithTimeout(url, config, timeoutMs) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      return await fetch(url, { ...config, signal: controller.signal });
+    } catch (error) {
+      if (error.name === 'AbortError') {
+        throw new NetworkError('The request timed out - your connection may be slow or offline.', { cause: error });
+      }
+      // A plain fetch TypeError ("Failed to fetch"/"NetworkError when attempting to fetch resource")
+      // means the request never reached the server at all (offline, DNS failure, connection refused).
+      if (error.name === 'TypeError') {
+        throw new NetworkError('Could not reach the server - check your connection.', { cause: error });
+      }
+      throw error;
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  }
+
+  async request(endpoint, options = {}, { timeoutMs = DEFAULT_TIMEOUT_MS } = {}) {
     const url = `${API_BASE_URL}${endpoint}`;
     const config = {
       headers: {
@@ -17,39 +64,49 @@ class ApiService {
       },
       ...options,
     };
+    // GET is idempotent - safe to retry once, transparently, on a network-level failure (not on a
+    // real HTTP error response) before making the caller deal with it. Non-GET requests never retry
+    // here, since a timed-out POST/PUT/DELETE may or may not have actually been applied server-side.
+    const isRetryable = !config.method || config.method.toUpperCase() === 'GET';
 
-    try {
-      const response = await fetch(url, config);
+    for (let attempt = 0; ; attempt++) {
+      try {
+        const response = await this.fetchWithTimeout(url, config, timeoutMs);
 
-      if (response.status === 401) {
-        // A 401 from /auth/login itself just means "wrong credentials" - not an expired session -
-        // so it must reach LoginForm's own catch block and show an inline error, not trigger the
-        // full-page reload below (which was silently discarding that error before the user ever saw
-        // it - found via an E2E test against a real browser; jsdom stubs location.reload() as a
-        // no-op, which is why component-level tests never caught this).
-        if (endpoint === '/auth/login') {
-          throw new Error('Invalid email or password');
+        if (response.status === 401) {
+          // A 401 from /auth/login itself just means "wrong credentials" - not an expired session -
+          // so it must reach LoginForm's own catch block and show an inline error, not trigger the
+          // full-page reload below (which was silently discarding that error before the user ever saw
+          // it - found via an E2E test against a real browser; jsdom stubs location.reload() as a
+          // no-op, which is why component-level tests never caught this).
+          if (endpoint === '/auth/login') {
+            throw new Error('Invalid email or password');
+          }
+
+          this.token = null;
+          localStorage.removeItem('jwt_token');
+          window.location.reload();
+          return null;
         }
 
-        this.token = null;
-        localStorage.removeItem('jwt_token');
-        window.location.reload();
-        return null;
-      }
+        if (!response.ok) {
+          throw new Error(`API Error: ${response.status} ${response.statusText}`);
+        }
 
-      if (!response.ok) {
-        throw new Error(`API Error: ${response.status} ${response.statusText}`);
-      }
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          return await response.json();
+        }
 
-      const contentType = response.headers.get('content-type');
-      if (contentType && contentType.includes('application/json')) {
-        return await response.json();
+        return response;
+      } catch (error) {
+        if (isRetryable && attempt === 0 && isTransientFetchFailure(error)) {
+          await sleep(1500);
+          continue;
+        }
+        console.error('API Request failed:', error);
+        throw error;
       }
-      
-      return response;
-    } catch (error) {
-      console.error('API Request failed:', error);
-      throw error;
     }
   }
 
@@ -437,13 +494,16 @@ class ApiService {
 
   async requestMultipart(endpoint, form, method = 'POST', noContent = false) {
     const url = `${API_BASE_URL}${endpoint}`;
-    const response = await fetch(url, {
+    // File uploads get the longer UPLOAD_TIMEOUT_MS bound (not the default) and are never
+    // auto-retried - re-sending a large file transparently on a flaky connection would be wasteful
+    // and, for a non-idempotent upload, could create a duplicate.
+    const response = await this.fetchWithTimeout(url, {
       method,
       headers: {
         ...(this.token && { Authorization: `Bearer ${this.token}` }),
       },
       body: form,
-    });
+    }, UPLOAD_TIMEOUT_MS);
 
     if (response.status === 401) {
       this.token = null;
@@ -462,11 +522,13 @@ class ApiService {
 
   async downloadBlob(endpoint, fileName) {
     const url = `${API_BASE_URL}${endpoint}`;
-    const response = await fetch(url, {
+    // Same longer bound as requestMultipart - downloading a file over a slow connection legitimately
+    // takes longer than a normal JSON request.
+    const response = await this.fetchWithTimeout(url, {
       headers: {
         ...(this.token && { Authorization: `Bearer ${this.token}` }),
       },
-    });
+    }, UPLOAD_TIMEOUT_MS);
 
     if (!response.ok) {
       throw new Error(`API Error: ${response.status} ${response.statusText}`);
@@ -753,13 +815,14 @@ class ApiService {
     localStorage.removeItem('refresh_token');
 
     if (refreshToken) {
-      // Best-effort server-side revocation - the client-side tokens are already cleared either way.
+      // Best-effort server-side revocation - the client-side tokens are already cleared either way,
+      // so this is bounded rather than left to hang indefinitely on a dead connection.
       try {
-        await fetch(`${API_BASE_URL}/auth/logout`, {
+        await this.fetchWithTimeout(`${API_BASE_URL}/auth/logout`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ token: refreshToken }),
-        });
+        }, DEFAULT_TIMEOUT_MS);
       } catch (error) {
         console.error('Logout revocation failed:', error);
       }

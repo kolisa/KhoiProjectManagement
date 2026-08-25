@@ -1,0 +1,34 @@
+# Keeps the build context small and Docker's layer cache useful - none of this is needed to build the
+# API image (see KhoiProjectManagementApi/Dockerfile).
+
+**/bin/
+**/obj/
+**/.vs/
+.git/
+.github/
+.claude/
+
+# Frontend isn't part of the API image at all.
+KhoiProjectManagementApp/node_modules/
+KhoiProjectManagementApp/build/
+KhoiProjectManagementApp/coverage/
+KhoiProjectManagementApp/test-results/
+KhoiProjectManagementApp/playwright-report/
+
+# Test projects aren't published, and Testcontainers-generated output shouldn't be copied in either.
+tests/**/TestResults/
+
+# Runtime-written content (uploaded attachments/invoices/wiki files, daily logs) - the image should
+# start with empty directories (see the Dockerfile's `mkdir -p`), not whatever happens to be on disk
+# in a dev checkout; docker-compose.yml mounts named volumes over these same paths at runtime.
+KhoiProjectManagementApi/wwwroot/idea-files/
+KhoiProjectManagementApi/wwwroot/invoice-files/
+KhoiProjectManagementApi/wwwroot/invoice-templates/
+KhoiProjectManagementApi/wwwroot/library-files/
+KhoiProjectManagementApi/wwwroot/uploads/
+KhoiProjectManagementApi/Logs/
+
+# Not part of the KhoiProjectManagementApi/Dockerfile build at all.
+KhoiManagementApp/
+KhoiProjectManagement.Models/
+KhoiProjectManagement.Benchmarks/

@@ -88,6 +88,10 @@ try
     {
         app.UseSwagger();
         app.UseSwaggerUI();
+        // This is an API-only project - nothing else renders at "/", so send anyone who hits the bare
+        // host URL (typing it in by hand, an IDE's "open in browser" on the launch profile, etc.)
+        // straight to Swagger instead of a blank 404.
+        app.MapGet("/", () => Results.Redirect("/swagger"));
     }
 
     app.UseMiddleware<ErrorHandlingMiddleware>();
@@ -102,12 +106,25 @@ try
     using (var scope = app.Services.CreateScope())
     {
         var context = scope.ServiceProvider.GetRequiredService<ProjectManagementContext>();
-        await context.Database.MigrateAsync();
 
-        // Call the manual seeding method
-        await DatabaseSeeder.SeedAsync(context);
-
-        Log.Information("Database initialized and seeded successfully");
+        // Defaults to true (appsettings.json) so local dev/docker-compose keeps auto-migrating and
+        // seeding exactly as before with zero setup. appsettings.Production.json.example sets this to
+        // false: a shared production database shouldn't get schema changes applied - or, worse, the
+        // documented seeded demo accounts (kholisa@khoitech.Africa/admin123 etc. - see README.md)
+        // inserted - just because an API instance happened to (re)start. Multiple instances starting
+        // concurrently would also race to apply migrations against the same database. Production
+        // should run `dotnet ef database update` as its own deliberate, reviewed release step instead.
+        if (builder.Configuration.GetValue("App:AutoMigrateOnStartup", true))
+        {
+            await context.Database.MigrateAsync();
+            await DatabaseSeeder.SeedAsync(context);
+            Log.Information("Database initialized and seeded successfully");
+        }
+        else
+        {
+            Log.Information("Skipping automatic migration/seed - App:AutoMigrateOnStartup is false. " +
+                "Run 'dotnet ef database update' as a separate step before starting the API against this database.");
+        }
 
         // Ad-hoc immediate run, queued before the scheduler starts (see the AddQuartz comment above for
         // why this isn't done via the trigger's start time) - reproduces the old BackgroundServices'
