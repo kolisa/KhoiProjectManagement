@@ -17,6 +17,8 @@
   },
 
   "Cors": {
-    "AllowedOrigins": [ "https://your-production-frontend-domain" ]
+    "AllowedOrigins": [ "https://your-production-frontend-domain" ],
+    "_comment_AllowAnyOrigin": "Set true temporarily to unblock a freshly deployed frontend before you know its exact origin (reflects back whatever Origin header the browser sends, with credentials - any website can call this API while this is on). Once you know the real origin, put it in AllowedOrigins above and set this back to false/remove it.",
+    "AllowAnyOrigin": false
   }
 }

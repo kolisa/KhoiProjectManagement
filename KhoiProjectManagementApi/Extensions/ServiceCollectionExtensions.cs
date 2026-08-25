@@ -151,15 +151,32 @@ namespace KhoiProjectManagementApi.Extensions
             {
                 options.AddPolicy("AllowReactApp", policy =>
                 {
-                    var allowedOrigins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ??
-                                       new[] { "http://localhost:3000", 
-                                           "http://localhost:901", 
-                                           "http://localhost:80", 
-                                           "http://160.119.250.16/",
-                                           "http://localhost",
-                                           "http://localhost:905"};
-                    policy.WithOrigins(allowedOrigins)
-                          .AllowAnyHeader()
+                    // TEMPORARY escape hatch: Cors:AllowAnyOrigin=true reflects back whatever Origin
+                    // header the request actually sent instead of checking it against
+                    // Cors:AllowedOrigins - i.e. ANY website can call this API from a browser, with
+                    // credentials. Useful to unblock a freshly deployed frontend before its exact
+                    // origin is known/added below, but not something to leave on - once you know the
+                    // real origin (e.g. your Vercel domain), add it to Cors:AllowedOrigins instead and
+                    // flip this back to false (see README.md). AllowAnyOrigin() can't be combined with
+                    // AllowCredentials() below - browsers reject that combination outright - so this
+                    // uses SetIsOriginAllowed(_ => true), the documented way to get the same effect.
+                    if (configuration.GetValue("Cors:AllowAnyOrigin", false))
+                    {
+                        policy.SetIsOriginAllowed(_ => true);
+                    }
+                    else
+                    {
+                        var allowedOrigins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ??
+                                           new[] { "http://localhost:3000",
+                                               "http://localhost:901",
+                                               "http://localhost:80",
+                                               "http://160.119.250.16/",
+                                               "http://localhost",
+                                               "http://localhost:905"};
+                        policy.WithOrigins(allowedOrigins);
+                    }
+
+                    policy.AllowAnyHeader()
                           .AllowAnyMethod()
                           .AllowCredentials();
                 });
