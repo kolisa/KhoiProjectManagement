@@ -16,6 +16,16 @@
     "AutoMigrateOnStartup": false
   },
 
+  "Email": {
+    "_comment": "The base appsettings.json's Email block is a shared dev value - override it here with a real mailbox. For Gmail, SmtpUsername is the full address and SmtpPassword must be a 16-character App Password (Google Account > Security > 2-Step Verification > App passwords), not the account's login password - Gmail rejects SMTP auth with the real password once 2FA is on.",
+    "SmtpHost": "smtp.gmail.com",
+    "SmtpPort": 587,
+    "SmtpUsername": "REPLACE_ME@gmail.com",
+    "SmtpPassword": "REPLACE_ME_APP_PASSWORD",
+    "FromAddress": "REPLACE_ME@gmail.com",
+    "FromName": "Khoi Health"
+  },
+
   "Cors": {
     "AllowedOrigins": [ "https://your-production-frontend-domain" ],
     "_comment_AllowAnyOrigin": "Set true temporarily to unblock a freshly deployed frontend before you know its exact origin (reflects back whatever Origin header the browser sends, with credentials - any website can call this API while this is on). Once you know the real origin, put it in AllowedOrigins above and set this back to false/remove it.",
