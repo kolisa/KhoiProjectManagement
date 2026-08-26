@@ -212,7 +212,7 @@ const RemindersPage = ({ apiService, user }) => {
       <div className={`grid grid-cols-1 ${selectedReminder ? 'lg:grid-cols-3' : ''} gap-6`}>
         <div className={selectedReminder ? 'lg:col-span-2' : ''}>
           {reminders === null && (
-            <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-3" aria-busy="true" aria-label="Loading reminders">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-3" aria-busy="true" aria-label="Loading reminders">
               {[...Array(4)].map((_, i) => (
                 <div key={i} className="h-12 bg-gray-100 rounded-lg animate-pulse" />
               ))}
@@ -220,7 +220,7 @@ const RemindersPage = ({ apiService, user }) => {
           )}
 
           {reminders?.length === 0 && (
-            <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-10 text-center text-gray-400">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-10 text-center text-gray-400">
               <Bell className="h-10 w-10 mx-auto mb-3 text-gray-300" />
               {Object.keys(filters).length > 0 ? (
                 <>

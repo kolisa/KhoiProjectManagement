@@ -82,7 +82,7 @@ const DashboardWidgetSettings = ({ apiService, user }) => {
         <p className="text-sm text-gray-500">Choose which widgets appear on your dashboard, and in what order.</p>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm divide-y divide-gray-100 max-w-2xl">
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm divide-y divide-gray-100 max-w-2xl">
         {prefs.map((p, i) => (
           <div key={p.widgetKey} className="p-3 flex items-center justify-between">
             <div className="flex items-center">
@@ -117,7 +117,7 @@ const DashboardWidgetSettings = ({ apiService, user }) => {
           <p className="text-sm text-gray-500 mb-2">
             Turning a widget off here removes it for everyone, regardless of their personal preference.
           </p>
-          <div className="bg-white rounded-xl border border-gray-100 shadow-sm divide-y divide-gray-100 max-w-2xl">
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm divide-y divide-gray-100 max-w-2xl">
             {catalog.map((c) => (
               <div key={c.widgetKey} className="p-3 flex items-center justify-between">
                 <div>

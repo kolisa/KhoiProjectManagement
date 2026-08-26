@@ -22,7 +22,7 @@ const ReminderSummaryCards = ({ summary, activeView, activePriority, onSelect })
           <button
             key={key}
             onClick={() => onSelect({ view: view ?? null, priority: priority ?? null })}
-            className={`bg-white rounded-xl border shadow-sm p-4 text-left hover:shadow-md transition-shadow ${
+            className={`bg-white rounded-2xl border shadow-sm p-4 text-left hover:shadow-md transition-shadow ${
               isActive ? 'border-blue-500 ring-1 ring-blue-100' : 'border-gray-100'
             }`}
           >

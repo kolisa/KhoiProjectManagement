@@ -4,18 +4,12 @@ import { Upload, Download, X } from 'lucide-react';
 import { hasPermission } from '../../utils/permissions';
 
 const InvoiceStatusBadge = ({ status }) => (
-  <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
-    status === 'Paid' ? 'bg-green-50 text-green-700' :
-    status === 'Sent' ? 'bg-amber-50 text-amber-700' :
-    status === 'Overdue' ? 'bg-red-50 text-red-700' :
-    'bg-gray-50 text-gray-700'
+  <span className={`inline-flex items-center px-[9px] py-[3px] rounded-[7px] text-[11.5px] font-semibold whitespace-nowrap ${
+    status === 'Paid' ? 'bg-[#E3F8E9] text-[#005F2E]' :
+    status === 'Sent' ? 'bg-[#FFEED6] text-[#874400]' :
+    status === 'Overdue' ? 'bg-[#FFEBE8] text-[#B71824]' :
+    'bg-[#F2F2F4] text-[#62626A]'
   }`}>
-    <span className={`w-1.5 h-1.5 rounded-full ${
-      status === 'Paid' ? 'bg-green-500' :
-      status === 'Sent' ? 'bg-amber-500' :
-      status === 'Overdue' ? 'bg-red-500' :
-      'bg-gray-400'
-    }`} />
     {status}
   </span>
 );
@@ -69,10 +63,10 @@ const InvoiceDetail = ({ apiService, user, invoice, onClose, onChanged }) => {
   };
 
   return (
-    <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
       <div className="flex justify-between items-start mb-4">
         <div>
-          <h3 className="text-base font-semibold text-gray-900">{invoice.invoiceNumber}</h3>
+          <h3 className="font-mono text-base font-semibold text-gray-900">{invoice.invoiceNumber}</h3>
           <p className="text-sm text-gray-500">{invoice.clientName}</p>
         </div>
         <button onClick={onClose} className="text-gray-400 hover:text-gray-600" aria-label="Close">
@@ -145,7 +139,7 @@ const InvoiceDetail = ({ apiService, user, invoice, onClose, onChanged }) => {
             type="text"
             value={templateName}
             onChange={(e) => setTemplateName(e.target.value)}
-            className="w-full border border-gray-300 rounded-lg px-3.5 py-2.5 mb-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+            className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 mb-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
             placeholder="Template name"
           />
           <div className="flex justify-end gap-3">

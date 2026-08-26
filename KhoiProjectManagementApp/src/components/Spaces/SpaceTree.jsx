@@ -79,6 +79,11 @@ const SpaceTree = ({ apiService, selectedSpaceId, onSelect }) => {
         const result = await apiService.getSpaces(null);
         setRoots(result || []);
         setError(null);
+        // Master-detail panes should never rest on an empty "select something" placeholder -
+        // preselect the first category the moment the list loads, same as a real click.
+        if (!selectedSpaceId && result && result.length > 0) {
+          onSelect(result[0]);
+        }
       } catch (err) {
         setError(err.message);
       } finally {
@@ -86,6 +91,7 @@ const SpaceTree = ({ apiService, selectedSpaceId, onSelect }) => {
       }
     };
     loadRoots();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [apiService]);
 
   if (loading) return <div className="text-sm text-gray-400 p-2">Loading spaces...</div>;

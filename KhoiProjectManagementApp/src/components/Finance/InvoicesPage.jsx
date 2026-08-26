@@ -7,18 +7,12 @@ import InvoiceDetail from './InvoiceDetail';
 const emptyLineItem = () => ({ description: '', quantity: 1, unitPrice: 0 });
 
 const InvoiceStatusBadge = ({ status }) => (
-  <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
-    status === 'Paid' ? 'bg-green-50 text-green-700' :
-    status === 'Sent' ? 'bg-amber-50 text-amber-700' :
-    status === 'Overdue' ? 'bg-red-50 text-red-700' :
-    'bg-gray-50 text-gray-700'
+  <span className={`inline-flex items-center px-[9px] py-[3px] rounded-[7px] text-[11.5px] font-semibold whitespace-nowrap ${
+    status === 'Paid' ? 'bg-[#E3F8E9] text-[#005F2E]' :
+    status === 'Sent' ? 'bg-[#FFEED6] text-[#874400]' :
+    status === 'Overdue' ? 'bg-[#FFEBE8] text-[#B71824]' :
+    'bg-[#F2F2F4] text-[#62626A]'
   }`}>
-    <span className={`w-1.5 h-1.5 rounded-full ${
-      status === 'Paid' ? 'bg-green-500' :
-      status === 'Sent' ? 'bg-amber-500' :
-      status === 'Overdue' ? 'bg-red-500' :
-      'bg-gray-400'
-    }`} />
     {status}
   </span>
 );
@@ -75,7 +69,7 @@ const InvoiceFormModal = ({ title, templates, onSave, onClose }) => {
               <select
                 value={templateId}
                 onChange={(e) => setTemplateId(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
               >
                 <option value="">None - blank invoice</option>
                 {templates.map((t) => (
@@ -86,10 +80,10 @@ const InvoiceFormModal = ({ title, templates, onSave, onClose }) => {
           )}
 
           <div className="grid grid-cols-2 gap-3">
-            <input placeholder="Invoice number" value={invoiceNumber} onChange={(e) => setInvoiceNumber(e.target.value)} className="border border-gray-300 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow" />
-            <input placeholder="Client name" value={clientName} onChange={(e) => setClientName(e.target.value)} className="border border-gray-300 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow" />
-            <input type="date" value={issueDate} onChange={(e) => setIssueDate(e.target.value)} className="border border-gray-300 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow" />
-            <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} className="border border-gray-300 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow" />
+            <input placeholder="Invoice number" value={invoiceNumber} onChange={(e) => setInvoiceNumber(e.target.value)} className="border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow" />
+            <input placeholder="Client name" value={clientName} onChange={(e) => setClientName(e.target.value)} className="border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow" />
+            <input type="date" value={issueDate} onChange={(e) => setIssueDate(e.target.value)} className="border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow" />
+            <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} className="border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow" />
           </div>
 
           <div>
@@ -128,11 +122,11 @@ const InvoiceFormModal = ({ title, templates, onSave, onClose }) => {
         </div>
 
         <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3">
-          <button onClick={onClose} className="inline-flex items-center gap-2 bg-white text-gray-700 border border-gray-300 px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-gray-50 transition-colors">Cancel</button>
+          <button onClick={onClose} className="inline-flex items-center gap-2 bg-white text-gray-700 border border-gray-300 px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-gray-50 transition-colors">Cancel</button>
           <button
             onClick={handleSave}
             disabled={saving || !invoiceNumber.trim() || !clientName.trim()}
-            className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors disabled:opacity-50"
+            className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors disabled:opacity-50"
           >
             {saving ? 'Saving...' : 'Create'}
           </button>
@@ -187,7 +181,7 @@ const InvoicesPage = ({ apiService, user }) => {
 
   if (!canView) {
     return (
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-8 text-center text-gray-400">
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center text-gray-400">
         You don't have access to Finance.
       </div>
     );
@@ -206,7 +200,7 @@ const InvoicesPage = ({ apiService, user }) => {
         {canManage && (
           <button
             onClick={() => setShowForm(true)}
-            className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors"
+            className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors"
           >
             <Plus className="h-5 w-5" />
             New Invoice
@@ -224,7 +218,7 @@ const InvoicesPage = ({ apiService, user }) => {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm divide-y divide-gray-100">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm divide-y divide-gray-100">
           {invoices === null && <div className="p-6 text-gray-400">Loading...</div>}
           {invoices?.length === 0 && <div className="p-6 text-center text-gray-400">No invoices yet.</div>}
           {invoices?.map((inv) => (
@@ -234,7 +228,7 @@ const InvoicesPage = ({ apiService, user }) => {
               className={`p-4 cursor-pointer hover:bg-gray-50/60 transition-colors flex justify-between items-center ${selectedId === inv.id ? 'bg-blue-50' : ''}`}
             >
               <div>
-                <div className="font-medium text-gray-900">{inv.invoiceNumber}</div>
+                <div className="font-mono font-medium text-gray-900">{inv.invoiceNumber}</div>
                 <div className="text-sm text-gray-500 flex items-center gap-1.5 mt-0.5">
                   <span>{inv.clientName}</span>
                   <InvoiceStatusBadge status={inv.status} />
@@ -255,7 +249,7 @@ const InvoicesPage = ({ apiService, user }) => {
               onChanged={refreshSelected}
             />
           ) : (
-            <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-8 text-center text-gray-400">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center text-gray-400">
               Select an invoice to view details.
             </div>
           )}

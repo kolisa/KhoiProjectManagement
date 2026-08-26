@@ -65,7 +65,7 @@ const VaultEntryDetail = ({ apiService, entryId, myEffectiveLevel, onClose, onEd
   if (!entry) return <div className="p-4 text-gray-400">Loading...</div>;
 
   return (
-    <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
       <div className="flex justify-between items-start mb-4">
         <h3 className="text-base font-semibold text-gray-900">{entry.name}</h3>
         <div className="flex space-x-2">
@@ -103,7 +103,7 @@ const VaultEntryDetail = ({ apiService, entryId, myEffectiveLevel, onClose, onEd
           <dd className="flex items-center space-x-2">
             {secret ? (
               <>
-                <code className="bg-gray-100 px-2 py-1 rounded-lg">{secret}</code>
+                <code className="bg-gray-100 px-2 py-1 rounded-lg font-mono text-gray-800">{secret}</code>
                 <button onClick={() => setSecret(null)} className="text-gray-400 hover:text-gray-600" aria-label="Hide">
                   <EyeOff className="h-4 w-4" />
                 </button>

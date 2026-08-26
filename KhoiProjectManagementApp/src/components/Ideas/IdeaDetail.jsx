@@ -126,7 +126,7 @@ const IdeaDetail = ({ apiService, user, ideaId, onClose, onChanged }) => {
   if (!idea) return <div className="p-4 text-gray-400">Loading...</div>;
 
   return (
-    <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
       <div className="flex justify-between items-start mb-2">
         <div>
           <h3 className="text-xl font-semibold text-gray-900">{idea.title}</h3>
@@ -144,8 +144,7 @@ const IdeaDetail = ({ apiService, user, ideaId, onClose, onChanged }) => {
       <p className="text-gray-700 my-4">{idea.description}</p>
 
       <div className="flex items-center flex-wrap gap-3 mb-6">
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700">
-          <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+        <span className="inline-flex items-center px-[9px] py-[3px] rounded-[7px] text-[11.5px] font-semibold whitespace-nowrap bg-[#EEEEFF] text-[#4131B0]">
           {idea.status}
         </span>
 
@@ -153,7 +152,7 @@ const IdeaDetail = ({ apiService, user, ideaId, onClose, onChanged }) => {
           <select
             value={idea.status}
             onChange={(e) => handleStatusChange(e.target.value)}
-            className="border border-gray-300 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+            className="border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
           >
             {STATUS_OPTIONS.map((s) => (
               <option key={s} value={s}>{s}</option>
@@ -254,12 +253,12 @@ const IdeaDetail = ({ apiService, user, ideaId, onClose, onChanged }) => {
             onChange={(e) => setCommentBody(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') handleAddComment(); }}
             placeholder="Add a comment... (use @Name to mention someone)"
-            className="flex-1 border border-gray-300 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+            className="flex-1 border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
           />
           <button
             onClick={handleAddComment}
             disabled={!commentBody.trim()}
-            className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors disabled:opacity-50"
+            className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors disabled:opacity-50"
           >
             Comment
           </button>

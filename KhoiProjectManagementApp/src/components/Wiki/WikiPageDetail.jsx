@@ -150,7 +150,7 @@ const WikiPageDetail = ({ apiService, pageId, myEffectiveLevel, currentUserId, o
   }
 
   return (
-    <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
       <div className="flex justify-between items-start mb-4">
         <h3 className="text-xl font-semibold text-gray-900">{page.title}</h3>
         <div className="flex space-x-2">

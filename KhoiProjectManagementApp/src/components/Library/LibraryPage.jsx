@@ -158,7 +158,7 @@ const LibraryPage = ({ apiService, user, deepLink }) => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="md:col-span-1 bg-white rounded-xl border border-gray-100 shadow-sm p-3">
+        <div className="md:col-span-1 bg-white rounded-2xl border border-gray-100 shadow-sm p-3">
           <div className="flex justify-between items-center mb-2 px-1">
             <span className="text-xs font-semibold text-gray-500 uppercase">Folders</span>
             {canCreateFolder && (
@@ -177,7 +177,7 @@ const LibraryPage = ({ apiService, user, deepLink }) => {
 
         <div className="md:col-span-3 space-y-4">
           {!selectedSpace && (
-            <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-8 text-center text-gray-400">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center text-gray-400">
               Select a folder on the left to view its files.
             </div>
           )}
@@ -191,7 +191,7 @@ const LibraryPage = ({ apiService, user, deepLink }) => {
                     <button
                       onClick={() => uploadInputRef.current?.click()}
                       disabled={uploading}
-                      className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors disabled:opacity-50"
+                      className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors disabled:opacity-50"
                     >
                       <Upload className="h-5 w-5" />
                       {uploading ? 'Uploading...' : 'Upload File'}
@@ -206,7 +206,7 @@ const LibraryPage = ({ apiService, user, deepLink }) => {
               {loadingFiles && <div className="text-gray-400">Loading files...</div>}
 
               {!loadingFiles && (
-                <div className="bg-white rounded-xl border border-gray-100 shadow-sm divide-y divide-gray-100">
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm divide-y divide-gray-100">
                   {files.length === 0 && (
                     <div className="p-6 text-center text-gray-400">No files in this folder yet.</div>
                   )}
@@ -300,21 +300,21 @@ const LibraryPage = ({ apiService, user, deepLink }) => {
                 onChange={(e) => setNewFolderName(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') handleCreateFolder(); }}
                 placeholder="Folder name"
-                className="w-full border border-gray-300 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
               />
               {error && <div className="text-red-600 text-sm">{error}</div>}
             </div>
             <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3">
               <button
                 onClick={() => { setShowNewFolder(false); setNewFolderName(''); }}
-                className="inline-flex items-center gap-2 bg-white text-gray-700 border border-gray-300 px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-gray-50 transition-colors"
+                className="inline-flex items-center gap-2 bg-white text-gray-700 border border-gray-300 px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-gray-50 transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleCreateFolder}
                 disabled={creatingFolder || !newFolderName.trim()}
-                className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors disabled:opacity-50"
+                className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors disabled:opacity-50"
               >
                 {creatingFolder ? 'Creating...' : 'Create'}
               </button>

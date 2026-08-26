@@ -64,13 +64,13 @@ const VaultPage = ({ apiService }) => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="md:col-span-1 bg-white rounded-xl border border-gray-100 shadow-sm p-3">
+        <div className="md:col-span-1 bg-white rounded-2xl border border-gray-100 shadow-sm p-3">
           <SpaceTree apiService={apiService} selectedSpaceId={selectedSpace?.id} onSelect={handleSelectSpace} />
         </div>
 
         <div className="md:col-span-3 space-y-4">
           {!selectedSpace && (
-            <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-8 text-center text-gray-400">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center text-gray-400">
               Select a category on the left to view its entries.
             </div>
           )}
@@ -82,7 +82,7 @@ const VaultPage = ({ apiService }) => {
                 {canWrite && (
                   <button
                     onClick={() => { setEditingEntry(null); setShowModal(true); }}
-                    className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors"
+                    className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors"
                   >
                     <Plus className="h-5 w-5" />
                     New Entry
@@ -94,7 +94,7 @@ const VaultPage = ({ apiService }) => {
               {loadingEntries && <div className="text-gray-400">Loading entries...</div>}
 
               {!loadingEntries && !selectedEntryId && (
-                <div className="bg-white rounded-xl border border-gray-100 shadow-sm divide-y divide-gray-100">
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm divide-y divide-gray-100">
                   {entries.length === 0 && (
                     <div className="p-6 text-center text-gray-400">No entries in this category yet.</div>
                   )}

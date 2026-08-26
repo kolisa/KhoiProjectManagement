@@ -4,19 +4,11 @@ import { Lightbulb, Plus, X, MessageSquare } from 'lucide-react';
 import IdeaDetail from './IdeaDetail';
 
 const STATUS_COLORS = {
-  Submitted: 'bg-gray-50 text-gray-700',
-  UnderReview: 'bg-yellow-50 text-yellow-700',
-  Approved: 'bg-green-50 text-green-700',
-  Rejected: 'bg-red-50 text-red-700',
-  ConvertedToProject: 'bg-blue-50 text-blue-700',
-};
-
-const STATUS_DOT_COLORS = {
-  Submitted: 'bg-gray-500',
-  UnderReview: 'bg-yellow-500',
-  Approved: 'bg-green-500',
-  Rejected: 'bg-red-500',
-  ConvertedToProject: 'bg-blue-500',
+  Submitted: 'bg-[#F2F2F4] text-[#62626A]',
+  UnderReview: 'bg-[#FFEED6] text-[#874400]',
+  Approved: 'bg-[#E3F8E9] text-[#005F2E]',
+  Rejected: 'bg-[#FFEBE8] text-[#B71824]',
+  ConvertedToProject: 'bg-[#EEEEFF] text-[#4131B0]',
 };
 
 const NewIdeaModal = ({ onSave, onClose }) => {
@@ -52,22 +44,22 @@ const NewIdeaModal = ({ onSave, onClose }) => {
             placeholder="Title"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="w-full border border-gray-300 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+            className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
           />
           <textarea
             placeholder="Describe your idea..."
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={5}
-            className="w-full border border-gray-300 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+            className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
           />
         </div>
         <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3">
-          <button onClick={onClose} className="inline-flex items-center gap-2 bg-white text-gray-700 border border-gray-300 px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-gray-50 transition-colors">Cancel</button>
+          <button onClick={onClose} className="inline-flex items-center gap-2 bg-white text-gray-700 border border-gray-300 px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-gray-50 transition-colors">Cancel</button>
           <button
             onClick={handleSave}
             disabled={saving || !title.trim() || !description.trim()}
-            className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors disabled:opacity-50"
+            className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors disabled:opacity-50"
           >
             {saving ? 'Submitting...' : 'Submit Idea'}
           </button>
@@ -117,7 +109,7 @@ const IdeasPage = ({ apiService, user }) => {
         </div>
         <button
           onClick={() => setShowNewIdea(true)}
-          className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors"
+          className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors"
         >
           <Plus className="h-5 w-5" />
           New Idea
@@ -139,7 +131,7 @@ const IdeasPage = ({ apiService, user }) => {
       {error && <div className="text-red-600 text-sm">{error}</div>}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm divide-y">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm divide-y">
           {ideas === null && <div className="p-6 text-gray-400">Loading...</div>}
           {ideas?.length === 0 && <div className="p-6 text-center text-gray-400">No ideas yet.</div>}
           {ideas?.map((idea) => (
@@ -150,8 +142,7 @@ const IdeasPage = ({ apiService, user }) => {
             >
               <div className="flex justify-between items-start">
                 <div className="font-medium text-gray-900">{idea.title}</div>
-                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${STATUS_COLORS[idea.status] || STATUS_COLORS.Submitted}`}>
-                  <span className={`w-1.5 h-1.5 rounded-full ${STATUS_DOT_COLORS[idea.status] || STATUS_DOT_COLORS.Submitted}`} />
+                <span className={`inline-flex items-center px-[9px] py-[3px] rounded-[7px] text-[11.5px] font-semibold whitespace-nowrap ${STATUS_COLORS[idea.status] || STATUS_COLORS.Submitted}`}>
                   {idea.status}
                 </span>
               </div>
@@ -175,7 +166,7 @@ const IdeasPage = ({ apiService, user }) => {
               onChanged={load}
             />
           ) : (
-            <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-8 text-center text-gray-400">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center text-gray-400">
               Select an idea to view details.
             </div>
           )}

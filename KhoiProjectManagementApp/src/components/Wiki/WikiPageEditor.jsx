@@ -97,7 +97,7 @@ const WikiPageEditor = ({ initialTitle, initialContent, isNew, draftKey, onSave,
   };
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-4">
+    <form onSubmit={handleSubmit} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4">
       {pendingDraft && (
         <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-center justify-between text-sm">
           <span className="text-amber-800">
@@ -118,14 +118,14 @@ const WikiPageEditor = ({ initialTitle, initialContent, isNew, draftKey, onSave,
         placeholder="Page title"
         value={title}
         onChange={(e) => setTitle(e.target.value)}
-        className="w-full border border-gray-300 rounded-lg px-3.5 py-2.5 text-lg font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+        className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-lg font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
         required
       />
       <textarea
         placeholder="Write in Markdown..."
         value={content}
         onChange={(e) => setContent(e.target.value)}
-        className="w-full border border-gray-300 rounded-lg px-3.5 py-2.5 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+        className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
         rows="16"
       />
       {!isNew && (
@@ -134,7 +134,7 @@ const WikiPageEditor = ({ initialTitle, initialContent, isNew, draftKey, onSave,
           placeholder="What changed? (optional)"
           value={editSummary}
           onChange={(e) => setEditSummary(e.target.value)}
-          className="w-full border border-gray-300 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+          className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
         />
       )}
       {error && <div className="text-sm text-red-600">{error}</div>}
@@ -143,14 +143,14 @@ const WikiPageEditor = ({ initialTitle, initialContent, isNew, draftKey, onSave,
           <button
             type="submit"
             disabled={saving}
-            className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors disabled:opacity-50"
+            className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors disabled:opacity-50"
           >
             {saving ? 'Saving...' : isNew ? 'Create Page' : 'Save Changes'}
           </button>
           <button
             type="button"
             onClick={handleCancel}
-            className="inline-flex items-center gap-2 bg-white text-gray-700 border border-gray-300 px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-gray-50 transition-colors"
+            className="inline-flex items-center gap-2 bg-white text-gray-700 border border-gray-300 px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-gray-50 transition-colors"
           >
             Cancel
           </button>

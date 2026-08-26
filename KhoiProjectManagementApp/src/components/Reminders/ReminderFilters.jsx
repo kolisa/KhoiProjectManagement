@@ -28,7 +28,7 @@ const ReminderFilters = ({ filters, onChange, onReset, users, canViewAll }) => {
   const activeCount = Object.values(filters).filter((v) => v !== undefined && v !== null && v !== '').length;
 
   return (
-    <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 space-y-3">
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 space-y-3">
       <div className="flex items-center space-x-3">
         <div className="relative flex-1">
           <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
