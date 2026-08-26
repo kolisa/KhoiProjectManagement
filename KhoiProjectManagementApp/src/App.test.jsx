@@ -186,7 +186,6 @@ describe('App > Edit project', () => {
 
   beforeEach(() => {
     localStorage.clear();
-    vi.spyOn(window, 'alert').mockImplementation(() => {});
   });
 
   afterEach(() => {
@@ -255,6 +254,6 @@ describe('App > Edit project', () => {
     expect(putBody.status).toBe('active'); // status carried through, not silently reset
 
     expect(await screen.findByRole('heading', { name: /apollo migration v2/i })).toBeInTheDocument();
-    expect(window.alert).toHaveBeenCalledWith('Project updated successfully!');
+    expect(await screen.findByText('Project updated successfully!')).toBeInTheDocument();
   });
 });

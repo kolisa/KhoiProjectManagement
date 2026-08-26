@@ -2,9 +2,15 @@
 import React, { useState, useEffect } from 'react';
 import { Eye, EyeOff, Clock, Trash2, Edit3, X } from 'lucide-react';
 import { hasSpaceLevel } from '../../utils/spaceLevel';
+import { useToast } from '../../contexts/ToastContext';
+import { reportApiError } from '../../utils/apiError';
 
 const VaultEntryDetail = ({ apiService, entryId, myEffectiveLevel, onClose, onEdit, onDeleted }) => {
+  const toast = useToast();
   const [entry, setEntry] = useState(null);
+  // Reserved for the initial load only - a full-panel error is the right call when there's nothing
+  // else to show, but a failed reveal/audit-log/delete on an already-loaded entry must not blank out
+  // the whole panel the user was just looking at, so those use a toast instead (below).
   const [error, setError] = useState(null);
   const [secret, setSecret] = useState(null);
   const [revealing, setRevealing] = useState(false);
@@ -30,7 +36,7 @@ const VaultEntryDetail = ({ apiService, entryId, myEffectiveLevel, onClose, onEd
       const result = await apiService.revealVaultSecret(entryId);
       setSecret(result.secretValue);
     } catch (err) {
-      setError(err.message);
+      reportApiError(toast, err, 'Could not reveal this secret.');
     } finally {
       setRevealing(false);
     }
@@ -42,7 +48,8 @@ const VaultEntryDetail = ({ apiService, entryId, myEffectiveLevel, onClose, onEd
         const result = await apiService.getVaultAuditLog(entryId);
         setAuditLog(result || []);
       } catch (err) {
-        setError(err.message);
+        reportApiError(toast, err, 'Could not load the audit log.');
+        return;
       }
     }
     setShowAudit(!showAudit);
@@ -52,9 +59,10 @@ const VaultEntryDetail = ({ apiService, entryId, myEffectiveLevel, onClose, onEd
     if (!window.confirm('Delete this vault entry?')) return;
     try {
       await apiService.deleteVaultEntry(entryId);
+      toast.success('Vault entry deleted.');
       onDeleted();
     } catch (err) {
-      setError(err.message);
+      reportApiError(toast, err, 'Could not delete this vault entry.');
     }
   };
 

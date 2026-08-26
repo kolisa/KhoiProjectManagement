@@ -147,6 +147,7 @@ namespace KhoiProjectManagementApi.Extensions
             services.AddScoped<IEmailService, EmailService>();
             services.AddScoped<IDashboardService, DashboardService>();
             services.AddScoped<IAttachmentService, AttachmentService>();
+            services.AddScoped<IGlobalSearchService, GlobalSearchService>();
 
             // Cross-feature activity feed (see ActivityLogService)
             services.AddScoped<IActivityLogService, ActivityLogService>();

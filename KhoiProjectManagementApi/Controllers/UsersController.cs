@@ -18,9 +18,9 @@ namespace KhoiProjectManagementApi.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<TeamMemberDto>>> GetUsers()
+        public async Task<ActionResult<IEnumerable<TeamMemberDto>>> GetUsers([FromQuery] bool includeInactive = false)
         {
-            var users = await _userService.GetAllUsersAsync();
+            var users = await _userService.GetAllUsersAsync(includeInactive);
             return Ok(users);
         }
 
@@ -80,6 +80,36 @@ namespace KhoiProjectManagementApi.Controllers
                 return NotFound();
 
             return NoContent();
+        }
+
+        [HttpPost("{id}/reactivate")]
+        [Authorize(Policy = "users.delete")]
+        public async Task<IActionResult> ReactivateUser(int id)
+        {
+            var reactivated = await _userService.ReactivateUserAsync(id);
+            if (!reactivated)
+                return NotFound();
+
+            return NoContent();
+        }
+
+        [HttpPost("{id}/resend-temp-password")]
+        [Authorize(Policy = "users.edit")]
+        public async Task<IActionResult> ResendTempPassword(int id)
+        {
+            try
+            {
+                await _userService.ResendTempPasswordAsync(id);
+                return NoContent();
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound();
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
     }
 }

@@ -2,8 +2,11 @@
 import React, { useState, useEffect } from 'react';
 import { Bell, Mail } from 'lucide-react';
 import Toggle from '../Common/Toggle';
+import { useToast } from '../../contexts/ToastContext';
+import { reportApiError } from '../../utils/apiError';
 
 const NotificationPreferences = ({ apiService }) => {
+  const toast = useToast();
   const [preferences, setPreferences] = useState(null);
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -30,7 +33,7 @@ const NotificationPreferences = ({ apiService }) => {
     try {
       await apiService.setNotificationPreferences([{ notificationType, emailEnabled }]);
     } catch (err) {
-      setError(err.message);
+      reportApiError(toast, err, 'Could not save this preference.');
       // Revert on failure so the toggle doesn't lie about what's actually saved.
       setPreferences((prev) =>
         prev.map((p) => (p.notificationType === notificationType ? { ...p, emailEnabled: !emailEnabled } : p))

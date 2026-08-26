@@ -3,6 +3,8 @@ import React, { useState, useEffect } from 'react';
 import { Lightbulb, Plus, X, MessageSquare } from 'lucide-react';
 import IdeaDetail from './IdeaDetail';
 import { hasPermission } from '../../utils/permissions';
+import { useToast } from '../../contexts/ToastContext';
+import { validateIdea, hasErrors } from '../../utils/validation';
 
 const COLUMNS = [
   { key: 'Submitted', label: 'Submitted' },
@@ -26,6 +28,12 @@ const NewIdeaModal = ({ onSave, onClose }) => {
   const [error, setError] = useState(null);
 
   const handleSave = async () => {
+    const validationErrors = validateIdea({ title, description });
+    if (hasErrors(validationErrors)) {
+      setError(Object.values(validationErrors)[0]);
+      return;
+    }
+
     setSaving(true);
     setError(null);
     try {
@@ -78,6 +86,7 @@ const NewIdeaModal = ({ onSave, onClose }) => {
 };
 
 const IdeasPage = ({ apiService, user }) => {
+  const toast = useToast();
   const [ideas, setIdeas] = useState(null);
   const [error, setError] = useState(null);
   const [selectedId, setSelectedId] = useState(null);
@@ -98,10 +107,13 @@ const IdeasPage = ({ apiService, user }) => {
   }, []);
 
   const handleCreate = async (dto) => {
+    // Not try/caught - NewIdeaModal's own onSave await/catch needs the rejection for its inline
+    // error and to keep the modal open with what the user typed.
     const created = await apiService.createIdea(dto);
     setShowNewIdea(false);
     await load();
     setSelectedId(created.id);
+    toast.success('Idea submitted.');
   };
 
   return (

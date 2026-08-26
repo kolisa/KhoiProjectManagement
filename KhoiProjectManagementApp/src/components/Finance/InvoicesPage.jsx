@@ -3,6 +3,9 @@ import React, { useState, useEffect } from 'react';
 import { DollarSign, Plus, FileStack, X } from 'lucide-react';
 import { hasPermission } from '../../utils/permissions';
 import InvoiceDetail from './InvoiceDetail';
+import { useToast } from '../../contexts/ToastContext';
+import { formatCurrency } from '../../utils/currency';
+import { validateInvoice, hasErrors } from '../../utils/validation';
 
 const emptyLineItem = () => ({ description: '', quantity: 1, unitPrice: 0 });
 
@@ -32,16 +35,24 @@ const InvoiceFormModal = ({ title, templates, onSave, onClose }) => {
   };
 
   const handleSave = async () => {
+    const dto = {
+      invoiceNumber,
+      clientName,
+      issueDate: issueDate ? new Date(issueDate).toISOString() : '',
+      dueDate: dueDate ? new Date(dueDate).toISOString() : '',
+      notes: undefined,
+      lineItems: lineItems.map((li) => ({ ...li, quantity: Number(li.quantity), unitPrice: Number(li.unitPrice) })),
+    };
+
+    const validationErrors = validateInvoice(dto);
+    if (hasErrors(validationErrors)) {
+      setError(Object.values(validationErrors)[0]);
+      return;
+    }
+
     setSaving(true);
     setError(null);
     try {
-      const dto = {
-        invoiceNumber,
-        clientName,
-        issueDate: new Date(issueDate).toISOString(),
-        dueDate: new Date(dueDate).toISOString(),
-        lineItems: lineItems.map((li) => ({ ...li, quantity: Number(li.quantity), unitPrice: Number(li.unitPrice) })),
-      };
       await onSave(dto, templateId || null);
     } catch (err) {
       setError(err.message);
@@ -137,6 +148,7 @@ const InvoiceFormModal = ({ title, templates, onSave, onClose }) => {
 };
 
 const InvoicesPage = ({ apiService, user }) => {
+  const toast = useToast();
   const [invoices, setInvoices] = useState(null);
   const [templates, setTemplates] = useState([]);
   const [error, setError] = useState(null);
@@ -167,12 +179,16 @@ const InvoicesPage = ({ apiService, user }) => {
   const selectedInvoice = invoices?.find((i) => i.id === selectedId);
 
   const handleCreate = async (dto, templateId) => {
+    // Not try/caught - InvoiceFormModal's own onSave await/catch needs the rejection to show its
+    // inline form error and keep the modal open with what the user typed, same contract as
+    // WikiPageEditor/VaultEntryModal's onSave.
     const created = templateId
       ? await apiService.createInvoiceFromTemplate(templateId, dto)
       : await apiService.createInvoice(dto);
     setShowForm(false);
     await load();
     setSelectedId(created.id);
+    toast.success('Invoice created.');
   };
 
   const refreshSelected = async () => {
@@ -289,7 +305,7 @@ const InvoicesPage = ({ apiService, user }) => {
                   <InvoiceStatusBadge status={inv.status} />
                 </div>
               </div>
-              <div className="text-sm font-semibold text-gray-900">{inv.total?.toFixed(2)}</div>
+              <div className="text-sm font-semibold text-gray-900">{formatCurrency(inv.total)}</div>
             </div>
           ))}
         </div>

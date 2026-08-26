@@ -8,6 +8,8 @@ import ReminderList from './ReminderList';
 import ReminderForm from './ReminderForm';
 import ReminderDetail from './ReminderDetail';
 import BulkReminderActions from './BulkReminderActions';
+import { useToast } from '../../contexts/ToastContext';
+import { reportApiError } from '../../utils/apiError';
 
 const VIEW_TABS = [
   { key: null, label: 'All' },
@@ -42,6 +44,7 @@ const writeFiltersToUrl = (filters) => {
 };
 
 const RemindersPage = ({ apiService, user }) => {
+  const toast = useToast();
   const [filters, setFilters] = useState(readFiltersFromUrl);
   const [reminders, setReminders] = useState(null);
   const [summary, setSummary] = useState(null);
@@ -114,30 +117,69 @@ const RemindersPage = ({ apiService, user }) => {
   };
 
   const handleCreate = async (dto) => {
+    // Not try/caught - ReminderForm's own onSave await/catch needs the rejection for its inline
+    // error and to keep the form open with what the user typed.
     const created = await apiService.createReminder(dto);
     setShowForm(false);
     await refreshAll();
     setSelectedId(created.id);
+    toast.success('Reminder created.');
   };
 
   const handleUpdate = async (dto) => {
     await apiService.updateReminder(editingReminder.id, dto);
     setEditingReminder(null);
     await refreshAll();
+    toast.success('Reminder updated.');
   };
 
-  const handleComplete = async (id) => { await apiService.completeReminder(id); await refreshAll(); };
-  const handleReopen = async (id) => { await apiService.reopenReminder(id); await refreshAll(); };
-  const handleSnooze = async (id, until) => { await apiService.snoozeReminder(id, until); await refreshAll(); };
+  // Below: ReminderList/ReminderDetail/BulkReminderActions call these directly from onClick with no
+  // catch of their own, so a rejection here would otherwise be a silent unhandled promise rejection -
+  // every one needs its own try/catch to actually surface a failure to the user.
+  const handleComplete = async (id) => {
+    try {
+      await apiService.completeReminder(id);
+      await refreshAll();
+    } catch (err) {
+      reportApiError(toast, err, 'Could not complete this reminder.');
+    }
+  };
+  const handleReopen = async (id) => {
+    try {
+      await apiService.reopenReminder(id);
+      await refreshAll();
+    } catch (err) {
+      reportApiError(toast, err, 'Could not reopen this reminder.');
+    }
+  };
+  const handleSnooze = async (id, until) => {
+    try {
+      await apiService.snoozeReminder(id, until);
+      await refreshAll();
+      toast.success('Reminder snoozed.');
+    } catch (err) {
+      reportApiError(toast, err, 'Could not snooze this reminder.');
+    }
+  };
   const handleDuplicate = async () => {
-    const copy = await apiService.duplicateReminder(selectedReminder.id);
-    await refreshAll();
-    setSelectedId(copy.id);
+    try {
+      const copy = await apiService.duplicateReminder(selectedReminder.id);
+      await refreshAll();
+      setSelectedId(copy.id);
+      toast.success('Reminder duplicated.');
+    } catch (err) {
+      reportApiError(toast, err, 'Could not duplicate this reminder.');
+    }
   };
   const handleDelete = async () => {
-    await apiService.deleteReminder(selectedReminder.id);
-    setSelectedId(null);
-    await refreshAll();
+    try {
+      await apiService.deleteReminder(selectedReminder.id);
+      setSelectedId(null);
+      await refreshAll();
+      toast.success('Reminder deleted.');
+    } catch (err) {
+      reportApiError(toast, err, 'Could not delete this reminder.');
+    }
   };
 
   const toggleSelect = (id) => setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
@@ -147,10 +189,46 @@ const RemindersPage = ({ apiService, user }) => {
   };
   const clearSelection = () => setSelectedIds([]);
 
-  const handleBulkComplete = async () => { await apiService.bulkCompleteReminders(selectedIds); clearSelection(); await refreshAll(); };
-  const handleBulkDelete = async () => { await apiService.bulkDeleteReminders(selectedIds); clearSelection(); await refreshAll(); };
-  const handleBulkReschedule = async (dueAt) => { await apiService.bulkRescheduleReminders(selectedIds, dueAt); clearSelection(); await refreshAll(); };
-  const handleBulkPriority = async (priority) => { await apiService.bulkPriorityReminders(selectedIds, priority); clearSelection(); await refreshAll(); };
+  const handleBulkComplete = async () => {
+    try {
+      await apiService.bulkCompleteReminders(selectedIds);
+      clearSelection();
+      await refreshAll();
+      toast.success('Reminders completed.');
+    } catch (err) {
+      reportApiError(toast, err, 'Could not complete the selected reminders.');
+    }
+  };
+  const handleBulkDelete = async () => {
+    try {
+      await apiService.bulkDeleteReminders(selectedIds);
+      clearSelection();
+      await refreshAll();
+      toast.success('Reminders deleted.');
+    } catch (err) {
+      reportApiError(toast, err, 'Could not delete the selected reminders.');
+    }
+  };
+  const handleBulkReschedule = async (dueAt) => {
+    try {
+      await apiService.bulkRescheduleReminders(selectedIds, dueAt);
+      clearSelection();
+      await refreshAll();
+      toast.success('Reminders rescheduled.');
+    } catch (err) {
+      reportApiError(toast, err, 'Could not reschedule the selected reminders.');
+    }
+  };
+  const handleBulkPriority = async (priority) => {
+    try {
+      await apiService.bulkPriorityReminders(selectedIds, priority);
+      clearSelection();
+      await refreshAll();
+      toast.success('Priority updated.');
+    } catch (err) {
+      reportApiError(toast, err, 'Could not update priority for the selected reminders.');
+    }
+  };
 
   return (
     <div className="space-y-6">

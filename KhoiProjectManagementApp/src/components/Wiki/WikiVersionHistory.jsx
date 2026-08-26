@@ -1,8 +1,11 @@
 // src/components/Wiki/WikiVersionHistory.js
 import React, { useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
+import { useToast } from '../../contexts/ToastContext';
+import { reportApiError } from '../../utils/apiError';
 
 const WikiVersionHistory = ({ apiService, pageId }) => {
+  const toast = useToast();
   const [versions, setVersions] = useState(null);
   const [error, setError] = useState(null);
   const [selectedVersion, setSelectedVersion] = useState(null);
@@ -24,7 +27,7 @@ const WikiVersionHistory = ({ apiService, pageId }) => {
       const result = await apiService.getWikiVersion(pageId, versionNumber);
       setSelectedVersion(result);
     } catch (err) {
-      setError(err.message);
+      reportApiError(toast, err, 'Could not load this version.');
     }
   };
 

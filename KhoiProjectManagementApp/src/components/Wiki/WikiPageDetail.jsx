@@ -10,8 +10,11 @@ import WikiPresence from './WikiPresence';
 import ShareButton from '../Common/ShareButton';
 import { hasSpaceLevel } from '../../utils/spaceLevel';
 import { createWikiHubConnection, HubConnectionState } from '../../services/wikiHub';
+import { useToast } from '../../contexts/ToastContext';
+import { reportApiError } from '../../utils/apiError';
 
 const WikiPageDetail = ({ apiService, pageId, myEffectiveLevel, currentUserId, onDeleted, onAddSubPage }) => {
+  const toast = useToast();
   const [page, setPage] = useState(null);
   const [comments, setComments] = useState([]);
   const [error, setError] = useState(null);
@@ -81,14 +84,22 @@ const WikiPageDetail = ({ apiService, pageId, myEffectiveLevel, currentUserId, o
   }, [apiService, pageId]);
 
   const handleAddAnchoredComment = async (body, anchorBlockIndex, anchorText) => {
-    await apiService.addWikiComment(pageId, { body, anchorBlockIndex, anchorText });
-    await reloadComments();
+    try {
+      await apiService.addWikiComment(pageId, { body, anchorBlockIndex, anchorText });
+      await reloadComments();
+    } catch (err) {
+      reportApiError(toast, err, 'Could not post comment.');
+    }
   };
 
   const handleDeleteAnchoredComment = async (commentId) => {
     if (!window.confirm('Delete this comment?')) return;
-    await apiService.deleteWikiComment(commentId);
-    await reloadComments();
+    try {
+      await apiService.deleteWikiComment(commentId);
+      await reloadComments();
+    } catch (err) {
+      reportApiError(toast, err, 'Could not delete comment.');
+    }
   };
 
   const releaseEditLock = () => {
@@ -112,10 +123,14 @@ const WikiPageDetail = ({ apiService, pageId, myEffectiveLevel, currentUserId, o
   };
 
   const handleSave = async (data) => {
+    // Deliberately NOT caught here - WikiPageEditor's own onSave await/catch needs the rejection to
+    // reach it, so it can show an inline error next to Save AND keep the user's edits + localStorage
+    // draft intact (it only clears the draft after onSave resolves without throwing).
     await apiService.updateWikiPage(pageId, data);
     releaseEditLock();
     setEditing(false);
     await load();
+    toast.success('Page saved.');
   };
 
   const handleCancelEdit = () => {
@@ -125,8 +140,13 @@ const WikiPageDetail = ({ apiService, pageId, myEffectiveLevel, currentUserId, o
 
   const handleDelete = async () => {
     if (!window.confirm('Delete this page?')) return;
-    await apiService.deleteWikiPage(pageId);
-    onDeleted();
+    try {
+      await apiService.deleteWikiPage(pageId);
+      toast.success('Page deleted.');
+      onDeleted();
+    } catch (err) {
+      reportApiError(toast, err, 'Could not delete this page.');
+    }
   };
 
   const canWrite = hasSpaceLevel(myEffectiveLevel, 'Write');

@@ -8,6 +8,8 @@
 import React, { useState } from 'react';
 import { Trash2 } from 'lucide-react';
 import { hasSpaceLevel } from '../../utils/spaceLevel';
+import { useToast } from '../../contexts/ToastContext';
+import { reportApiError } from '../../utils/apiError';
 
 const buildTree = (comments) => {
   const byParent = {};
@@ -21,6 +23,7 @@ const buildTree = (comments) => {
 };
 
 const CommentNode = ({ comment, currentUserId, canManage, canWrite, onReply, onDelete, depth }) => {
+  const toast = useToast();
   const [replying, setReplying] = useState(false);
   const [replyBody, setReplyBody] = useState('');
 
@@ -28,9 +31,13 @@ const CommentNode = ({ comment, currentUserId, canManage, canWrite, onReply, onD
 
   const submitReply = async (e) => {
     e.preventDefault();
-    await onReply(replyBody, comment.id);
-    setReplyBody('');
-    setReplying(false);
+    try {
+      await onReply(replyBody, comment.id);
+      setReplyBody('');
+      setReplying(false);
+    } catch (err) {
+      reportApiError(toast, err, 'Could not post reply.');
+    }
   };
 
   return (
@@ -86,11 +93,14 @@ const CommentNode = ({ comment, currentUserId, canManage, canWrite, onReply, onD
 };
 
 const WikiComments = ({ apiService, pageId, currentUserId, myEffectiveLevel, comments, onReload }) => {
+  const toast = useToast();
   const [newComment, setNewComment] = useState('');
 
   const canWrite = hasSpaceLevel(myEffectiveLevel, 'Write');
   const canManage = hasSpaceLevel(myEffectiveLevel, 'Manage');
 
+  // Not try/caught - CommentNode's submitReply above needs the rejection to keep its reply box open
+  // with the typed text intact rather than silently clearing it on failure.
   const handleReply = async (body, parentCommentId) => {
     await apiService.addWikiComment(pageId, { body, parentCommentId });
     await onReload();
@@ -98,15 +108,23 @@ const WikiComments = ({ apiService, pageId, currentUserId, myEffectiveLevel, com
 
   const handleAddTopLevel = async (e) => {
     e.preventDefault();
-    await apiService.addWikiComment(pageId, { body: newComment });
-    setNewComment('');
-    await onReload();
+    try {
+      await apiService.addWikiComment(pageId, { body: newComment });
+      setNewComment('');
+      await onReload();
+    } catch (err) {
+      reportApiError(toast, err, 'Could not post comment.');
+    }
   };
 
   const handleDelete = async (commentId) => {
     if (!window.confirm('Delete this comment?')) return;
-    await apiService.deleteWikiComment(commentId);
-    await onReload();
+    try {
+      await apiService.deleteWikiComment(commentId);
+      await onReload();
+    } catch (err) {
+      reportApiError(toast, err, 'Could not delete comment.');
+    }
   };
 
   const pageLevelComments = comments.filter((c) => c.anchorBlockIndex === null || c.anchorBlockIndex === undefined);

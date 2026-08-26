@@ -5,10 +5,13 @@ import SpaceTree from '../Spaces/SpaceTree';
 import WikiPageDetail from './WikiPageDetail';
 import WikiPageEditor from './WikiPageEditor';
 import { hasSpaceLevel } from '../../utils/spaceLevel';
+import { useToast } from '../../contexts/ToastContext';
+import { reportApiError } from '../../utils/apiError';
 
 const SEARCH_DEBOUNCE_MS = 350;
 
 const WikiPage = ({ apiService, user, deepLink }) => {
+  const toast = useToast();
   const [selectedSpace, setSelectedSpace] = useState(null);
   // breadcrumb: array of { id, title } - null parentPageId means Space root
   const [breadcrumb, setBreadcrumb] = useState([]);
@@ -114,11 +117,13 @@ const WikiPage = ({ apiService, user, deepLink }) => {
       setSearchQuery('');
       setSearchResults(null);
     } catch (err) {
-      setError(err.message);
+      reportApiError(toast, err, 'Could not open that page.');
     }
   };
 
   const handleCreate = async (data) => {
+    // Not try/caught - WikiPageEditor's own onSave await/catch needs the rejection for its inline
+    // error + preserved draft, same contract as WikiPageDetail's handleSave.
     await apiService.createWikiPage({
       title: data.title,
       spaceId: selectedSpace.id,
@@ -127,6 +132,7 @@ const WikiPage = ({ apiService, user, deepLink }) => {
     });
     setCreatingUnderParentId(undefined);
     await loadPages(selectedSpace.id, currentParentPageId);
+    toast.success('Page created.');
   };
 
   const canWrite = selectedSpace && hasSpaceLevel(selectedSpace.myEffectiveLevel, 'Write');
@@ -150,7 +156,7 @@ const WikiPage = ({ apiService, user, deepLink }) => {
     try {
       await apiService.reorderWikiPages(selectedSpace.id, currentParentPageId, reordered.map((p) => p.id));
     } catch (err) {
-      setError(err.message);
+      reportApiError(toast, err, 'Could not save the new order.');
       await loadPages(selectedSpace.id, currentParentPageId);
     }
   };
@@ -159,8 +165,9 @@ const WikiPage = ({ apiService, user, deepLink }) => {
     try {
       await apiService.moveWikiPage(page.id, targetParentId);
       await loadPages(selectedSpace.id, currentParentPageId);
+      toast.success(`Moved "${page.title}".`);
     } catch (err) {
-      setError(err.message);
+      reportApiError(toast, err, 'Could not move this page.');
     }
   };
 

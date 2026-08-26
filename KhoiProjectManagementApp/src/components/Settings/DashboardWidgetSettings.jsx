@@ -3,8 +3,11 @@ import React, { useState, useEffect } from 'react';
 import { LayoutGrid, ArrowUp, ArrowDown } from 'lucide-react';
 import { hasPermission } from '../../utils/permissions';
 import Toggle from '../Common/Toggle';
+import { useToast } from '../../contexts/ToastContext';
+import { reportApiError } from '../../utils/apiError';
 
 const DashboardWidgetSettings = ({ apiService, user }) => {
+  const toast = useToast();
   const [prefs, setPrefs] = useState(null);
   const [catalog, setCatalog] = useState(null);
   const [error, setError] = useState(null);
@@ -38,7 +41,7 @@ const DashboardWidgetSettings = ({ apiService, user }) => {
       );
       setPrefs(nextPrefs.map((p, i) => ({ ...p, sortOrder: i })));
     } catch (err) {
-      setError(err.message);
+      reportApiError(toast, err, 'Could not save widget preferences.');
     } finally {
       setSaving(false);
     }
@@ -63,7 +66,7 @@ const DashboardWidgetSettings = ({ apiService, user }) => {
       await apiService.setDashboardWidgetAllowlist([{ widgetKey, isEnabled }]);
       await load();
     } catch (err) {
-      setError(err.message);
+      reportApiError(toast, err, 'Could not update widget availability.');
     } finally {
       setSaving(false);
     }

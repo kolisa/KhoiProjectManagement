@@ -3,8 +3,11 @@
 // add/remove (matches SetWikiPageLabelsDto's shape on the backend).
 import React, { useState } from 'react';
 import { Tag as TagIcon, X, Plus } from 'lucide-react';
+import { useToast } from '../../contexts/ToastContext';
+import { reportApiError } from '../../utils/apiError';
 
 const WikiPageLabels = ({ apiService, pageId, labels, canWrite, onChanged }) => {
+  const toast = useToast();
   const [adding, setAdding] = useState(false);
   const [newLabel, setNewLabel] = useState('');
   const [saving, setSaving] = useState(false);
@@ -14,6 +17,8 @@ const WikiPageLabels = ({ apiService, pageId, labels, canWrite, onChanged }) => 
     try {
       await apiService.setWikiPageLabels(pageId, nextLabels);
       await onChanged();
+    } catch (err) {
+      reportApiError(toast, err, 'Could not update labels.');
     } finally {
       setSaving(false);
     }

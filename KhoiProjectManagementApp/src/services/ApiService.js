@@ -21,6 +21,18 @@ export class NetworkError extends Error {
   }
 }
 
+// Thrown when a 401 survives a silent refresh attempt (refresh token missing, expired, or already
+// revoked) - distinct from a normal HTTP error so callers/UI can show one clear "please log in
+// again" message instead of a raw API error, and so AuthContext's session-expired subscriber (below)
+// is the only thing that reacts to it rather than every individual catch block reimplementing that.
+export class SessionExpiredError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = 'SessionExpiredError';
+    this.isSessionExpired = true;
+  }
+}
+
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // fetchWithTimeout above already converts every network-level failure (timeout, offline, DNS/
@@ -28,10 +40,136 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 // (thrown just below as a plain Error) is never retried.
 const isTransientFetchFailure = (error) => error instanceof NetworkError;
 
+// Module-level (not per-instance) since every ApiService instance shares the same localStorage-
+// backed session - AuthContext creates its own short-lived instances alongside the long-lived one
+// App.jsx holds, and both need to hear about a session dying regardless of which instance detected
+// it. A plain EventTarget keeps this decoupled: ApiService doesn't need to know AuthContext exists.
+const sessionEvents = new EventTarget();
+export const onSessionExpired = (handler) => {
+  sessionEvents.addEventListener('session-expired', handler);
+  return () => sessionEvents.removeEventListener('session-expired', handler);
+};
+
+// "Remember me" decides where tokens live, not how long the backend considers the refresh token
+// valid (that's Jwt:RefreshTokenExpiryDays, 30 days server-side regardless). Checked -> localStorage,
+// so the session survives closing the browser entirely. Unchecked -> sessionStorage, cleared the
+// moment the tab/browser closes, same as any "don't remember me on this device" login. The flag
+// itself always lives in localStorage (small, non-sensitive) so a fresh tab knows which storage to
+// read tokens from before any token has been fetched.
+const REMEMBER_FLAG_KEY = 'khoi_remember_me';
+const getTokenStorage = () => (localStorage.getItem(REMEMBER_FLAG_KEY) === 'false' ? sessionStorage : localStorage);
+
+// Exported so AuthContext's initial-load check reads the same storage the token actually lives in -
+// otherwise an unchecked "remember me" (sessionStorage) would look logged-out on every reload since
+// the old check only ever looked at localStorage.
+export const getStoredToken = () => getTokenStorage().getItem('jwt_token');
+
 class ApiService {
   constructor() {
-    this.token = localStorage.getItem('jwt_token') || null;
-    this.refreshToken = localStorage.getItem('refresh_token') || null;
+    const storage = getTokenStorage();
+    this.token = storage.getItem('jwt_token') || null;
+    this.refreshToken = storage.getItem('refresh_token') || null;
+    // De-dupes concurrent refresh attempts (e.g. the dashboard's Promise.all of ~8 calls all 401ing
+    // at once after the access token's 15-minute expiry) into a single /auth/refresh call - the
+    // backend rotates the refresh token on each use, so firing one per concurrent request would burn
+    // through single-use refresh tokens and fail every request after the first.
+    this._refreshPromise = null;
+  }
+
+  clearSession() {
+    this.token = null;
+    this.refreshToken = null;
+    localStorage.removeItem('jwt_token');
+    localStorage.removeItem('refresh_token');
+    sessionStorage.removeItem('jwt_token');
+    sessionStorage.removeItem('refresh_token');
+    localStorage.removeItem(REMEMBER_FLAG_KEY);
+    sessionEvents.dispatchEvent(new Event('session-expired'));
+  }
+
+  async refreshAccessToken() {
+    if (!this.refreshToken) return false;
+    if (!this._refreshPromise) {
+      this._refreshPromise = this._doRefresh().finally(() => {
+        this._refreshPromise = null;
+      });
+    }
+    return this._refreshPromise;
+  }
+
+  async _doRefresh() {
+    try {
+      const response = await this.fetchWithTimeout(`${API_BASE_URL}/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: this.refreshToken }),
+      }, DEFAULT_TIMEOUT_MS);
+
+      if (!response.ok) return false;
+
+      const data = await response.json();
+      if (!data?.token) return false;
+
+      const storage = getTokenStorage();
+      this.token = data.token;
+      storage.setItem('jwt_token', data.token);
+      if (data.refreshToken) {
+        this.refreshToken = data.refreshToken;
+        storage.setItem('refresh_token', data.refreshToken);
+      }
+      return true;
+    } catch {
+      // Network failure, malformed body, whatever - treated the same as an outright rejection: the
+      // caller falls back to clearing the session rather than hanging or retrying indefinitely.
+      return false;
+    }
+  }
+
+  // Shared by request()/requestMultipart()/downloadBlob(): on a 401, try exactly one silent refresh
+  // and retry with the new token before giving up - only a 401 that survives a refresh (or that has
+  // no refresh token to try) actually ends the session.
+  async authorizedFetch(url, config, timeoutMs) {
+    let refreshedOnce = false;
+    for (;;) {
+      const response = await this.fetchWithTimeout(url, config, timeoutMs);
+      if (response.status !== 401) return response;
+
+      if (!refreshedOnce && (await this.refreshAccessToken())) {
+        refreshedOnce = true;
+        config = { ...config, headers: { ...config.headers, Authorization: `Bearer ${this.token}` } };
+        continue;
+      }
+
+      this.clearSession();
+      throw new SessionExpiredError('Your session has expired - please log in again.');
+    }
+  }
+
+  // Turns a non-2xx JSON response into an Error with the actual server-provided message instead of a
+  // generic "API Error: 400 Bad Request" - handles both FluentValidation's { errors: { field: [msg] } }
+  // shape (ValidationActionFilter / ErrorHandlingMiddleware's ValidationException branch) and the
+  // plain { message } shape every other ErrorHandlingMiddleware branch uses.
+  async buildResponseError(response) {
+    let body = null;
+    try {
+      body = await response.json();
+    } catch {
+      // Non-JSON or empty error body - falls through to the generic status-line message below.
+    }
+
+    let message = `API Error: ${response.status} ${response.statusText}`;
+    if (body?.errors && typeof body.errors === 'object') {
+      const firstField = Object.values(body.errors)[0];
+      const firstMessage = Array.isArray(firstField) ? firstField[0] : firstField;
+      if (firstMessage) message = firstMessage;
+    } else if (body?.message) {
+      message = body.message;
+    }
+
+    const error = new Error(message);
+    error.status = response.status;
+    if (body?.errors) error.fieldErrors = body.errors;
+    return error;
   }
 
   async fetchWithTimeout(url, config, timeoutMs) {
@@ -68,29 +206,23 @@ class ApiService {
     // real HTTP error response) before making the caller deal with it. Non-GET requests never retry
     // here, since a timed-out POST/PUT/DELETE may or may not have actually been applied server-side.
     const isRetryable = !config.method || config.method.toUpperCase() === 'GET';
+    // /auth/login's own 401 means "wrong credentials," not an expired session - it must reach
+    // LoginForm's catch block as-is, so it bypasses authorizedFetch entirely (no refresh attempt, no
+    // SessionExpiredError) rather than being treated like every other endpoint's 401.
+    const isLogin = endpoint === '/auth/login';
 
     for (let attempt = 0; ; attempt++) {
       try {
-        const response = await this.fetchWithTimeout(url, config, timeoutMs);
+        const response = isLogin
+          ? await this.fetchWithTimeout(url, config, timeoutMs)
+          : await this.authorizedFetch(url, config, timeoutMs);
 
-        if (response.status === 401) {
-          // A 401 from /auth/login itself just means "wrong credentials" - not an expired session -
-          // so it must reach LoginForm's own catch block and show an inline error, not trigger the
-          // full-page reload below (which was silently discarding that error before the user ever saw
-          // it - found via an E2E test against a real browser; jsdom stubs location.reload() as a
-          // no-op, which is why component-level tests never caught this).
-          if (endpoint === '/auth/login') {
-            throw new Error('Invalid email or password');
-          }
-
-          this.token = null;
-          localStorage.removeItem('jwt_token');
-          window.location.reload();
-          return null;
+        if (isLogin && response.status === 401) {
+          throw new Error('Invalid email or password');
         }
 
         if (!response.ok) {
-          throw new Error(`API Error: ${response.status} ${response.statusText}`);
+          throw await this.buildResponseError(response);
         }
 
         const contentType = response.headers.get('content-type');
@@ -104,26 +236,30 @@ class ApiService {
           await sleep(1500);
           continue;
         }
-        console.error('API Request failed:', error);
+        if (!(error instanceof SessionExpiredError)) {
+          console.error('API Request failed:', error);
+        }
         throw error;
       }
     }
   }
 
   // Authentication
-  async login(email, password) {
+  async login(email, password, remember = true) {
     const response = await this.request('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     });
 
     if (response?.token) {
+      localStorage.setItem(REMEMBER_FLAG_KEY, remember ? 'true' : 'false');
+      const storage = remember ? localStorage : sessionStorage;
       this.token = response.token;
-      localStorage.setItem('jwt_token', response.token);
-    }
-    if (response?.refreshToken) {
-      this.refreshToken = response.refreshToken;
-      localStorage.setItem('refresh_token', response.refreshToken);
+      storage.setItem('jwt_token', response.token);
+      if (response?.refreshToken) {
+        this.refreshToken = response.refreshToken;
+        storage.setItem('refresh_token', response.refreshToken);
+      }
     }
 
     return response;
@@ -215,14 +351,66 @@ class ApiService {
   }
 
   // Users
-  async getUsers() {
-    return await this.request('/users');
+  async getUsers(includeInactive = false) {
+    return await this.request(`/users${includeInactive ? '?includeInactive=true' : ''}`);
   }
 
   async createUser(userData) {
+    // Longer bound than DEFAULT_TIMEOUT_MS - this endpoint synchronously sends the temp-password
+    // email (CreateUserWithTempPasswordAsync) before responding, and a slow SMTP handshake can
+    // legitimately take longer than a normal JSON request's 20s budget. The user IS still created
+    // even if this client-side timeout fires (the server keeps processing after the client gives up),
+    // so a NetworkError here is misleading on its own - callers should re-fetch the team list either
+    // way rather than trusting this call's outcome as the source of truth.
     return await this.request('/users', {
       method: 'POST',
       body: JSON.stringify(userData),
+    }, { timeoutMs: UPLOAD_TIMEOUT_MS });
+  }
+
+  async deactivateUser(id) {
+    return await this.request(`/users/${id}`, { method: 'DELETE' });
+  }
+
+  async reactivateUser(id) {
+    return await this.request(`/users/${id}/reactivate`, { method: 'POST' });
+  }
+
+  async resendTempPassword(id) {
+    return await this.request(`/users/${id}/resend-temp-password`, { method: 'POST' }, { timeoutMs: UPLOAD_TIMEOUT_MS });
+  }
+
+  // Roles & permissions (admin-only role management - see RolesController)
+  async getRoles() {
+    return await this.request('/roles');
+  }
+
+  async getAllPermissions() {
+    return await this.request('/permissions');
+  }
+
+  async getRolePermissions(roleId) {
+    return await this.request(`/roles/${roleId}/permissions`);
+  }
+
+  async setRolePermissions(roleId, permissionNames) {
+    return await this.request(`/roles/${roleId}/permissions`, {
+      method: 'PUT',
+      body: JSON.stringify({ permissionNames }),
+    });
+  }
+
+  async createRole(dto) {
+    return await this.request('/roles', {
+      method: 'POST',
+      body: JSON.stringify(dto),
+    });
+  }
+
+  async updateRole(roleId, dto) {
+    return await this.request(`/roles/${roleId}`, {
+      method: 'PUT',
+      body: JSON.stringify(dto),
     });
   }
 
@@ -243,7 +431,7 @@ class ApiService {
   // but POST, since the export endpoint also persists a ReportExportHistory row server-side.
   async exportReport(reportType, format) {
     const url = `${API_BASE_URL}/reports/${reportType}/export?format=${format}`;
-    const response = await this.fetchWithTimeout(url, {
+    const response = await this.authorizedFetch(url, {
       method: 'POST',
       headers: {
         ...(this.token && { Authorization: `Bearer ${this.token}` }),
@@ -251,7 +439,7 @@ class ApiService {
     }, UPLOAD_TIMEOUT_MS);
 
     if (!response.ok) {
-      throw new Error(`API Error: ${response.status} ${response.statusText}`);
+      throw await this.buildResponseError(response);
     }
 
     const disposition = response.headers.get('Content-Disposition') || '';
@@ -564,7 +752,7 @@ class ApiService {
     // File uploads get the longer UPLOAD_TIMEOUT_MS bound (not the default) and are never
     // auto-retried - re-sending a large file transparently on a flaky connection would be wasteful
     // and, for a non-idempotent upload, could create a duplicate.
-    const response = await this.fetchWithTimeout(url, {
+    const response = await this.authorizedFetch(url, {
       method,
       headers: {
         ...(this.token && { Authorization: `Bearer ${this.token}` }),
@@ -572,15 +760,8 @@ class ApiService {
       body: form,
     }, UPLOAD_TIMEOUT_MS);
 
-    if (response.status === 401) {
-      this.token = null;
-      localStorage.removeItem('jwt_token');
-      window.location.reload();
-      return null;
-    }
-
     if (!response.ok) {
-      throw new Error(`API Error: ${response.status} ${response.statusText}`);
+      throw await this.buildResponseError(response);
     }
 
     if (noContent || response.status === 204) return null;
@@ -591,14 +772,14 @@ class ApiService {
     const url = `${API_BASE_URL}${endpoint}`;
     // Same longer bound as requestMultipart - downloading a file over a slow connection legitimately
     // takes longer than a normal JSON request.
-    const response = await this.fetchWithTimeout(url, {
+    const response = await this.authorizedFetch(url, {
       headers: {
         ...(this.token && { Authorization: `Bearer ${this.token}` }),
       },
     }, UPLOAD_TIMEOUT_MS);
 
     if (!response.ok) {
-      throw new Error(`API Error: ${response.status} ${response.statusText}`);
+      throw await this.buildResponseError(response);
     }
 
     const blob = await response.blob();
@@ -610,6 +791,12 @@ class ApiService {
     link.click();
     link.remove();
     window.URL.revokeObjectURL(blobUrl);
+  }
+
+  // Global search (header search bar) - across Projects/Tasks/People, same org-wide visibility as
+  // browsing those tabs directly (see GlobalSearchService).
+  async globalSearch(query) {
+    return await this.request(`/search?q=${encodeURIComponent(query)}`);
   }
 
   // Ideas board (company-wide, flat - see plan Phase 11)
@@ -880,6 +1067,9 @@ class ApiService {
     this.refreshToken = null;
     localStorage.removeItem('jwt_token');
     localStorage.removeItem('refresh_token');
+    sessionStorage.removeItem('jwt_token');
+    sessionStorage.removeItem('refresh_token');
+    localStorage.removeItem(REMEMBER_FLAG_KEY);
 
     if (refreshToken) {
       // Best-effort server-side revocation - the client-side tokens are already cleared either way,

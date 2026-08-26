@@ -1,16 +1,31 @@
 // src/contexts/AuthContext.js
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import ApiService from '../services/ApiService';
+import ApiService, { onSessionExpired, getStoredToken } from '../services/ApiService';
+import { useToast } from './ToastContext';
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
+    const toast = useToast();
+
+    // ApiService (any instance - it's a module-level event, see ApiService.js) fires this once a 401
+    // survives a silent refresh attempt. This is the one place that reacts: clear the user so
+    // AuthGuard falls back to the login screen on its own, and show a single clear toast instead of
+    // every in-flight component's own catch block separately alerting/toasting the same thing.
+    useEffect(() => {
+        const unsubscribe = onSessionExpired(() => {
+            setUser(null);
+            toast.info('Your session has expired - please log in again.');
+        });
+        return unsubscribe;
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     useEffect(() => {
         const loadCurrentUser = async () => {
-            const token = localStorage.getItem('jwt_token');
+            const token = getStoredToken();
             if (token) {
                 try {
                     const apiService = new ApiService();
@@ -22,6 +37,8 @@ export const AuthProvider = ({ children }) => {
                     console.error('Failed to load current user:', error);
                     localStorage.removeItem('jwt_token');
                     localStorage.removeItem('refresh_token');
+                    sessionStorage.removeItem('jwt_token');
+                    sessionStorage.removeItem('refresh_token');
                 }
             }
             setLoading(false);
@@ -30,9 +47,9 @@ export const AuthProvider = ({ children }) => {
         loadCurrentUser();
     }, []);
 
-    const login = async (email, password) => {
+    const login = async (email, password, remember = true) => {
         const apiService = new ApiService();
-        const response = await apiService.login(email, password);
+        const response = await apiService.login(email, password, remember);
         // A temp/forced-reset password authenticates correctly but issues no session - the caller
         // (LoginForm) must send the person to the reset-password flow instead of treating this as a
         // normal login, so don't set user or throw here.

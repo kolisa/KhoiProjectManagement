@@ -3,14 +3,17 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Plus, Search, Calendar, Users, CheckCircle, Clock, AlertCircle, Trash2, Edit3, User, Bell, FileText, Tag, Download, Upload, Flag, Shield, UserCheck, Eye, EyeOff, LogOut, Menu, X, Mail, Lock, ChevronDown, LayoutDashboard, Folder, CheckSquare, BookOpen, Archive, Lightbulb, DollarSign, BarChart2, Settings as SettingsIcon, ArrowRight } from 'lucide-react';
 import ApiService, { NetworkError } from './services/ApiService';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { ToastProvider, useToast } from './contexts/ToastContext';
 import { hasPermission } from './utils/permissions';
-import { validateProject, validateTask, hasErrors } from './utils/validation';
+import { validateProject, validateTask, validateTeamMember, hasErrors } from './utils/validation';
 import { getAvatarColor } from './utils/avatarColor';
+import { reportApiError } from './utils/apiError';
 import VaultPage from './components/Vault/VaultPage';
 import WikiPage from './components/Wiki/WikiPage';
 import LibraryPage from './components/Library/LibraryPage';
 import NotificationPreferences from './components/Settings/NotificationPreferences';
 import DashboardWidgetSettings from './components/Settings/DashboardWidgetSettings';
+import PermissionsManagement from './components/Settings/PermissionsManagement';
 import IdeasPage from './components/Ideas/IdeasPage';
 import InvoicesPage from './components/Finance/InvoicesPage';
 import RemindersPage from './components/Reminders/RemindersPage';
@@ -143,6 +146,7 @@ const LoginForm = ({ onForgotPassword, onMustChangePassword }) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
+    const [rememberMe, setRememberMe] = useState(true);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const { login } = useAuth();
@@ -153,7 +157,7 @@ const LoginForm = ({ onForgotPassword, onMustChangePassword }) => {
         setError('');
 
         try {
-            const result = await login(email, password);
+            const result = await login(email, password, rememberMe);
             if (result?.mustChangePassword) {
                 onMustChangePassword(result.passwordResetToken);
             }
@@ -225,7 +229,11 @@ const LoginForm = ({ onForgotPassword, onMustChangePassword }) => {
                         <img src={khoiLogo} alt="Khoi" className="h-10 w-auto mb-3" />
                     </div>
 
-                    <div className="bg-white rounded-2xl border border-gray-100 shadow-[0_1px_2px_rgba(16,24,40,0.04),0_12px_32px_-8px_rgba(16,24,40,0.10)] p-8 sm:p-10">
+                    <div className="relative bg-white rounded-[20px] border border-gray-100 shadow-[0_2px_4px_rgba(16,24,40,0.04),0_20px_48px_-12px_rgba(16,24,40,0.14)] p-8 sm:p-10">
+                        <div className="absolute inset-x-0 top-0 h-1 rounded-t-[20px] bg-gradient-to-r from-blue-600 via-blue-500 to-blue-400" />
+                        <div className="hidden lg:flex h-11 w-11 rounded-xl bg-blue-50 items-center justify-center mb-5">
+                            <Lock className="h-5 w-5 text-blue-600" />
+                        </div>
                         <h2 className="text-[26px] font-bold text-gray-900 tracking-tight">
                             Sign in to Khoi Pro
                         </h2>
@@ -266,7 +274,16 @@ const LoginForm = ({ onForgotPassword, onMustChangePassword }) => {
                                 </button>
                             </div>
 
-                            <div className="flex justify-end">
+                            <div className="flex items-center justify-between">
+                                <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer select-none">
+                                    <input
+                                        type="checkbox"
+                                        checked={rememberMe}
+                                        onChange={(e) => setRememberMe(e.target.checked)}
+                                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                    />
+                                    Remember me for 30 days
+                                </label>
                                 <button
                                     type="button"
                                     onClick={onForgotPassword}
@@ -303,12 +320,14 @@ const LoginForm = ({ onForgotPassword, onMustChangePassword }) => {
 // Main Dashboard Component
 const ProjectManagementSystem = () => {
     const { user, logout } = useAuth();
+    const toast = useToast();
     const [apiService] = useState(() => new ApiService());
 
     // Data state
     const [projects, setProjects] = useState([]);
     const [tasks, setTasks] = useState([]);
     const [teamMembers, setTeamMembers] = useState([]);
+    const [showInactiveMembers, setShowInactiveMembers] = useState(false);
     const [notifications, setNotifications] = useState([]);
     const [recentExports, setRecentExports] = useState([]);
     const [reportSchedules, setReportSchedules] = useState([]);
@@ -390,6 +409,11 @@ const ProjectManagementSystem = () => {
     }, []);
     const [searchTerm, setSearchTerm] = useState('');
     const searchInputRef = useRef(null);
+    const searchBoxRef = useRef(null);
+    const [globalSearchResults, setGlobalSearchResults] = useState(null);
+    const [globalSearchOpen, setGlobalSearchOpen] = useState(false);
+    const [globalSearching, setGlobalSearching] = useState(false);
+    const globalSearchDebounceRef = useRef(null);
 
     // Cmd/Ctrl+K focuses the global search input, matching the shortcut hint shown inside it.
     useEffect(() => {
@@ -402,6 +426,50 @@ const ProjectManagementSystem = () => {
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, []);
+
+    // Debounced global search across Projects/Tasks/People - fires GLOBAL_SEARCH_DEBOUNCE_MS after
+    // typing stops, same pattern as Wiki's full-text search. Separate from searchTerm's other role of
+    // filtering the Tasks tab's own table (loadTasks below) - that keeps working exactly as before;
+    // this just layers a results dropdown on top of the same input.
+    useEffect(() => {
+        if (globalSearchDebounceRef.current) clearTimeout(globalSearchDebounceRef.current);
+        const q = searchTerm.trim();
+        if (q.length < 2) {
+            setGlobalSearchResults(null);
+            setGlobalSearchOpen(false);
+            return;
+        }
+        globalSearchDebounceRef.current = setTimeout(async () => {
+            setGlobalSearching(true);
+            try {
+                const results = await apiService.globalSearch(q);
+                setGlobalSearchResults(results);
+                setGlobalSearchOpen(true);
+            } catch (error) {
+                reportApiError(toast, error, 'Search failed.');
+            } finally {
+                setGlobalSearching(false);
+            }
+        }, 350);
+        return () => clearTimeout(globalSearchDebounceRef.current);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [searchTerm]);
+
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (searchBoxRef.current && !searchBoxRef.current.contains(e.target)) setGlobalSearchOpen(false);
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const handleGlobalSearchResultClick = (category, item) => {
+        setGlobalSearchOpen(false);
+        setSearchTerm('');
+        if (category === 'projects') setActiveTab('projects');
+        else if (category === 'tasks') setActiveTab('tasks');
+        else if (category === 'people') setActiveTab('team');
+    };
 
     const [filterStatus, setFilterStatus] = useState('all');
     const [showAddProject, setShowAddProject] = useState(false);
@@ -443,6 +511,12 @@ const ProjectManagementSystem = () => {
         position: '',
         email: ''
     });
+    // createUser can legitimately take a while (it synchronously sends the temp-password email - see
+    // ApiService.createUser's comment on its longer timeout budget), so this needs its own visible
+    // "in flight" state rather than a bare disabled button with no explanation of the wait.
+    const [savingMember, setSavingMember] = useState(false);
+    const [savingProject, setSavingProject] = useState(false);
+    const [savingTask, setSavingTask] = useState(false);
 
     // Data loading functions
     const loadDashboardData = async () => {
@@ -521,7 +595,7 @@ const ProjectManagementSystem = () => {
     const loadTeamMembers = async () => {
         setLoading(prev => ({ ...prev, teamMembers: true }));
         try {
-            const members = await apiService.getUsers();
+            const members = await apiService.getUsers(showInactiveMembers);
             setTeamMembers(members || []);
             setErrors(prev => ({ ...prev, teamMembers: null }));
         } catch (error) {
@@ -555,6 +629,13 @@ const ProjectManagementSystem = () => {
             loadTasks();
         }
     }, [filterStatus, searchTerm]);
+
+    useEffect(() => {
+        if (activeTab === 'team') {
+            loadTeamMembers();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [showInactiveMembers]);
 
     // Helper functions
     const getTeamMemberName = (id) => {
@@ -595,11 +676,12 @@ const ProjectManagementSystem = () => {
 
         const validationErrors = validateProject(newProject);
         if (hasErrors(validationErrors)) {
-            alert(Object.values(validationErrors)[0]);
+            toast.error(Object.values(validationErrors)[0]);
             return;
         }
 
         const isEditing = editingProjectId !== null;
+        setSavingProject(true);
         try {
             const tags = newProject.tags.split(',').map(tag => tag.trim()).filter(tag => tag);
 
@@ -628,9 +710,11 @@ const ProjectManagementSystem = () => {
 
             closeProjectModal();
             await loadProjects();
-            alert(isEditing ? 'Project updated successfully!' : 'Project created successfully!');
+            toast.success(isEditing ? 'Project updated successfully!' : 'Project created successfully!');
         } catch (error) {
-            alert(`Error ${isEditing ? 'updating' : 'creating'} project: ${error.message}`);
+            reportApiError(toast, error, `Error ${isEditing ? 'updating' : 'creating'} project.`);
+        } finally {
+            setSavingProject(false);
         }
     };
 
@@ -639,10 +723,11 @@ const ProjectManagementSystem = () => {
 
         const validationErrors = validateTask(newTask);
         if (hasErrors(validationErrors)) {
-            alert(Object.values(validationErrors)[0]);
+            toast.error(Object.values(validationErrors)[0]);
             return;
         }
 
+        setSavingTask(true);
         try {
             const taskData = {
                 projectId: parseInt(newTask.projectId),
@@ -668,19 +753,28 @@ const ProjectManagementSystem = () => {
             setShowAddTask(false);
 
             await loadTasks();
-            alert('Task created successfully!');
+            toast.success('Task created successfully!');
         } catch (error) {
-            alert(`Error creating task: ${error.message}`);
+            reportApiError(toast, error, 'Error creating task.');
+        } finally {
+            setSavingTask(false);
         }
     };
 
     const handleAddMember = async (e) => {
         e.preventDefault();
         if (!hasPermission(user?.permissions, 'users.create')) {
-            alert('You do not have permission to add team members');
+            toast.error('You do not have permission to add team members');
             return;
         }
 
+        const validationErrors = validateTeamMember(newMember);
+        if (hasErrors(validationErrors)) {
+            toast.error(Object.values(validationErrors)[0]);
+            return;
+        }
+
+        setSavingMember(true);
         try {
             const memberData = {
                 name: newMember.name,
@@ -700,9 +794,49 @@ const ProjectManagementSystem = () => {
             setShowAddMember(false);
 
             await loadTeamMembers();
-            alert('Team member added. A temporary password has been emailed to them.');
+            toast.success('Team member added. A temporary password has been emailed to them.');
         } catch (error) {
-            alert(`Error adding team member: ${error.message}`);
+            // A NetworkError here (timeout/offline) means the client gave up waiting, not that the
+            // server did - user creation can legitimately outlive this request's timeout (see
+            // createUser's comment in ApiService). Re-fetch so the list reflects what actually
+            // happened server-side instead of leaving a stale "it failed" impression when it didn't.
+            if (error instanceof NetworkError) {
+                await loadTeamMembers();
+                toast.error('Could not confirm the member was added - check the list below before retrying.');
+            } else {
+                reportApiError(toast, error, 'Error adding team member.');
+            }
+        } finally {
+            setSavingMember(false);
+        }
+    };
+
+    const handleResendTempPassword = async (member) => {
+        try {
+            await apiService.resendTempPassword(member.id);
+            toast.success(`Temporary password resent to ${member.email}.`);
+        } catch (error) {
+            reportApiError(toast, error, 'Error resending temporary password.');
+        }
+    };
+
+    const handleToggleMemberActive = async (member) => {
+        const deactivating = member.isActive;
+        if (deactivating && !window.confirm(`Lock ${member.name} out of the system? They won't be able to sign in until reactivated.`)) {
+            return;
+        }
+
+        try {
+            if (deactivating) {
+                await apiService.deactivateUser(member.id);
+                toast.success(`${member.name} has been locked out.`);
+            } else {
+                await apiService.reactivateUser(member.id);
+                toast.success(`${member.name}'s access has been restored.`);
+            }
+            await loadTeamMembers();
+        } catch (error) {
+            reportApiError(toast, error, `Error ${deactivating ? 'locking out' : 'reactivating'} team member.`);
         }
     };
 
@@ -717,16 +851,16 @@ const ProjectManagementSystem = () => {
             );
 
             if (newStatus === 'completed') {
-                alert('Task marked as completed!');
+                toast.success('Task marked as completed!');
             }
         } catch (error) {
-            alert(`Error updating task: ${error.message}`);
+            reportApiError(toast, error, 'Error updating task.');
         }
     };
 
     const deleteTask = async (taskId) => {
         if (!hasPermission(user?.permissions, 'tasks.delete')) {
-            alert('You do not have permission to delete tasks');
+            toast.error('You do not have permission to delete tasks');
             return;
         }
 
@@ -737,15 +871,15 @@ const ProjectManagementSystem = () => {
         try {
             await apiService.deleteTask(taskId);
             setTasks(prevTasks => prevTasks.filter(task => task.id !== taskId));
-            alert('Task deleted successfully!');
+            toast.success('Task deleted successfully!');
         } catch (error) {
-            alert(`Error deleting task: ${error.message}`);
+            reportApiError(toast, error, 'Error deleting task.');
         }
     };
 
     const deleteProject = async (projectId) => {
         if (!hasPermission(user?.permissions, 'projects.delete')) {
-            alert('You do not have permission to delete projects');
+            toast.error('You do not have permission to delete projects');
             return;
         }
 
@@ -757,9 +891,9 @@ const ProjectManagementSystem = () => {
             await apiService.deleteProject(projectId);
             setProjects(prevProjects => prevProjects.filter(project => project.id !== projectId));
             setTasks(prevTasks => prevTasks.filter(task => task.projectId !== projectId));
-            alert('Project deleted successfully!');
+            toast.success('Project deleted successfully!');
         } catch (error) {
-            alert(`Error deleting project: ${error.message}`);
+            reportApiError(toast, error, 'Error deleting project.');
         }
     };
 
@@ -789,33 +923,48 @@ const ProjectManagementSystem = () => {
         }
     };
 
+    // Tracked per report type/schedule (not one shared reports-tab-wide flag) so generating one
+    // report's PDF doesn't visually disable every other card's buttons too.
+    const [generatingReportType, setGeneratingReportType] = useState(null);
+    const [schedulingReportType, setSchedulingReportType] = useState(null);
+    const [cancellingScheduleId, setCancellingScheduleId] = useState(null);
+
     const generateReport = async (reportType) => {
-        setLoading(prev => ({ ...prev, reports: true }));
+        setGeneratingReportType(reportType);
         try {
             await apiService.exportReport(reportType, reportFormats[reportType] || 'Csv');
             await loadReportsMeta();
+            toast.success('Report generated and downloaded.');
         } catch (error) {
-            alert(`Error generating report: ${error.message}`);
+            reportApiError(toast, error, 'Error generating report.');
         } finally {
-            setLoading(prev => ({ ...prev, reports: false }));
+            setGeneratingReportType(null);
         }
     };
 
     const scheduleReport = async (reportType) => {
+        setSchedulingReportType(reportType);
         try {
             await apiService.createReportSchedule({ reportType, format: reportFormats[reportType] || 'Csv' });
             await loadReportsMeta();
+            toast.success('Weekly schedule created.');
         } catch (error) {
-            alert(`Error scheduling report: ${error.message}`);
+            reportApiError(toast, error, 'Error scheduling report.');
+        } finally {
+            setSchedulingReportType(null);
         }
     };
 
     const cancelReportSchedule = async (id) => {
+        setCancellingScheduleId(id);
         try {
             await apiService.deleteReportSchedule(id);
             await loadReportsMeta();
+            toast.success('Schedule cancelled.');
         } catch (error) {
-            alert(`Error cancelling schedule: ${error.message}`);
+            reportApiError(toast, error, 'Error cancelling schedule.');
+        } finally {
+            setCancellingScheduleId(null);
         }
     };
 
@@ -904,7 +1053,7 @@ const ProjectManagementSystem = () => {
                         </div>
 
                         <div className="hidden md:block flex-1 max-w-md">
-                            <div className="relative">
+                            <div className="relative" ref={searchBoxRef}>
                                 <Search className="h-4 w-4 absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
                                 <input
                                     ref={searchInputRef}
@@ -912,11 +1061,43 @@ const ProjectManagementSystem = () => {
                                     placeholder="Search projects, tasks, people"
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
+                                    onFocus={() => { if (globalSearchResults) setGlobalSearchOpen(true); }}
                                     className="w-full max-w-xs pl-10 pr-14 py-2.5 bg-gray-50 border border-transparent rounded-[10px] text-sm placeholder-gray-400 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
                                 />
                                 <span className="hidden lg:inline-flex absolute right-3 top-1/2 -translate-y-1/2 items-center px-1.5 py-0.5 rounded-md border border-gray-200 bg-white text-[11px] font-mono font-medium text-gray-400">
                                     &#8984;K
                                 </span>
+
+                                {globalSearchOpen && (() => {
+                                    const groups = globalSearchResults ? [
+                                        { key: 'projects', label: 'Projects', items: globalSearchResults.projects },
+                                        { key: 'tasks', label: 'Tasks', items: globalSearchResults.tasks },
+                                        { key: 'people', label: 'People', items: globalSearchResults.people },
+                                    ].filter((g) => g.items.length > 0) : [];
+                                    return (
+                                        <div className="absolute z-30 mt-1 w-full max-w-xs bg-white border border-gray-100 rounded-xl shadow-lg max-h-96 overflow-y-auto">
+                                            {globalSearching && <div className="p-3 text-sm text-gray-400">Searching...</div>}
+                                            {!globalSearching && groups.length === 0 && (
+                                                <div className="p-3 text-sm text-gray-400">No matches for "{searchTerm}".</div>
+                                            )}
+                                            {!globalSearching && groups.map((group) => (
+                                                <div key={group.key} className="py-1.5">
+                                                    <div className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-gray-400">{group.label}</div>
+                                                    {group.items.map((item) => (
+                                                        <button
+                                                            key={item.id}
+                                                            onClick={() => handleGlobalSearchResultClick(group.key, item)}
+                                                            className="w-full text-left px-3 py-2 hover:bg-gray-50/80 transition-colors flex items-center justify-between"
+                                                        >
+                                                            <span className="text-sm text-gray-900 truncate">{item.title}</span>
+                                                            {item.subtitle && <span className="text-xs text-gray-400 ml-2 flex-shrink-0 capitalize">{item.subtitle}</span>}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    );
+                                })()}
                             </div>
                         </div>
 
@@ -1649,15 +1830,28 @@ const ProjectManagementSystem = () => {
                                 <h2 className="text-[27px] font-bold text-gray-900 tracking-tight">Team</h2>
                                 <p className="text-gray-500">{teamMembers.length} member{teamMembers.length !== 1 ? 's' : ''}</p>
                             </div>
-                            {hasPermission(user?.permissions, 'users.create') && (
-                                <button
-                                    onClick={() => setShowAddMember(true)}
-                                    className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors"
-                                >
-                                    <Plus className="h-5 w-5" />
-                                    Add Member
-                                </button>
-                            )}
+                            <div className="flex items-center gap-4">
+                                {hasPermission(user?.permissions, 'users.delete') && (
+                                    <label className="flex items-center gap-2 text-sm text-gray-500 cursor-pointer select-none">
+                                        <input
+                                            type="checkbox"
+                                            checked={showInactiveMembers}
+                                            onChange={(e) => setShowInactiveMembers(e.target.checked)}
+                                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                        />
+                                        Show locked-out members
+                                    </label>
+                                )}
+                                {hasPermission(user?.permissions, 'users.create') && (
+                                    <button
+                                        onClick={() => setShowAddMember(true)}
+                                        className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors"
+                                    >
+                                        <Plus className="h-5 w-5" />
+                                        Add Member
+                                    </button>
+                                )}
+                            </div>
                         </div>
 
                         {loading.teamMembers && <LoadingSpinner text="Loading team members..." />}
@@ -1674,7 +1868,7 @@ const ProjectManagementSystem = () => {
                                     </div>
                                 ) : (
                                     teamMembers.map((member) => (
-                                        <div key={member.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                                        <div key={member.id} className={`bg-white rounded-2xl border shadow-sm p-6 ${member.isActive ? 'border-gray-100' : 'border-gray-100 opacity-60'}`}>
                                             <div className="flex items-center mb-4">
                                                 <div className={`h-12 w-12 ${getAvatarColor(member.name)} rounded-full flex items-center justify-center text-white text-sm font-semibold flex-shrink-0`}>
                                                     {(member.name || '?').split(' ').filter(Boolean).map(n => n[0]).slice(0, 2).join('').toUpperCase()}
@@ -1685,7 +1879,19 @@ const ProjectManagementSystem = () => {
                                                 </div>
                                             </div>
                                             <div className="space-y-3">
-                                                <RoleBadge role={member.role} />
+                                                <div className="flex items-center gap-1.5 flex-wrap">
+                                                    <RoleBadge role={member.role} />
+                                                    {!member.isActive && (
+                                                        <span className="inline-flex items-center px-[9px] py-[3px] rounded-[7px] text-[11.5px] font-semibold bg-[#F2F2F4] text-[#62626A]">
+                                                            Locked out
+                                                        </span>
+                                                    )}
+                                                    {member.isActive && member.mustChangePassword && (
+                                                        <span className="inline-flex items-center px-[9px] py-[3px] rounded-[7px] text-[11.5px] font-semibold bg-[#FFEED6] text-[#874400]">
+                                                            Pending setup
+                                                        </span>
+                                                    )}
+                                                </div>
                                                 <p className="text-sm text-gray-500">{member.email}</p>
                                                 {(() => {
                                                     const openCount = tasks.filter(t => t.assignedToId === member.id && t.status !== 'completed').length;
@@ -1722,6 +1928,26 @@ const ProjectManagementSystem = () => {
                                                         <p className="text-[11px] text-gray-400 uppercase tracking-wide">Overdue</p>
                                                     </div>
                                                 </div>
+                                                {(hasPermission(user?.permissions, 'users.edit') || hasPermission(user?.permissions, 'users.delete')) && member.id !== user?.id && (
+                                                    <div className="flex items-center gap-3 pt-3 border-t border-gray-100 text-sm">
+                                                        {hasPermission(user?.permissions, 'users.edit') && member.isActive && member.mustChangePassword && (
+                                                            <button
+                                                                onClick={() => handleResendTempPassword(member)}
+                                                                className="text-blue-600 hover:text-blue-800 font-medium"
+                                                            >
+                                                                Resend temp password
+                                                            </button>
+                                                        )}
+                                                        {hasPermission(user?.permissions, 'users.delete') && (
+                                                            <button
+                                                                onClick={() => handleToggleMemberActive(member)}
+                                                                className={`font-medium ml-auto ${member.isActive ? 'text-red-600 hover:text-red-800' : 'text-green-600 hover:text-green-800'}`}
+                                                            >
+                                                                {member.isActive ? 'Lock out' : 'Reactivate'}
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                     ))
@@ -1766,6 +1992,9 @@ const ProjectManagementSystem = () => {
                     <div className="space-y-10">
                         <NotificationPreferences apiService={apiService} />
                         <DashboardWidgetSettings apiService={apiService} user={user} />
+                        {hasPermission(user?.permissions, 'users.manage_roles') && (
+                            <PermissionsManagement apiService={apiService} />
+                        )}
                     </div>
                 )}
 
@@ -1811,26 +2040,32 @@ const ProjectManagementSystem = () => {
                                                 <div className="flex gap-2">
                                                     <button
                                                         onClick={() => generateReport(type)}
-                                                        disabled={loading.reports}
+                                                        disabled={generatingReportType === type}
                                                         className="flex-1 inline-flex items-center justify-center gap-2 bg-blue-600 text-white py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors disabled:opacity-50"
                                                     >
-                                                        <Download className="h-4 w-4" />
-                                                        Generate
+                                                        {generatingReportType === type ? (
+                                                            <span className="h-4 w-4 rounded-full border-2 border-white/40 border-t-white animate-spin" />
+                                                        ) : (
+                                                            <Download className="h-4 w-4" />
+                                                        )}
+                                                        {generatingReportType === type ? 'Generating...' : 'Generate'}
                                                     </button>
                                                     {schedule ? (
                                                         <button
                                                             onClick={() => cancelReportSchedule(schedule.id)}
+                                                            disabled={cancellingScheduleId === schedule.id}
                                                             title={`Scheduled weekly, next run ${new Date(schedule.nextRunAt).toLocaleDateString()}`}
-                                                            className="inline-flex items-center gap-2 bg-white text-gray-700 border border-gray-300 px-3 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-gray-50 transition-colors"
+                                                            className="inline-flex items-center gap-2 bg-white text-gray-700 border border-gray-300 px-3 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-gray-50 transition-colors disabled:opacity-50"
                                                         >
-                                                            Weekly &middot; Cancel
+                                                            {cancellingScheduleId === schedule.id ? 'Cancelling...' : 'Weekly · Cancel'}
                                                         </button>
                                                     ) : (
                                                         <button
                                                             onClick={() => scheduleReport(type)}
-                                                            className="inline-flex items-center gap-2 bg-white text-gray-700 border border-gray-300 px-3 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-gray-50 transition-colors"
+                                                            disabled={schedulingReportType === type}
+                                                            className="inline-flex items-center gap-2 bg-white text-gray-700 border border-gray-300 px-3 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-gray-50 transition-colors disabled:opacity-50"
                                                         >
-                                                            Schedule
+                                                            {schedulingReportType === type ? 'Scheduling...' : 'Schedule'}
                                                         </button>
                                                     )}
                                                 </div>
@@ -1950,15 +2185,20 @@ const ProjectManagementSystem = () => {
                                 <button
                                     type="button"
                                     onClick={closeProjectModal}
-                                    className="inline-flex items-center gap-2 bg-white text-gray-700 border border-gray-300 px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-gray-50 transition-colors"
+                                    disabled={savingProject}
+                                    className="inline-flex items-center gap-2 bg-white text-gray-700 border border-gray-300 px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-gray-50 transition-colors disabled:opacity-50"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     type="submit"
-                                    className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors"
+                                    disabled={savingProject}
+                                    className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors disabled:opacity-50"
                                 >
-                                    {editingProjectId !== null ? 'Save Changes' : 'Add Project'}
+                                    {savingProject && (
+                                        <span className="h-4 w-4 rounded-full border-2 border-white/40 border-t-white animate-spin" />
+                                    )}
+                                    {savingProject ? 'Saving...' : editingProjectId !== null ? 'Save Changes' : 'Add Project'}
                                 </button>
                             </div>
                         </form>
@@ -2042,15 +2282,20 @@ const ProjectManagementSystem = () => {
                                 <button
                                     type="button"
                                     onClick={() => setShowAddTask(false)}
-                                    className="inline-flex items-center gap-2 bg-white text-gray-700 border border-gray-300 px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-gray-50 transition-colors"
+                                    disabled={savingTask}
+                                    className="inline-flex items-center gap-2 bg-white text-gray-700 border border-gray-300 px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-gray-50 transition-colors disabled:opacity-50"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     type="submit"
-                                    className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors"
+                                    disabled={savingTask}
+                                    className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors disabled:opacity-50"
                                 >
-                                    Add Task
+                                    {savingTask && (
+                                        <span className="h-4 w-4 rounded-full border-2 border-white/40 border-t-white animate-spin" />
+                                    )}
+                                    {savingTask ? 'Adding...' : 'Add Task'}
                                 </button>
                             </div>
                         </form>
@@ -2111,15 +2356,20 @@ const ProjectManagementSystem = () => {
                                 <button
                                     type="button"
                                     onClick={() => setShowAddMember(false)}
-                                    className="inline-flex items-center gap-2 bg-white text-gray-700 border border-gray-300 px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-gray-50 transition-colors"
+                                    disabled={savingMember}
+                                    className="inline-flex items-center gap-2 bg-white text-gray-700 border border-gray-300 px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-gray-50 transition-colors disabled:opacity-50"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     type="submit"
-                                    className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors"
+                                    disabled={savingMember}
+                                    className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors disabled:opacity-50"
                                 >
-                                    Add Member
+                                    {savingMember && (
+                                        <span className="h-4 w-4 rounded-full border-2 border-white/40 border-t-white animate-spin" />
+                                    )}
+                                    {savingMember ? 'Adding...' : 'Add Member'}
                                 </button>
                             </div>
                         </form>
@@ -2133,12 +2383,14 @@ const ProjectManagementSystem = () => {
 // Main App Component
 const App = () => {
     return (
-        <AuthProvider>
-            <div className="App">
-                <OfflineBanner />
-                <AuthGuard />
-            </div>
-        </AuthProvider>
+        <ToastProvider>
+            <AuthProvider>
+                <div className="App">
+                    <OfflineBanner />
+                    <AuthGuard />
+                </div>
+            </AuthProvider>
+        </ToastProvider>
     );
 };
 

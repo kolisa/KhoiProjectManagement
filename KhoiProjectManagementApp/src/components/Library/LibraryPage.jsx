@@ -7,8 +7,11 @@ import { hasSpaceLevel } from '../../utils/spaceLevel';
 import { hasPermission } from '../../utils/permissions';
 import { formatFileSize } from '../../utils/formatFileSize';
 import ShareButton from '../Common/ShareButton';
+import { useToast } from '../../contexts/ToastContext';
+import { reportApiError } from '../../utils/apiError';
 
 const LibraryPage = ({ apiService, user, deepLink }) => {
+  const toast = useToast();
   const [selectedSpace, setSelectedSpace] = useState(null);
   const [files, setFiles] = useState([]);
   const [loadingFiles, setLoadingFiles] = useState(false);
@@ -76,8 +79,9 @@ const LibraryPage = ({ apiService, user, deepLink }) => {
     try {
       await apiService.uploadLibraryFile(selectedSpace.id, file);
       await loadFiles(selectedSpace.id);
+      toast.success(`"${file.name}" uploaded.`);
     } catch (err) {
-      setError(err.message);
+      reportApiError(toast, err, 'Could not upload this file.');
     } finally {
       setUploading(false);
     }
@@ -92,8 +96,9 @@ const LibraryPage = ({ apiService, user, deepLink }) => {
     try {
       await apiService.uploadLibraryFileVersion(fileId, file);
       await loadFiles(selectedSpace.id);
+      toast.success('New version uploaded.');
     } catch (err) {
-      setError(err.message);
+      reportApiError(toast, err, 'Could not upload this version.');
     } finally {
       setUploading(false);
     }
@@ -103,7 +108,7 @@ const LibraryPage = ({ apiService, user, deepLink }) => {
     try {
       await apiService.downloadLibraryFile(file.id, file.fileName);
     } catch (err) {
-      setError(err.message);
+      reportApiError(toast, err, 'Could not download this file.');
     }
   };
 
@@ -112,8 +117,9 @@ const LibraryPage = ({ apiService, user, deepLink }) => {
     try {
       await apiService.deleteLibraryFile(file.id);
       await loadFiles(selectedSpace.id);
+      toast.success('File deleted.');
     } catch (err) {
-      setError(err.message);
+      reportApiError(toast, err, 'Could not delete this file.');
     }
   };
 
@@ -140,6 +146,7 @@ const LibraryPage = ({ apiService, user, deepLink }) => {
       setShowNewFolder(false);
       setNewFolderName('');
       setTreeKey((k) => k + 1);
+      toast.success('Folder created.');
     } catch (err) {
       setError(err.message);
     } finally {

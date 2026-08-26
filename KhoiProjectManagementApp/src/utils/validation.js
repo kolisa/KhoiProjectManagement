@@ -89,4 +89,55 @@ export const validateReminder = ({ title, description, dueAt, priority, category
   return errors;
 };
 
+// CreateInvoiceDto/UpdateInvoiceDto rules.
+export const validateInvoice = ({ invoiceNumber, clientName, issueDate, dueDate, notes, lineItems }) => {
+  const errors = {};
+  validateRequired(errors, 'invoiceNumber', invoiceNumber, 'Invoice number');
+  validateMaxLength(errors, 'invoiceNumber', invoiceNumber, 50, 'Invoice number');
+  validateRequired(errors, 'clientName', clientName, 'Client name');
+  validateMaxLength(errors, 'clientName', clientName, 200, 'Client name');
+  validateMaxLength(errors, 'notes', notes, 2000, 'Notes');
+  if (!isEmpty(issueDate) && !isEmpty(dueDate) && new Date(dueDate) < new Date(issueDate)) {
+    errors.dueDate = 'Due date must not be before issue date.';
+  }
+  (lineItems || []).forEach((li, i) => {
+    if (isEmpty(li.description)) errors[`lineItems.${i}.description`] = 'Line item description is required.';
+    if (!(Number(li.quantity) > 0)) errors[`lineItems.${i}.quantity`] = 'Quantity must be greater than 0.';
+    if (!(Number(li.unitPrice) >= 0)) errors[`lineItems.${i}.unitPrice`] = 'Unit price must be 0 or more.';
+  });
+  return errors;
+};
+
+// CreateIdeaDto rules.
+export const validateIdea = ({ title, description }) => {
+  const errors = {};
+  validateRequired(errors, 'title', title, 'Title');
+  validateMaxLength(errors, 'title', title, 200, 'Title');
+  validateRequired(errors, 'description', description, 'Description');
+  validateMaxLength(errors, 'description', description, 4000, 'Description');
+  return errors;
+};
+
+// CreateAdminUserDto rules (admin-issued team members - no Password field, a temp one is generated).
+export const validateTeamMember = ({ name, email, position }) => {
+  const errors = {};
+  validateRequired(errors, 'name', name, 'Name');
+  validateMaxLength(errors, 'name', name, 200, 'Name');
+  validateRequired(errors, 'email', email, 'Email');
+  validateMaxLength(errors, 'email', email, 256, 'Email');
+  if (!isEmpty(email) && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.email = 'Enter a valid email address.';
+  validateRequired(errors, 'position', position, 'Position');
+  validateMaxLength(errors, 'position', position, 200, 'Position');
+  return errors;
+};
+
+// CreateRoleDto/UpdateRoleDto rules.
+export const validateRole = ({ name, description }) => {
+  const errors = {};
+  validateRequired(errors, 'name', name, 'Name');
+  validateMaxLength(errors, 'name', name, 100, 'Name');
+  validateMaxLength(errors, 'description', description, 500, 'Description');
+  return errors;
+};
+
 export const hasErrors = (errors) => Object.keys(errors).length > 0;

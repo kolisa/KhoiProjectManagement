@@ -4,10 +4,13 @@ import { X, Upload, Download, Trash2, MessageSquare, FileImage, ArrowRightCircle
 import { hasPermission } from '../../utils/permissions';
 import { formatFileSize } from '../../utils/formatFileSize';
 import IdeaAttachmentAnnotations from './IdeaAttachmentAnnotations';
+import { useToast } from '../../contexts/ToastContext';
+import { reportApiError } from '../../utils/apiError';
 
 const STATUS_OPTIONS = ['Submitted', 'UnderReview', 'Approved', 'Rejected'];
 
 const IdeaDetail = ({ apiService, user, ideaId, onClose, onChanged }) => {
+  const toast = useToast();
   const [idea, setIdea] = useState(null);
   const [comments, setComments] = useState([]);
   const [attachments, setAttachments] = useState([]);
@@ -30,6 +33,7 @@ const IdeaDetail = ({ apiService, user, ideaId, onClose, onChanged }) => {
       setIdea(ideaResult);
       setComments(commentsResult || []);
       setAttachments(attachmentsResult || []);
+      setError(null);
     } catch (err) {
       setError(err.message);
     }
@@ -49,7 +53,7 @@ const IdeaDetail = ({ apiService, user, ideaId, onClose, onChanged }) => {
       const result = await apiService.getIdeaComments(ideaId);
       setComments(result || []);
     } catch (err) {
-      setError(err.message);
+      reportApiError(toast, err, 'Could not post comment.');
     }
   };
 
@@ -59,7 +63,7 @@ const IdeaDetail = ({ apiService, user, ideaId, onClose, onChanged }) => {
       const result = await apiService.getIdeaComments(ideaId);
       setComments(result || []);
     } catch (err) {
-      setError(err.message);
+      reportApiError(toast, err, 'Could not delete comment.');
     }
   };
 
@@ -72,8 +76,9 @@ const IdeaDetail = ({ apiService, user, ideaId, onClose, onChanged }) => {
       await apiService.uploadIdeaAttachment(ideaId, file);
       const result = await apiService.getIdeaAttachments(ideaId);
       setAttachments(result || []);
+      toast.success('File uploaded.');
     } catch (err) {
-      setError(err.message);
+      reportApiError(toast, err, 'Could not upload this file.');
     } finally {
       setUploading(false);
     }
@@ -83,7 +88,7 @@ const IdeaDetail = ({ apiService, user, ideaId, onClose, onChanged }) => {
     try {
       await apiService.downloadIdeaAttachment(attachment.id, attachment.originalFileName);
     } catch (err) {
-      setError(err.message);
+      reportApiError(toast, err, 'Could not download this file.');
     }
   };
 
@@ -93,8 +98,9 @@ const IdeaDetail = ({ apiService, user, ideaId, onClose, onChanged }) => {
       await apiService.deleteIdeaAttachment(attachmentId);
       const result = await apiService.getIdeaAttachments(ideaId);
       setAttachments(result || []);
+      toast.success('File deleted.');
     } catch (err) {
-      setError(err.message);
+      reportApiError(toast, err, 'Could not delete this file.');
     }
   };
 
@@ -103,8 +109,9 @@ const IdeaDetail = ({ apiService, user, ideaId, onClose, onChanged }) => {
       await apiService.updateIdeaStatus(ideaId, status);
       await load();
       onChanged();
+      toast.success(`Status changed to ${status}.`);
     } catch (err) {
-      setError(err.message);
+      reportApiError(toast, err, 'Could not update status.');
     }
   };
 
@@ -115,8 +122,9 @@ const IdeaDetail = ({ apiService, user, ideaId, onClose, onChanged }) => {
       await apiService.convertIdeaToProject(ideaId);
       await load();
       onChanged();
+      toast.success('Converted to project.');
     } catch (err) {
-      setError(err.message);
+      reportApiError(toast, err, 'Could not convert this idea to a project.');
     } finally {
       setConverting(false);
     }

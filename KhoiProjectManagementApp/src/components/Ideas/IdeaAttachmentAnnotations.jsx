@@ -3,8 +3,11 @@
 // thread. Flat list, not pin/coordinate markup on the image (see plan addendum).
 import React, { useState, useEffect } from 'react';
 import { Trash2 } from 'lucide-react';
+import { useToast } from '../../contexts/ToastContext';
+import { reportApiError } from '../../utils/apiError';
 
 const IdeaAttachmentAnnotations = ({ apiService, attachmentId, currentUserId, canManage, onAnnotationsChanged }) => {
+  const toast = useToast();
   const [annotations, setAnnotations] = useState(null);
   const [body, setBody] = useState('');
   const [error, setError] = useState(null);
@@ -33,7 +36,7 @@ const IdeaAttachmentAnnotations = ({ apiService, attachmentId, currentUserId, ca
       await load();
       onAnnotationsChanged?.();
     } catch (err) {
-      setError(err.message);
+      reportApiError(toast, err, 'Could not post annotation.');
     } finally {
       setPosting(false);
     }
@@ -45,7 +48,7 @@ const IdeaAttachmentAnnotations = ({ apiService, attachmentId, currentUserId, ca
       await load();
       onAnnotationsChanged?.();
     } catch (err) {
-      setError(err.message);
+      reportApiError(toast, err, 'Could not delete annotation.');
     }
   };
 

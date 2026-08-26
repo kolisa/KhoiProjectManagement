@@ -2,8 +2,11 @@
 import React, { useState, useEffect } from 'react';
 import { Download } from 'lucide-react';
 import { formatFileSize } from '../../utils/formatFileSize';
+import { useToast } from '../../contexts/ToastContext';
+import { reportApiError } from '../../utils/apiError';
 
 const LibraryVersionHistory = ({ apiService, file }) => {
+  const toast = useToast();
   const [versions, setVersions] = useState(null);
   const [error, setError] = useState(null);
 
@@ -23,7 +26,7 @@ const LibraryVersionHistory = ({ apiService, file }) => {
     try {
       await apiService.downloadLibraryFileVersion(file.id, versionNumber, file.fileName);
     } catch (err) {
-      setError(err.message);
+      reportApiError(toast, err, 'Could not download this version.');
     }
   };
 

@@ -2,6 +2,9 @@
 import React, { useState, useRef } from 'react';
 import { Upload, Download, X } from 'lucide-react';
 import { hasPermission } from '../../utils/permissions';
+import { useToast } from '../../contexts/ToastContext';
+import { reportApiError } from '../../utils/apiError';
+import { formatCurrency } from '../../utils/currency';
 
 const InvoiceStatusBadge = ({ status }) => (
   <span className={`inline-flex items-center px-[9px] py-[3px] rounded-[7px] text-[11.5px] font-semibold whitespace-nowrap ${
@@ -15,7 +18,7 @@ const InvoiceStatusBadge = ({ status }) => (
 );
 
 const InvoiceDetail = ({ apiService, user, invoice, onClose, onChanged }) => {
-  const [error, setError] = useState(null);
+  const toast = useToast();
   const [uploading, setUploading] = useState(false);
   const [showTemplatePrompt, setShowTemplatePrompt] = useState(false);
   const [templateName, setTemplateName] = useState('');
@@ -31,6 +34,7 @@ const InvoiceDetail = ({ apiService, user, invoice, onClose, onChanged }) => {
     try {
       const result = await apiService.uploadInvoiceFile(invoice.id, file);
       await onChanged();
+      toast.success('Document uploaded.');
       // The backend only suggests this the first time a look is uploaded, and never for an invoice
       // that already came from a template - see InvoiceService.UploadFileAsync.
       if (result?.suggestSaveAsTemplate) {
@@ -38,7 +42,7 @@ const InvoiceDetail = ({ apiService, user, invoice, onClose, onChanged }) => {
         setShowTemplatePrompt(true);
       }
     } catch (err) {
-      setError(err.message);
+      reportApiError(toast, err, 'Could not upload this document.');
     } finally {
       setUploading(false);
     }
@@ -48,7 +52,7 @@ const InvoiceDetail = ({ apiService, user, invoice, onClose, onChanged }) => {
     try {
       await apiService.downloadInvoiceFile(invoice.id, invoice.originalFileName);
     } catch (err) {
-      setError(err.message);
+      reportApiError(toast, err, 'Could not download this document.');
     }
   };
 
@@ -57,8 +61,19 @@ const InvoiceDetail = ({ apiService, user, invoice, onClose, onChanged }) => {
       await apiService.saveInvoiceAsTemplate(invoice.id, { name: templateName, clientName: invoice.clientName });
       setShowTemplatePrompt(false);
       await onChanged();
+      toast.success('Template saved.');
     } catch (err) {
-      setError(err.message);
+      reportApiError(toast, err, 'Could not save this template.');
+    }
+  };
+
+  const handleStatusChange = async (status) => {
+    try {
+      await apiService.updateInvoiceStatus(invoice.id, status);
+      await onChanged();
+      toast.success(`Marked as ${status}.`);
+    } catch (err) {
+      reportApiError(toast, err, 'Could not update invoice status.');
     }
   };
 
@@ -74,13 +89,23 @@ const InvoiceDetail = ({ apiService, user, invoice, onClose, onChanged }) => {
         </button>
       </div>
 
-      {error && <div className="text-red-600 text-sm mb-3">{error}</div>}
-
       <dl className="space-y-2 text-sm mb-4">
         <div>
           <dt className="text-gray-500">Status</dt>
-          <dd className="text-gray-900 mt-1">
+          <dd className="text-gray-900 mt-1 flex items-center gap-2">
             <InvoiceStatusBadge status={invoice.status} />
+            {canManage && (
+              <select
+                value=""
+                onChange={(e) => e.target.value && handleStatusChange(e.target.value)}
+                className="text-xs border border-gray-300 rounded-md px-2 py-1 text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="">Change status...</option>
+                {['Draft', 'Sent', 'Paid', 'Overdue'].filter((s) => s !== invoice.status).map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+            )}
           </dd>
         </div>
         <div>
@@ -91,13 +116,13 @@ const InvoiceDetail = ({ apiService, user, invoice, onClose, onChanged }) => {
                 {invoice.lineItems.map((li) => (
                   <tr key={li.id} className="border-t">
                     <td className="py-1">{li.description}</td>
-                    <td className="py-1 text-right">{li.quantity} &times; {li.unitPrice}</td>
-                    <td className="py-1 text-right">{(li.quantity * li.unitPrice).toFixed(2)}</td>
+                    <td className="py-1 text-right">{li.quantity} &times; {formatCurrency(li.unitPrice)}</td>
+                    <td className="py-1 text-right">{formatCurrency(li.quantity * li.unitPrice)}</td>
                   </tr>
                 ))}
                 <tr className="border-t font-semibold">
                   <td className="py-1" colSpan={2}>Total</td>
-                  <td className="py-1 text-right">{invoice.total?.toFixed(2)}</td>
+                  <td className="py-1 text-right">{formatCurrency(invoice.total)}</td>
                 </tr>
               </tbody>
             </table>

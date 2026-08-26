@@ -22,12 +22,13 @@ namespace KhoiProjectManagement.Application
             _emailService = emailService;
         }
 
-        public async Task<IEnumerable<TeamMemberDto>> GetAllUsersAsync()
+        public async Task<IEnumerable<TeamMemberDto>> GetAllUsersAsync(bool includeInactive = false)
         {
-            var users = await _userRepo.Query()
-                .Where(u => u.IsActive)
-                .OrderBy(u => u.Name)
-                .ToListAsync();
+            var query = _userRepo.Query();
+            if (!includeInactive)
+                query = query.Where(u => u.IsActive);
+
+            var users = await query.OrderBy(u => u.Name).ToListAsync();
 
             return users.Select(MapToDto);
         }
@@ -182,6 +183,36 @@ namespace KhoiProjectManagement.Application
             user.IsActive = false;
             await _unitOfWork.SaveChangesAsync();
             return true;
+        }
+
+        public async Task<bool> ReactivateUserAsync(int id)
+        {
+            var user = await _userRepo.FindAsync(id);
+            if (user == null)
+                return false;
+
+            user.IsActive = true;
+            await _unitOfWork.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task ResendTempPasswordAsync(int id)
+        {
+            var user = await _userRepo.FindAsync(id);
+            if (user == null)
+                throw new KeyNotFoundException("User not found");
+
+            if (!user.MustChangePassword)
+                throw new InvalidOperationException("This user has already set their own password.");
+
+            var tempPassword = TempPasswordGenerator.Generate();
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(tempPassword);
+            await _unitOfWork.SaveChangesAsync();
+
+            // Deliberately not swallowed like the creation-time send (CreateUserWithTempPasswordAsync) -
+            // resending only happens because the first email is believed lost, so a second silent
+            // failure here should surface to the admin rather than leave them thinking it worked.
+            await _emailService.SendTemporaryPasswordEmailAsync(user.Email, user.Name, tempPassword);
         }
 
         public async Task<bool> ValidateUserCredentialsAsync(string email, string password)

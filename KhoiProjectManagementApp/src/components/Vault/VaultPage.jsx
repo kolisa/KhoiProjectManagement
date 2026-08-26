@@ -5,8 +5,10 @@ import SpaceTree from '../Spaces/SpaceTree';
 import VaultEntryDetail from './VaultEntryDetail';
 import VaultEntryModal from './VaultEntryModal';
 import { hasSpaceLevel } from '../../utils/spaceLevel';
+import { useToast } from '../../contexts/ToastContext';
 
 const VaultPage = ({ apiService }) => {
+  const toast = useToast();
   const [selectedSpace, setSelectedSpace] = useState(null);
   const [entries, setEntries] = useState([]);
   const [loadingEntries, setLoadingEntries] = useState(false);
@@ -44,7 +46,8 @@ const VaultPage = ({ apiService }) => {
   };
 
   const handleSaveEntry = async (data) => {
-    if (editingEntry) {
+    const isEditing = !!editingEntry;
+    if (isEditing) {
       await apiService.updateVaultEntry(editingEntry.id, data);
     } else {
       await apiService.createVaultEntry(data);
@@ -52,6 +55,7 @@ const VaultPage = ({ apiService }) => {
     setShowModal(false);
     setEditingEntry(null);
     await loadEntries(selectedSpace.id);
+    toast.success(isEditing ? 'Vault entry updated.' : 'Vault entry added.');
   };
 
   const canWrite = selectedSpace && hasSpaceLevel(selectedSpace.myEffectiveLevel, 'Write');
