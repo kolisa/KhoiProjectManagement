@@ -53,6 +53,16 @@ bld/
 # Uncomment if you have tasks that create the project's static files in wwwroot
 #wwwroot/
 
+# Runtime-written upload storage (InvoiceService/LibraryService/IdeaService/AttachmentService all
+# default to these relative wwwroot paths - see FileUpload:* in appsettings.json). Never track
+# uploaded content: it doesn't belong in source control, and since wwwroot/** is auto-published by
+# the ASP.NET Core Web SDK, anything committed here ships to every deploy built from that commit.
+KhoiProjectManagementApi/wwwroot/uploads/
+KhoiProjectManagementApi/wwwroot/invoice-files/
+KhoiProjectManagementApi/wwwroot/invoice-templates/
+KhoiProjectManagementApi/wwwroot/library-files/
+KhoiProjectManagementApi/wwwroot/idea-files/
+
 # Visual Studio 2017 auto generated files
 Generated\ Files/
 
