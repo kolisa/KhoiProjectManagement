@@ -1,8 +1,10 @@
 using System.Security.Claims;
+using System.Text;
 using KhoiProjectManagement.Application.Abstractions;
 using KhoiProjectManagement.Application;
 using KhoiProjectManagement.Domain;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using MockQueryable;
 using MockQueryable.NSubstitute;
 using NSubstitute;
@@ -125,6 +127,113 @@ namespace KhoiProjectManagement.UnitTests.Services
             Assert.Equal("New Secret", result.Name);
             _vaultEntryRepo.Received(1).Add(Arg.Is<VaultEntry>(e => e.EncryptedSecret == "cipher-secret" && e.CreatedBy == 1));
             await _auditService.Received(1).LogAsync(VaultAuditAction.Created, Arg.Any<int>(), "New Secret", 1, null);
+        }
+
+        private static IFormFile FakeFile(string content, string fileName)
+        {
+            var bytes = Encoding.UTF8.GetBytes(content);
+            var file = Substitute.For<IFormFile>();
+            file.FileName.Returns(fileName);
+            file.Length.Returns(bytes.LongLength);
+            file.OpenReadStream().Returns(_ => new MemoryStream(bytes));
+            return file;
+        }
+
+        [Fact]
+        public async Task ImportEntriesAsync_WhenCallerLacksWriteOnSpace_ThrowsAndNeverImports()
+        {
+            SetAuthorizationResult(succeeds: false);
+            var file = FakeFile("KEY=value", "secrets.env");
+
+            var sut = CreateSut();
+
+            await Assert.ThrowsAsync<UnauthorizedAccessException>(() => sut.ImportEntriesAsync(10, file, CallerWithId(1)));
+            _vaultEntryRepo.DidNotReceive().AddRange(Arg.Any<IEnumerable<VaultEntry>>());
+        }
+
+        [Fact]
+        public async Task ImportEntriesAsync_WithEnvFile_EncryptsEachKeyValuePairAndSkipsCommentsAndBlankLines()
+        {
+            SetAuthorizationResult(succeeds: true);
+            _encryptionService.Encrypt(Arg.Any<string>()).Returns(ci => $"cipher:{ci.Arg<string>()}");
+            var content = "# a comment\n\nDB_PASSWORD=hunter2\nexport API_KEY=\"abc123\"\n";
+            var file = FakeFile(content, "secrets.env");
+
+            var sut = CreateSut();
+            var result = await sut.ImportEntriesAsync(10, file, CallerWithId(1));
+
+            Assert.Equal(2, result.Imported);
+            Assert.Equal(0, result.Skipped);
+            _vaultEntryRepo.Received(1).AddRange(Arg.Is<IEnumerable<VaultEntry>>(entries =>
+                entries.Any(e => e.Name == "DB_PASSWORD" && e.EncryptedSecret == "cipher:hunter2") &&
+                entries.Any(e => e.Name == "API_KEY" && e.EncryptedSecret == "cipher:abc123")));
+            await _unitOfWork.Received(1).SaveChangesAsync();
+        }
+
+        [Fact]
+        public async Task ImportEntriesAsync_WithNotepadStyleTxtFile_SplitsOnFirstColon()
+        {
+            SetAuthorizationResult(succeeds: true);
+            _encryptionService.Encrypt(Arg.Any<string>()).Returns(ci => $"cipher:{ci.Arg<string>()}");
+            var content = "Gmail password: hunter2\nWiFi: My Home Wifi Password 123\nNo separator here\n";
+            var file = FakeFile(content, "notes.txt");
+
+            var sut = CreateSut();
+            var result = await sut.ImportEntriesAsync(10, file, CallerWithId(1));
+
+            Assert.Equal(2, result.Imported);
+            _vaultEntryRepo.Received(1).AddRange(Arg.Is<IEnumerable<VaultEntry>>(entries =>
+                entries.Any(e => e.Name == "Gmail password" && e.EncryptedSecret == "cipher:hunter2") &&
+                entries.Any(e => e.Name == "WiFi" && e.EncryptedSecret == "cipher:My Home Wifi Password 123")));
+        }
+
+        [Fact]
+        public async Task ImportEntriesAsync_WithCsvFile_MapsColumnsAndSkipsRowsMissingASecret()
+        {
+            SetAuthorizationResult(succeeds: true);
+            _encryptionService.Encrypt(Arg.Any<string>()).Returns(ci => $"cipher:{ci.Arg<string>()}");
+            var content = "name,username,secret,notes\nGitHub,bot@khoi.africa,gh-token-1,CI bot\nNo Secret Here,,,\n";
+            var file = FakeFile(content, "secrets.csv");
+
+            var sut = CreateSut();
+            var result = await sut.ImportEntriesAsync(10, file, CallerWithId(1));
+
+            Assert.Equal(1, result.Imported);
+            Assert.Equal(1, result.Skipped);
+            _vaultEntryRepo.Received(1).AddRange(Arg.Is<IEnumerable<VaultEntry>>(entries =>
+                entries.Single().Name == "GitHub" &&
+                entries.Single().Username == "bot@khoi.africa" &&
+                entries.Single().EncryptedSecret == "cipher:gh-token-1"));
+        }
+
+        [Fact]
+        public async Task ImportEntriesAsync_WithJsonArrayFile_ParsesObjectsCaseInsensitively()
+        {
+            SetAuthorizationResult(succeeds: true);
+            _encryptionService.Encrypt(Arg.Any<string>()).Returns(ci => $"cipher:{ci.Arg<string>()}");
+            var content = "[{\"Name\":\"AWS\",\"Secret\":\"aws-secret\",\"Username\":\"deploy\"}]";
+            var file = FakeFile(content, "secrets.json");
+
+            var sut = CreateSut();
+            var result = await sut.ImportEntriesAsync(10, file, CallerWithId(1));
+
+            Assert.Equal(1, result.Imported);
+            _vaultEntryRepo.Received(1).AddRange(Arg.Is<IEnumerable<VaultEntry>>(entries =>
+                entries.Single().Name == "AWS" && entries.Single().EncryptedSecret == "cipher:aws-secret"));
+        }
+
+        [Fact]
+        public async Task ImportEntriesAsync_WhenFileTooLarge_ThrowsWithoutReadingIt()
+        {
+            SetAuthorizationResult(succeeds: true);
+            var file = Substitute.For<IFormFile>();
+            file.FileName.Returns("secrets.env");
+            file.Length.Returns(3 * 1024 * 1024L);
+
+            var sut = CreateSut();
+
+            await Assert.ThrowsAsync<InvalidOperationException>(() => sut.ImportEntriesAsync(10, file, CallerWithId(1)));
+            file.DidNotReceive().OpenReadStream();
         }
 
         [Fact]

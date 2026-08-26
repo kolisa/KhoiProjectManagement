@@ -82,6 +82,24 @@ namespace KhoiProjectManagementApi.Controllers
             }
         }
 
+        [HttpPost("entries/import")]
+        public async Task<ActionResult<VaultImportResultDto>> ImportEntries([FromQuery] int spaceId, IFormFile file)
+        {
+            try
+            {
+                var result = await _vaultService.ImportEntriesAsync(spaceId, file, User);
+                return Ok(result);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
         [HttpPut("entries/{id}")]
         public async Task<IActionResult> UpdateEntry(int id, UpdateVaultEntryDto dto)
         {

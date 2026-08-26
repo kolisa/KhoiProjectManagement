@@ -1,9 +1,10 @@
 // src/components/Vault/VaultPage.js
 import React, { useState, useEffect } from 'react';
-import { Plus, Lock, FolderPlus, X, Users, Trash2 } from 'lucide-react';
+import { Plus, Lock, FolderPlus, X, Users, Trash2, Upload } from 'lucide-react';
 import SpaceTree from '../Spaces/SpaceTree';
 import VaultEntryDetail from './VaultEntryDetail';
 import VaultEntryModal from './VaultEntryModal';
+import VaultImportModal from './VaultImportModal';
 import ManageAccessModal from '../Spaces/ManageAccessModal';
 import { hasSpaceLevel } from '../../utils/spaceLevel';
 import { hasPermission } from '../../utils/permissions';
@@ -26,6 +27,7 @@ const VaultPage = ({ apiService, user, teamMembers = [] }) => {
   const [creatingCategory, setCreatingCategory] = useState(false);
   const [categoryError, setCategoryError] = useState(null);
   const [showManageAccess, setShowManageAccess] = useState(false);
+  const [showImport, setShowImport] = useState(false);
 
   const loadEntries = async (spaceId) => {
     setLoadingEntries(true);
@@ -179,6 +181,15 @@ const VaultPage = ({ apiService, user, teamMembers = [] }) => {
                   )}
                   {canWrite && (
                     <button
+                      onClick={() => setShowImport(true)}
+                      className="inline-flex items-center gap-2 bg-white text-gray-700 border border-gray-300 px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-gray-50 transition-colors"
+                    >
+                      <Upload className="h-4 w-4" />
+                      Import
+                    </button>
+                  )}
+                  {canWrite && (
+                    <button
                       onClick={() => { setEditingEntry(null); setShowModal(true); }}
                       className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors"
                     >
@@ -246,6 +257,15 @@ const VaultPage = ({ apiService, user, teamMembers = [] }) => {
           entry={editingEntry}
           onSave={handleSaveEntry}
           onClose={() => { setShowModal(false); setEditingEntry(null); }}
+        />
+      )}
+
+      {showImport && selectedSpace && (
+        <VaultImportModal
+          apiService={apiService}
+          spaceId={selectedSpace.id}
+          onImported={() => loadEntries(selectedSpace.id)}
+          onClose={() => setShowImport(false)}
         />
       )}
 

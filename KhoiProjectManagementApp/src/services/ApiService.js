@@ -606,6 +606,12 @@ class ApiService {
     });
   }
 
+  async importVaultEntries(spaceId, file) {
+    const form = new FormData();
+    form.append('file', file);
+    return await this.requestMultipart(`/vault/entries/import?spaceId=${spaceId}`, form);
+  }
+
   async updateVaultEntry(id, entryData) {
     return await this.request(`/vault/entries/${id}`, {
       method: 'PUT',

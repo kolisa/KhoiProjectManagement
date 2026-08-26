@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using KhoiProjectManagement.Application;
+using Microsoft.AspNetCore.Http;
 
 namespace KhoiProjectManagement.Application
 {
@@ -17,6 +18,11 @@ namespace KhoiProjectManagement.Application
         Task<VaultSecretRevealDto?> RevealSecretAsync(int id, ClaimsPrincipal caller);
 
         Task<VaultEntryDetailDto> CreateEntryAsync(CreateVaultEntryDto dto, ClaimsPrincipal caller);
+
+        // Bulk-creates entries from an uploaded .env/.csv/.json file - see VaultImportParser for the
+        // three formats. Best-effort per row (a bad row is skipped and reported, not a hard failure
+        // for the whole file) since a partially-clean export shouldn't block importing the rest.
+        Task<VaultImportResultDto> ImportEntriesAsync(int spaceId, IFormFile file, ClaimsPrincipal caller);
         Task<bool> UpdateEntryAsync(int id, UpdateVaultEntryDto dto, ClaimsPrincipal caller);
         Task<bool> DeleteEntryAsync(int id, ClaimsPrincipal caller);
 
