@@ -10,7 +10,7 @@ namespace KhoiProjectManagement.Application
         Task<IdeaDto?> GetIdeaByIdAsync(int id);
         Task<IdeaDto> CreateIdeaAsync(CreateIdeaDto dto, ClaimsPrincipal caller);
         Task<bool> UpdateIdeaAsync(int id, UpdateIdeaDto dto, ClaimsPrincipal caller);
-        Task<bool> UpdateStatusAsync(int id, string status);
+        Task<bool> UpdateStatusAsync(int id, string status, int actingUserId);
         Task<IdeaDto?> ConvertToProjectAsync(int id, int callerId);
 
         Task<List<IdeaCommentDto>?> GetCommentsAsync(int ideaId);

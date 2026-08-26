@@ -191,7 +191,7 @@ const InvoicesPage = ({ apiService, user }) => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-3xl font-bold text-gray-900 flex items-center">
+          <h2 className="text-[27px] font-bold text-gray-900 flex items-center">
             <DollarSign className="h-7 w-7 mr-2 text-gray-700" />
             Invoices
           </h2>
@@ -209,6 +209,39 @@ const InvoicesPage = ({ apiService, user }) => {
       </div>
 
       {error && <div className="text-red-600 text-sm">{error}</div>}
+
+      {invoices && invoices.length > 0 && (() => {
+        const now = new Date();
+        const paidThisMonth = invoices
+          .filter((inv) => inv.status === 'Paid' && new Date(inv.issueDate).getMonth() === now.getMonth() && new Date(inv.issueDate).getFullYear() === now.getFullYear())
+          .reduce((sum, inv) => sum + inv.total, 0);
+        const awaitingPayment = invoices
+          .filter((inv) => inv.status === 'Sent')
+          .reduce((sum, inv) => sum + inv.total, 0);
+        const overdue = invoices
+          .filter((inv) => inv.status === 'Overdue')
+          .reduce((sum, inv) => sum + inv.total, 0);
+        const overdueCount = invoices.filter((inv) => inv.status === 'Overdue').length;
+        const fmt = (n) => `R${n.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+
+        return (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-white p-5 rounded-[14px] border border-gray-100 shadow-sm">
+              <p className="text-sm font-medium text-gray-500">Paid this month</p>
+              <p className="text-2xl font-bold text-gray-900">{fmt(paidThisMonth)}</p>
+            </div>
+            <div className="bg-white p-5 rounded-[14px] border border-gray-100 shadow-sm">
+              <p className="text-sm font-medium text-gray-500">Awaiting payment</p>
+              <p className="text-2xl font-bold text-gray-900">{fmt(awaitingPayment)}</p>
+            </div>
+            <div className={`bg-white p-5 rounded-[14px] border shadow-sm ${overdueCount > 0 ? 'border-[#DB4241]/30' : 'border-gray-100'}`}>
+              <p className={`text-sm font-medium ${overdueCount > 0 ? 'text-red-600' : 'text-gray-500'}`}>Overdue</p>
+              <p className="text-2xl font-bold text-gray-900">{fmt(overdue)}</p>
+              {overdueCount > 0 && <p className="text-xs text-red-600 mt-1">{overdueCount} invoice{overdueCount !== 1 ? 's' : ''}</p>}
+            </div>
+          </div>
+        );
+      })()}
 
       {templates.length > 0 && (
         <div className="text-sm text-gray-500 flex items-center">

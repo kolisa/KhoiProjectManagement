@@ -142,9 +142,14 @@ namespace KhoiProjectManagementApi.Extensions
             services.AddScoped<IAuthService, AuthService>();
             services.AddScoped<INotificationService, NotificationService>();
             services.AddScoped<IReportService, ReportService>();
+            services.AddScoped<IReportExportService, ReportExportService>();
+            services.AddScoped<IReportScheduleService, ReportScheduleService>();
             services.AddScoped<IEmailService, EmailService>();
             services.AddScoped<IDashboardService, DashboardService>();
             services.AddScoped<IAttachmentService, AttachmentService>();
+
+            // Cross-feature activity feed (see ActivityLogService)
+            services.AddScoped<IActivityLogService, ActivityLogService>();
 
             // CORS
             services.AddCors(options =>
@@ -178,7 +183,10 @@ namespace KhoiProjectManagementApi.Extensions
 
                     policy.AllowAnyHeader()
                           .AllowAnyMethod()
-                          .AllowCredentials();
+                          .AllowCredentials()
+                          // Cross-origin fetch() hides response headers by default - the frontend needs
+                          // this one to read the real filename off ReportsController's File() results.
+                          .WithExposedHeaders("Content-Disposition");
                 });
             });
 

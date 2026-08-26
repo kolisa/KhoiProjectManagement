@@ -72,7 +72,7 @@ namespace KhoiProjectManagementApi.Controllers
         {
             try
             {
-                var updated = await _ideaService.UpdateStatusAsync(id, dto.Status);
+                var updated = await _ideaService.UpdateStatusAsync(id, dto.Status, GetUserId());
                 if (!updated)
                     return NotFound();
 

@@ -74,7 +74,7 @@ namespace KhoiProjectManagementApi.Controllers
         {
             try
             {
-                var updated = await _invoiceService.UpdateStatusAsync(id, dto.Status);
+                var updated = await _invoiceService.UpdateStatusAsync(id, dto.Status, GetUserId());
                 if (!updated)
                     return NotFound();
 

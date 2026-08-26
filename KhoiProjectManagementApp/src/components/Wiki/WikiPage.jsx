@@ -172,7 +172,7 @@ const WikiPage = ({ apiService, user, deepLink }) => {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-3xl font-bold text-gray-900 flex items-center">
+        <h2 className="text-[27px] font-bold text-gray-900 flex items-center">
           <BookOpen className="h-7 w-7 mr-2 text-gray-700" />
           Wiki
         </h2>
@@ -243,18 +243,21 @@ const WikiPage = ({ apiService, user, deepLink }) => {
           {selectedSpace && creatingUnderParentId === undefined && !selectedPageId && (
             <>
               <div className="flex justify-between items-center">
-                <div className="flex items-center text-sm text-gray-500 space-x-1">
-                  <button onClick={() => setBreadcrumb([])} className="hover:text-blue-600 font-medium">
-                    {selectedSpace.name}
-                  </button>
-                  {breadcrumb.map((crumb, i) => (
-                    <React.Fragment key={crumb.id}>
-                      <ChevronRight className="h-4 w-4" />
-                      <button onClick={() => handleBreadcrumbClick(i)} className="hover:text-blue-600">
-                        {crumb.title}
-                      </button>
-                    </React.Fragment>
-                  ))}
+                <div>
+                  <div className="flex items-center text-sm text-gray-500 space-x-1">
+                    <button onClick={() => setBreadcrumb([])} className="hover:text-blue-600 font-medium">
+                      {selectedSpace.name}
+                    </button>
+                    {breadcrumb.map((crumb, i) => (
+                      <React.Fragment key={crumb.id}>
+                        <ChevronRight className="h-4 w-4" />
+                        <button onClick={() => handleBreadcrumbClick(i)} className="hover:text-blue-600">
+                          {crumb.title}
+                        </button>
+                      </React.Fragment>
+                    ))}
+                  </div>
+                  <p className="text-xs text-gray-400 mt-0.5">{pages.length} page{pages.length !== 1 ? 's' : ''}</p>
                 </div>
                 {canWrite && (
                   <button
@@ -291,6 +294,9 @@ const WikiPage = ({ apiService, user, deepLink }) => {
                       >
                         <FileText className="h-4 w-4 mr-2 text-gray-400 flex-shrink-0" />
                         <span className="font-medium text-gray-900 truncate">{page.title}</span>
+                        {page.wordCount > 0 && (
+                          <span className="ml-2 text-xs text-gray-400 flex-shrink-0">{Math.max(1, Math.ceil(page.wordCount / 200))} min read</span>
+                        )}
                         {page.labels?.length > 0 && (
                           <span className="ml-2 flex space-x-1 flex-shrink-0">
                             {page.labels.map((l) => (

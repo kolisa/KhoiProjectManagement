@@ -150,7 +150,7 @@ const LibraryPage = ({ apiService, user, deepLink }) => {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-3xl font-bold text-gray-900 flex items-center">
+        <h2 className="text-[27px] font-bold text-gray-900 flex items-center">
           <FolderOpen className="h-7 w-7 mr-2 text-gray-700" />
           File Library
         </h2>
@@ -185,7 +185,10 @@ const LibraryPage = ({ apiService, user, deepLink }) => {
           {selectedSpace && (
             <>
               <div className="flex justify-between items-center">
-                <h3 className="text-xl font-semibold text-gray-900">{selectedSpace.name}</h3>
+                <div>
+                  <h3 className="text-xl font-semibold text-gray-900">{selectedSpace.name}</h3>
+                  <p className="text-sm text-gray-500">{files.length} file{files.length !== 1 ? 's' : ''}</p>
+                </div>
                 {canWrite && (
                   <>
                     <button

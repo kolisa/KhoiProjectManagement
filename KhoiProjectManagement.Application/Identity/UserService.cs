@@ -11,13 +11,15 @@ namespace KhoiProjectManagement.Application
         private readonly IRepository<Role> _roleRepo;
         private readonly IRepository<UserRole> _userRoleRepo;
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IEmailService _emailService;
 
-        public UserService(IRepository<User> userRepo, IRepository<Role> roleRepo, IRepository<UserRole> userRoleRepo, IUnitOfWork unitOfWork)
+        public UserService(IRepository<User> userRepo, IRepository<Role> roleRepo, IRepository<UserRole> userRoleRepo, IUnitOfWork unitOfWork, IEmailService emailService)
         {
             _userRepo = userRepo;
             _roleRepo = roleRepo;
             _userRoleRepo = userRoleRepo;
             _unitOfWork = unitOfWork;
+            _emailService = emailService;
         }
 
         public async Task<IEnumerable<TeamMemberDto>> GetAllUsersAsync()
@@ -70,14 +72,59 @@ namespace KhoiProjectManagement.Application
             _userRepo.Add(user);
             await _unitOfWork.SaveChangesAsync();
 
-            var matchingRole = await _roleRepo.Query().FirstOrDefaultAsync(r => r.Name.ToLower() == createUserDto.Role.ToLower());
-            if (matchingRole != null)
+            await AssignMatchingRoleAsync(user.Id, createUserDto.Role);
+
+            return MapToDto(user);
+        }
+
+        public async Task<TeamMemberDto> CreateUserWithTempPasswordAsync(CreateAdminUserDto createUserDto)
+        {
+            var existingUser = await _userRepo.Query().FirstOrDefaultAsync(u => u.Email.ToLower() == createUserDto.Email.ToLower());
+            if (existingUser != null)
             {
-                _userRoleRepo.Add(new UserRole { UserId = user.Id, RoleId = matchingRole.Id });
-                await _unitOfWork.SaveChangesAsync();
+                throw new InvalidOperationException("User with this email already exists");
+            }
+
+            var tempPassword = TempPasswordGenerator.Generate();
+
+            var user = new User
+            {
+                Name = createUserDto.Name,
+                Email = createUserDto.Email,
+                Role = createUserDto.Role,
+                Position = createUserDto.Position,
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(tempPassword),
+                IsActive = true,
+                MustChangePassword = true
+            };
+
+            _userRepo.Add(user);
+            await _unitOfWork.SaveChangesAsync();
+
+            await AssignMatchingRoleAsync(user.Id, createUserDto.Role);
+
+            try
+            {
+                await _emailService.SendTemporaryPasswordEmailAsync(user.Email, user.Name, tempPassword);
+            }
+            catch
+            {
+                // The account is already created and usable via the forgot-password flow even if this
+                // send fails - already logged to EmailLog by EmailService, same as every other
+                // post-creation email in this codebase (e.g. ProjectService's project-created email).
             }
 
             return MapToDto(user);
+        }
+
+        private async Task AssignMatchingRoleAsync(int userId, string roleName)
+        {
+            var matchingRole = await _roleRepo.Query().FirstOrDefaultAsync(r => r.Name.ToLower() == roleName.ToLower());
+            if (matchingRole != null)
+            {
+                _userRoleRepo.Add(new UserRole { UserId = userId, RoleId = matchingRole.Id });
+                await _unitOfWork.SaveChangesAsync();
+            }
         }
 
         public async Task<bool> UpdateUserAsync(int id, UpdateUserProfileDto updateUserDto)
@@ -170,7 +217,8 @@ namespace KhoiProjectManagement.Application
                 Position = user.Position,
                 IsActive = user.IsActive,
                 CreatedAt = user.CreatedAt,
-                LastLoginAt = user.LastLoginAt
+                LastLoginAt = user.LastLoginAt,
+                MustChangePassword = user.MustChangePassword
             };
         }
     }

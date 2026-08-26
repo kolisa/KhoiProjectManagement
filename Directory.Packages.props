@@ -1,5 +1,4 @@
 <Project>
-
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <!-- Without this, a transitive dependency (e.g. Npgsql.EntityFrameworkCore.PostgreSQL pulling in
@@ -8,7 +7,6 @@
          every project to respect the central pin transitively too, not just for direct references. -->
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
   </PropertyGroup>
-
   <ItemGroup>
     <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.11" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.11" />
@@ -26,6 +24,7 @@
     <PackageVersion Include="Microsoft.AspNetCore.Http.Abstractions" Version="2.3.0" />
     <PackageVersion Include="Microsoft.AspNetCore.Http.Features" Version="5.0.17" />
     <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.11" />
+    <PackageVersion Include="QuestPDF" Version="2026.8.0" />
     <PackageVersion Include="Swashbuckle.AspNetCore" Version="10.2.3" />
     <PackageVersion Include="BCrypt.Net-Next" Version="4.0.3" />
     <PackageVersion Include="System.IdentityModel.Tokens.Jwt" Version="8.22.0" />
@@ -36,10 +35,8 @@
     <PackageVersion Include="FluentValidation.AspNetCore" Version="11.3.1" />
     <PackageVersion Include="Quartz" Version="3.19.1" />
     <PackageVersion Include="Quartz.Extensions.Hosting" Version="3.19.1" />
-
     <!-- Benchmarks-only package (KhoiProjectManagement.Benchmarks.csproj) -->
     <PackageVersion Include="BenchmarkDotNet" Version="0.15.8" />
-
     <!-- Test-only packages (tests/*.csproj) -->
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.9.0" />
     <PackageVersion Include="xunit" Version="2.9.3" />
@@ -52,5 +49,4 @@
     <PackageVersion Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.11" />
     <PackageVersion Include="NetArchTest.Rules" Version="1.3.2" />
   </ItemGroup>
-
 </Project>

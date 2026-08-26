@@ -36,11 +36,11 @@ namespace KhoiProjectManagementApi.Controllers
 
         [HttpPost]
         [Authorize(Policy = "users.create")]
-        public async Task<ActionResult<TeamMemberDto>> CreateUser(CreateUserDto createUserDto)
+        public async Task<ActionResult<TeamMemberDto>> CreateUser(CreateAdminUserDto createUserDto)
         {
             try
             {
-                var user = await _userService.CreateUserAsync(createUserDto);
+                var user = await _userService.CreateUserWithTempPasswordAsync(createUserDto);
                 return CreatedAtAction(nameof(GetUser), new { id = user.Id }, user);
             }
             catch (InvalidOperationException ex)

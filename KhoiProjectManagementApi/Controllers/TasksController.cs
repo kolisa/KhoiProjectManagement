@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using KhoiProjectManagement.Application;
 using KhoiProjectManagement.Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -44,7 +45,7 @@ namespace KhoiProjectManagementApi.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateTask(int id, UpdateTaskDto updateTaskDto)
         {
-            var updated = await _taskService.UpdateTaskAsync(id, updateTaskDto);
+            var updated = await _taskService.UpdateTaskAsync(id, updateTaskDto, GetUserId());
             if (!updated)
                 return NotFound();
 
@@ -54,7 +55,7 @@ namespace KhoiProjectManagementApi.Controllers
         [HttpPut("{id}/status")]
         public async Task<IActionResult> UpdateTaskStatus(int id, [FromBody] string status)
         {
-            var updated = await _taskService.UpdateTaskStatusAsync(id, status);
+            var updated = await _taskService.UpdateTaskStatusAsync(id, status, GetUserId());
             if (!updated)
                 return NotFound();
 
@@ -77,6 +78,12 @@ namespace KhoiProjectManagementApi.Controllers
         {
             var tasks = await _taskService.GetOverdueTasksAsync();
             return Ok(tasks);
+        }
+
+        private int GetUserId()
+        {
+            var claim = User.FindFirst(ClaimTypes.NameIdentifier)!;
+            return int.Parse(claim.Value);
         }
     }
 }

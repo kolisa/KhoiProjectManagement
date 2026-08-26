@@ -46,7 +46,7 @@ const NotificationPreferences = ({ apiService }) => {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-3xl font-bold text-gray-900 flex items-center">
+        <h2 className="text-[27px] font-bold text-gray-900 flex items-center">
           <Bell className="h-7 w-7 mr-2 text-gray-700" />
           Notification Settings
         </h2>

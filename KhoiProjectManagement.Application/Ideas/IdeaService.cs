@@ -22,6 +22,7 @@ namespace KhoiProjectManagement.Application
         private readonly INotificationService _notificationService;
         private readonly IEmailService _emailService;
         private readonly IConfiguration _configuration;
+        private readonly IActivityLogService _activityLogService;
 
         public IdeaService(
             IRepository<Idea> ideaRepo,
@@ -33,11 +34,13 @@ namespace KhoiProjectManagement.Application
             IUnitOfWork unitOfWork,
             INotificationService notificationService,
             IEmailService emailService,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            IActivityLogService activityLogService)
         {
             _ideaRepo = ideaRepo;
             _projectRepo = projectRepo;
             _commentRepo = commentRepo;
+            _activityLogService = activityLogService;
             _userRepo = userRepo;
             _attachmentRepo = attachmentRepo;
             _annotationRepo = annotationRepo;
@@ -103,7 +106,7 @@ namespace KhoiProjectManagement.Application
             return true;
         }
 
-        public async Task<bool> UpdateStatusAsync(int id, string status)
+        public async Task<bool> UpdateStatusAsync(int id, string status, int actingUserId)
         {
             if (!ValidStatuses.Contains(status) || status == "ConvertedToProject")
                 throw new InvalidOperationException($"Invalid status '{status}'. Use the convert-to-project endpoint for ConvertedToProject.");
@@ -114,6 +117,7 @@ namespace KhoiProjectManagement.Application
 
             idea.Status = status;
             await _unitOfWork.SaveChangesAsync();
+            await _activityLogService.LogAsync("Idea", idea.Id, idea.Title, actingUserId, "StatusChanged", status);
             return true;
         }
 

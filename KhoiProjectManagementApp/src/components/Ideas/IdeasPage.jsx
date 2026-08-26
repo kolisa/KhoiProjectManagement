@@ -2,13 +2,21 @@
 import React, { useState, useEffect } from 'react';
 import { Lightbulb, Plus, X, MessageSquare } from 'lucide-react';
 import IdeaDetail from './IdeaDetail';
+import { hasPermission } from '../../utils/permissions';
 
-const STATUS_COLORS = {
-  Submitted: 'bg-[#F2F2F4] text-[#62626A]',
-  UnderReview: 'bg-[#FFEED6] text-[#874400]',
-  Approved: 'bg-[#E3F8E9] text-[#005F2E]',
-  Rejected: 'bg-[#FFEBE8] text-[#B71824]',
-  ConvertedToProject: 'bg-[#EEEEFF] text-[#4131B0]',
+const COLUMNS = [
+  { key: 'Submitted', label: 'Submitted' },
+  { key: 'UnderReview', label: 'Under Review' },
+  { key: 'Approved', label: 'Approved' },
+  { key: 'Rejected', label: 'Rejected' },
+  { key: 'ConvertedToProject', label: 'Converted to Project' },
+];
+
+const formatIdeaAge = (iso) => {
+  const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
+  if (days < 1) return 'today';
+  if (days === 1) return '1d';
+  return `${days}d`;
 };
 
 const NewIdeaModal = ({ onSave, onClose }) => {
@@ -72,13 +80,12 @@ const NewIdeaModal = ({ onSave, onClose }) => {
 const IdeasPage = ({ apiService, user }) => {
   const [ideas, setIdeas] = useState(null);
   const [error, setError] = useState(null);
-  const [statusFilter, setStatusFilter] = useState('');
   const [selectedId, setSelectedId] = useState(null);
   const [showNewIdea, setShowNewIdea] = useState(false);
 
   const load = async () => {
     try {
-      const result = await apiService.getIdeas(statusFilter || undefined);
+      const result = await apiService.getIdeas();
       setIdeas(result || []);
     } catch (err) {
       setError(err.message);
@@ -88,7 +95,7 @@ const IdeasPage = ({ apiService, user }) => {
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusFilter]);
+  }, []);
 
   const handleCreate = async (dto) => {
     const created = await apiService.createIdea(dto);
@@ -101,11 +108,17 @@ const IdeasPage = ({ apiService, user }) => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-3xl font-bold text-gray-900 flex items-center">
+          <h2 className="text-[27px] font-bold text-gray-900 flex items-center">
             <Lightbulb className="h-7 w-7 mr-2 text-gray-700" />
             Ideas Board
           </h2>
-          <p className="text-gray-600">Share ideas, attach mockups, and turn the best ones into projects</p>
+          <p className="text-gray-600">
+            {ideas ? `${ideas.length} idea${ideas.length !== 1 ? 's' : ''}` : 'Share ideas, attach mockups, and turn the best ones into projects'}
+            {ideas && hasPermission(user?.permissions, 'ideas.manage') && (() => {
+              const waiting = ideas.filter((i) => i.status === 'Submitted' || i.status === 'UnderReview').length;
+              return waiting > 0 ? ` · ${waiting} waiting on your review` : '';
+            })()}
+          </p>
         </div>
         <button
           onClick={() => setShowNewIdea(true)}
@@ -116,48 +129,58 @@ const IdeasPage = ({ apiService, user }) => {
         </button>
       </div>
 
-      <div className="flex space-x-2">
-        {['', 'Submitted', 'UnderReview', 'Approved', 'Rejected', 'ConvertedToProject'].map((s) => (
-          <button
-            key={s || 'all'}
-            onClick={() => setStatusFilter(s)}
-            className={`text-sm px-3 py-1.5 rounded-lg font-medium transition-colors ${statusFilter === s ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100'}`}
-          >
-            {s || 'All'}
-          </button>
-        ))}
-      </div>
-
       {error && <div className="text-red-600 text-sm">{error}</div>}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm divide-y">
-          {ideas === null && <div className="p-6 text-gray-400">Loading...</div>}
-          {ideas?.length === 0 && <div className="p-6 text-center text-gray-400">No ideas yet.</div>}
-          {ideas?.map((idea) => (
-            <div
-              key={idea.id}
-              onClick={() => setSelectedId(idea.id)}
-              className={`p-4 cursor-pointer hover:bg-gray-50/60 transition-colors ${selectedId === idea.id ? 'bg-blue-50/80' : ''}`}
-            >
-              <div className="flex justify-between items-start">
-                <div className="font-medium text-gray-900">{idea.title}</div>
-                <span className={`inline-flex items-center px-[9px] py-[3px] rounded-[7px] text-[11.5px] font-semibold whitespace-nowrap ${STATUS_COLORS[idea.status] || STATUS_COLORS.Submitted}`}>
-                  {idea.status}
-                </span>
+      {ideas === null ? (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 text-gray-400">Loading...</div>
+      ) : (
+        <div className="flex gap-4 overflow-x-auto pb-2">
+          {COLUMNS.map((col) => {
+            const columnIdeas = ideas.filter((i) => i.status === col.key);
+            return (
+              <div key={col.key} className="w-72 flex-shrink-0 flex flex-col">
+                <div className="flex items-center gap-2 px-1 pb-2">
+                  <h3 className="text-sm font-semibold text-gray-700">{col.label}</h3>
+                  <span className="text-xs font-medium text-gray-400 bg-gray-100 rounded-full px-2 py-0.5">{columnIdeas.length}</span>
+                </div>
+                <div className="bg-gray-50 rounded-2xl border border-gray-100 flex-1 min-h-[120px] p-2 space-y-2">
+                  {columnIdeas.length === 0 && (
+                    <div className="text-center text-xs text-gray-400 py-6">No ideas here</div>
+                  )}
+                  {columnIdeas.map((idea) => (
+                    <div
+                      key={idea.id}
+                      onClick={() => setSelectedId(idea.id)}
+                      className="bg-white rounded-xl border border-gray-100 shadow-sm p-3 cursor-pointer hover:border-gray-200 hover:shadow transition-all"
+                    >
+                      <p className="text-sm font-medium text-gray-900 line-clamp-2">{idea.title}</p>
+                      <div className="flex items-center justify-between mt-2 text-xs text-gray-500">
+                        <span>{idea.submitterName}</span>
+                        <div className="flex items-center gap-2">
+                          {idea.commentCount > 0 && (
+                            <span className="flex items-center gap-0.5">
+                              <MessageSquare className="h-3 w-3" />
+                              {idea.commentCount}
+                            </span>
+                          )}
+                          <span>{formatIdeaAge(idea.createdAt)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <div className="text-sm text-gray-500 mt-1 flex items-center">
-                <span>{idea.submitterName}</span>
-                <span className="mx-1">&middot;</span>
-                <MessageSquare className="h-3.5 w-3.5 mr-1" />
-                <span>{idea.commentCount}</span>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
+      )}
 
-        <div>
-          {selectedId ? (
+      {selectedId && (
+        <div
+          className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+          onClick={(e) => { if (e.target === e.currentTarget) setSelectedId(null); }}
+        >
+          <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <IdeaDetail
               apiService={apiService}
               user={user}
@@ -165,13 +188,9 @@ const IdeasPage = ({ apiService, user }) => {
               onClose={() => setSelectedId(null)}
               onChanged={load}
             />
-          ) : (
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center text-gray-400">
-              Select an idea to view details.
-            </div>
-          )}
+          </div>
         </div>
-      </div>
+      )}
 
       {showNewIdea && (
         <NewIdeaModal onSave={handleCreate} onClose={() => setShowNewIdea(false)} />

@@ -19,6 +19,7 @@ namespace KhoiProjectManagement.UnitTests.Services
         private readonly INotificationService _notificationService = Substitute.For<INotificationService>();
         private readonly ISpaceService _spaceService = Substitute.For<ISpaceService>();
         private readonly IEmailService _emailService = Substitute.For<IEmailService>();
+        private readonly IActivityLogService _activityLogService = Substitute.For<IActivityLogService>();
         private readonly IAppTransaction _transaction = Substitute.For<IAppTransaction>();
 
         public ProjectServiceTests()
@@ -29,7 +30,7 @@ namespace KhoiProjectManagement.UnitTests.Services
 
         private ProjectService CreateSut() => new(
             _projectRepo, _projectUserRepo, _userRepo, _projectTagRepo, _tagRepo,
-            _unitOfWork, _notificationService, _spaceService, _emailService);
+            _unitOfWork, _notificationService, _spaceService, _emailService, _activityLogService);
 
         [Fact]
         public async Task CreateProjectAsync_WhenNoTeamMembersOrTags_CommitsWithoutTouchingSpaceOrNotifications()
@@ -45,7 +46,7 @@ namespace KhoiProjectManagement.UnitTests.Services
             var dto = new CreateProjectDto { Name = "New Project", Description = "desc", Priority = "medium" };
 
             var sut = CreateSut();
-            var result = await sut.CreateProjectAsync(dto);
+            var result = await sut.CreateProjectAsync(dto, 1);
 
             Assert.Equal("New Project", result.Name);
             Assert.Empty(result.TeamMembers);
@@ -71,7 +72,7 @@ namespace KhoiProjectManagement.UnitTests.Services
             var dto = new CreateProjectDto { Name = "Team Project", Priority = "high", TeamMemberIds = new List<int> { 1, 2 } };
 
             var sut = CreateSut();
-            await sut.CreateProjectAsync(dto);
+            await sut.CreateProjectAsync(dto, 1);
 
             await _spaceService.Received(1).SyncSpaceMembersAsync(55, dto.TeamMemberIds, PermissionLevel.Write, Arg.Any<int>());
             await _notificationService.Received(1).CreateNotificationAsync(1, "project_created", Arg.Any<string>(), null, 200, null, null, null);
@@ -89,7 +90,7 @@ namespace KhoiProjectManagement.UnitTests.Services
 
             var sut = CreateSut();
 
-            await Assert.ThrowsAsync<InvalidOperationException>(() => sut.CreateProjectAsync(dto));
+            await Assert.ThrowsAsync<InvalidOperationException>(() => sut.CreateProjectAsync(dto, 1));
             await _transaction.Received(1).RollbackAsync();
             await _transaction.DidNotReceive().CommitAsync();
         }

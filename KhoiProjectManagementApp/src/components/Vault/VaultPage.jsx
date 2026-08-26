@@ -14,6 +14,7 @@ const VaultPage = ({ apiService }) => {
   const [selectedEntryId, setSelectedEntryId] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [editingEntry, setEditingEntry] = useState(null);
+  const [granteeCount, setGranteeCount] = useState(null);
 
   const loadEntries = async (spaceId) => {
     setLoadingEntries(true);
@@ -32,6 +33,8 @@ const VaultPage = ({ apiService }) => {
     if (selectedSpace) {
       loadEntries(selectedSpace.id);
       setSelectedEntryId(null);
+      setGranteeCount(null);
+      apiService.getSpaceGranteeCount(selectedSpace.id).then(setGranteeCount).catch(() => {});
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSpace]);
@@ -56,7 +59,7 @@ const VaultPage = ({ apiService }) => {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-3xl font-bold text-gray-900 flex items-center">
+        <h2 className="text-[27px] font-bold text-gray-900 flex items-center">
           <Lock className="h-7 w-7 mr-2 text-gray-700" />
           Vault
         </h2>
@@ -78,7 +81,13 @@ const VaultPage = ({ apiService }) => {
           {selectedSpace && (
             <>
               <div className="flex justify-between items-center">
-                <h3 className="text-xl font-semibold text-gray-900">{selectedSpace.name}</h3>
+                <div>
+                  <h3 className="text-xl font-semibold text-gray-900">{selectedSpace.name}</h3>
+                  <p className="text-sm text-gray-500">
+                    {entries.length} entr{entries.length !== 1 ? 'ies' : 'y'}
+                    {granteeCount !== null && granteeCount > 0 && ` · shared with ${granteeCount} ${granteeCount !== 1 ? 'people' : 'person'}`}
+                  </p>
+                </div>
                 {canWrite && (
                   <button
                     onClick={() => { setEditingEntry(null); setShowModal(true); }}

@@ -22,6 +22,10 @@ namespace KhoiProjectManagement.Domain
         public DateTime? LastLoginAt { get; set; }
         public bool IsActive { get; set; } = true;
 
+        // Set on any account created with a server-generated temp password; cleared once the person
+        // completes a password reset (forced or self-service - same AuthService.ResetPasswordAsync path).
+        public bool MustChangePassword { get; set; }
+
         // New PII for the company calendar feed (Phase 12) - the API only ever exposes month/day from
         // this, never the birth year, to anyone other than the user themselves or a users.edit caller.
         public DateTime? DateOfBirth { get; set; }

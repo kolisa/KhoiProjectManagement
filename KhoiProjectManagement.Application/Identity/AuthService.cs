@@ -68,6 +68,29 @@ namespace KhoiProjectManagement.Application
             await _userService.UpdateLastLoginAsync(user.Id);
             _logger.LogInformation("User {UserId} ({Email}) logged in", user.Id, email);
 
+            if (user.MustChangePassword)
+            {
+                // Identity is already proven (credentials just validated) - hand back a reset token
+                // directly instead of emailing one, and issue no session tokens at all until the
+                // password is actually changed (ResetPasswordAsync clears this flag on success).
+                var rawToken = GenerateRawRefreshToken();
+                _passwordResetTokenRepo.Add(new PasswordResetToken
+                {
+                    UserId = user.Id,
+                    TokenHash = Hash(rawToken),
+                    ExpiresAt = DateTime.UtcNow.AddHours(1)
+                });
+                await _unitOfWork.SaveChangesAsync();
+
+                _logger.LogInformation("User {UserId} must change password - issuing reset token instead of session", user.Id);
+
+                return new LoginResponseDto
+                {
+                    MustChangePassword = true,
+                    PasswordResetToken = rawToken
+                };
+            }
+
             return await IssueTokensAsync(user);
         }
 
@@ -173,6 +196,7 @@ namespace KhoiProjectManagement.Application
             }
 
             user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
+            user.MustChangePassword = false;
             resetToken.UsedAt = DateTime.UtcNow;
             await RevokeAllRefreshTokensAsync(user.Id);
 

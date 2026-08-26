@@ -33,6 +33,12 @@ namespace KhoiProjectManagement.IntegrationTests.Infrastructure
         public Task SendPasswordResetEmailAsync(string toEmail, string userName, string resetLink) =>
             Record(nameof(SendPasswordResetEmailAsync), toEmail);
 
+        public Task SendScheduledReportEmailAsync(string toEmail, string reportTitle, byte[] attachmentContent, string attachmentFileName, string attachmentContentType) =>
+            Record(nameof(SendScheduledReportEmailAsync), toEmail);
+
+        public Task SendTemporaryPasswordEmailAsync(string toEmail, string userName, string tempPassword) =>
+            Record(nameof(SendTemporaryPasswordEmailAsync), toEmail);
+
         private Task Record(string method, string toEmail)
         {
             _sent.Enqueue(new SentEmail(method, toEmail));

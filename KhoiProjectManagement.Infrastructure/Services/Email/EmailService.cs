@@ -106,7 +106,34 @@ namespace KhoiProjectManagement.Infrastructure.Services
             await SendEmailAsync(toEmail, subject, body, "password_reset");
         }
 
-        private async Task SendEmailAsync(string toEmail, string subject, string htmlBody, string emailType)
+        public async Task SendTemporaryPasswordEmailAsync(string toEmail, string userName, string tempPassword)
+        {
+            var subject = "Your Khoi Pro account";
+            var inner = $@"
+                <p>Hi {userName},</p>
+                <p>An account has been created for you on Khoi Pro. Here's your temporary password:</p>
+                <p style=""font-size: 18px; font-weight: 600; letter-spacing: 0.05em; background: #f3f4f6; padding: 10px 14px; border-radius: 8px; display: inline-block;"">{tempPassword}</p>
+                <p>Log in with this password and you'll be asked to choose your own before you can continue.</p>
+            ";
+            var body = EmailTemplates.Wrap("Welcome to Khoi Pro", inner);
+
+            await SendEmailAsync(toEmail, subject, body, "temp_password");
+        }
+
+        public async Task SendScheduledReportEmailAsync(string toEmail, string reportTitle, byte[] attachmentContent, string attachmentFileName, string attachmentContentType)
+        {
+            var subject = $"Scheduled report: {reportTitle}";
+            var inner = $@"
+                <p>Your scheduled report is ready:</p>
+                <p><strong>{reportTitle}</strong></p>
+                <p>It's attached to this email.</p>
+            ";
+            var body = EmailTemplates.Wrap("Scheduled Report", inner);
+
+            await SendEmailAsync(toEmail, subject, body, "scheduled_report", (attachmentContent, attachmentFileName, attachmentContentType));
+        }
+
+        private async Task SendEmailAsync(string toEmail, string subject, string htmlBody, string emailType, (byte[] Content, string FileName, string ContentType)? attachment = null)
         {
             try
             {
@@ -124,6 +151,10 @@ namespace KhoiProjectManagement.Infrastructure.Services
                 {
                     HtmlBody = htmlBody
                 };
+                if (attachment.HasValue)
+                {
+                    bodyBuilder.Attachments.Add(attachment.Value.FileName, attachment.Value.Content, ContentType.Parse(attachment.Value.ContentType));
+                }
                 message.Body = bodyBuilder.ToMessageBody();
 
                 using var client = new SmtpClient

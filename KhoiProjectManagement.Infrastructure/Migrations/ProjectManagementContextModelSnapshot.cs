@@ -22,6 +22,54 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("KhoiProjectManagement.Domain.ActivityLogEntry", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("ActorNameSnapshot")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("ActorUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Details")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int?>("EntityId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("EntityNameSnapshot")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("EntityType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime>("Timestamp")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActorUserId");
+
+                    b.ToTable("ActivityLogEntries");
+                });
+
             modelBuilder.Entity("KhoiProjectManagement.Domain.Attachment", b =>
                 {
                     b.Property<int>("Id")
@@ -68,7 +116,7 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
 
                     b.HasIndex("UploadedBy");
 
-                    b.ToTable("Attachments", (string)null);
+                    b.ToTable("Attachments");
                 });
 
             modelBuilder.Entity("KhoiProjectManagement.Domain.CompanyEvent", b =>
@@ -110,7 +158,47 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
 
                     b.HasIndex("SubjectUserId");
 
-                    b.ToTable("CompanyEvents", (string)null);
+                    b.ToTable("CompanyEvents");
+                });
+
+            modelBuilder.Entity("KhoiProjectManagement.Domain.DashboardStatsSnapshot", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ActiveProjects")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CapturedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("CompletedTasks")
+                        .HasColumnType("integer");
+
+                    b.Property<double>("CompletionRate")
+                        .HasColumnType("double precision");
+
+                    b.Property<int>("InProgressTasks")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("OverdueTasks")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TodoTasks")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TotalProjects")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TotalTasks")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("DashboardStatsSnapshots");
                 });
 
             modelBuilder.Entity("KhoiProjectManagement.Domain.DashboardWidgetAllowlist", b =>
@@ -134,7 +222,7 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
                     b.HasIndex("WidgetKey")
                         .IsUnique();
 
-                    b.ToTable("DashboardWidgetAllowlists", (string)null);
+                    b.ToTable("DashboardWidgetAllowlists");
                 });
 
             modelBuilder.Entity("KhoiProjectManagement.Domain.DashboardWidgetPreference", b =>
@@ -164,7 +252,7 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
                     b.HasIndex("UserId", "WidgetKey")
                         .IsUnique();
 
-                    b.ToTable("DashboardWidgetPreferences", (string)null);
+                    b.ToTable("DashboardWidgetPreferences");
                 });
 
             modelBuilder.Entity("KhoiProjectManagement.Domain.EmailLog", b =>
@@ -208,7 +296,7 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("EmailLogs", (string)null);
+                    b.ToTable("EmailLogs");
                 });
 
             modelBuilder.Entity("KhoiProjectManagement.Domain.Idea", b =>
@@ -248,7 +336,7 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
 
                     b.HasIndex("SubmittedBy");
 
-                    b.ToTable("Ideas", (string)null);
+                    b.ToTable("Ideas");
                 });
 
             modelBuilder.Entity("KhoiProjectManagement.Domain.IdeaAttachment", b =>
@@ -292,7 +380,7 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
 
                     b.HasIndex("UploadedBy");
 
-                    b.ToTable("IdeaAttachments", (string)null);
+                    b.ToTable("IdeaAttachments");
                 });
 
             modelBuilder.Entity("KhoiProjectManagement.Domain.IdeaAttachmentAnnotation", b =>
@@ -322,7 +410,7 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
 
                     b.HasIndex("IdeaAttachmentId");
 
-                    b.ToTable("IdeaAttachmentAnnotations", (string)null);
+                    b.ToTable("IdeaAttachmentAnnotations");
                 });
 
             modelBuilder.Entity("KhoiProjectManagement.Domain.IdeaComment", b =>
@@ -355,7 +443,7 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
 
                     b.HasIndex("IdeaId");
 
-                    b.ToTable("IdeaComments", (string)null);
+                    b.ToTable("IdeaComments");
                 });
 
             modelBuilder.Entity("KhoiProjectManagement.Domain.Invoice", b =>
@@ -420,7 +508,7 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
 
                     b.HasIndex("CreatedFromTemplateId");
 
-                    b.ToTable("Invoices", (string)null);
+                    b.ToTable("Invoices");
                 });
 
             modelBuilder.Entity("KhoiProjectManagement.Domain.InvoiceLineItem", b =>
@@ -449,7 +537,7 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
 
                     b.HasIndex("InvoiceId");
 
-                    b.ToTable("InvoiceLineItems", (string)null);
+                    b.ToTable("InvoiceLineItems");
                 });
 
             modelBuilder.Entity("KhoiProjectManagement.Domain.InvoiceTemplate", b =>
@@ -497,7 +585,7 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
 
                     b.HasIndex("CreatedBy");
 
-                    b.ToTable("InvoiceTemplates", (string)null);
+                    b.ToTable("InvoiceTemplates");
                 });
 
             modelBuilder.Entity("KhoiProjectManagement.Domain.LibraryFile", b =>
@@ -531,7 +619,7 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
 
                     b.HasIndex("SpaceId");
 
-                    b.ToTable("LibraryFiles", (string)null);
+                    b.ToTable("LibraryFiles");
                 });
 
             modelBuilder.Entity("KhoiProjectManagement.Domain.LibraryFileVersion", b =>
@@ -576,7 +664,7 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
 
                     b.HasIndex("UploadedBy");
 
-                    b.ToTable("LibraryFileVersions", (string)null);
+                    b.ToTable("LibraryFileVersions");
                 });
 
             modelBuilder.Entity("KhoiProjectManagement.Domain.Notification", b =>
@@ -638,7 +726,7 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
 
                     b.HasIndex("WikiPageId");
 
-                    b.ToTable("Notifications", (string)null);
+                    b.ToTable("Notifications");
                 });
 
             modelBuilder.Entity("KhoiProjectManagement.Domain.NotificationPreference", b =>
@@ -665,7 +753,7 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
                     b.HasIndex("UserId", "NotificationType")
                         .IsUnique();
 
-                    b.ToTable("NotificationPreferences", (string)null);
+                    b.ToTable("NotificationPreferences");
                 });
 
             modelBuilder.Entity("KhoiProjectManagement.Domain.OnboardingChecklist", b =>
@@ -694,7 +782,7 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("OnboardingChecklists", (string)null);
+                    b.ToTable("OnboardingChecklists");
                 });
 
             modelBuilder.Entity("KhoiProjectManagement.Domain.OnboardingChecklistItem", b =>
@@ -731,7 +819,7 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
 
                     b.HasIndex("CompletedBy");
 
-                    b.ToTable("OnboardingChecklistItems", (string)null);
+                    b.ToTable("OnboardingChecklistItems");
                 });
 
             modelBuilder.Entity("KhoiProjectManagement.Domain.OnboardingTemplate", b =>
@@ -752,7 +840,7 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("OnboardingTemplates", (string)null);
+                    b.ToTable("OnboardingTemplates");
                 });
 
             modelBuilder.Entity("KhoiProjectManagement.Domain.OnboardingTemplateItem", b =>
@@ -778,7 +866,7 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
 
                     b.HasIndex("TemplateId");
 
-                    b.ToTable("OnboardingTemplateItems", (string)null);
+                    b.ToTable("OnboardingTemplateItems");
                 });
 
             modelBuilder.Entity("KhoiProjectManagement.Domain.PasswordResetToken", b =>
@@ -810,7 +898,7 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("PasswordResetTokens", (string)null);
+                    b.ToTable("PasswordResetTokens");
                 });
 
             modelBuilder.Entity("KhoiProjectManagement.Domain.Permission", b =>
@@ -842,7 +930,7 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Permissions", (string)null);
+                    b.ToTable("Permissions");
 
                     b.HasData(
                         new
@@ -1089,7 +1177,7 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
 
                     b.HasIndex("SpaceId");
 
-                    b.ToTable("Projects", (string)null);
+                    b.ToTable("Projects");
                 });
 
             modelBuilder.Entity("KhoiProjectManagement.Domain.ProjectTag", b =>
@@ -1104,7 +1192,7 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
 
                     b.HasIndex("TagId");
 
-                    b.ToTable("ProjectTags", (string)null);
+                    b.ToTable("ProjectTags");
                 });
 
             modelBuilder.Entity("KhoiProjectManagement.Domain.ProjectTask", b =>
@@ -1157,7 +1245,7 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
 
                     b.HasIndex("ProjectId");
 
-                    b.ToTable("Tasks", (string)null);
+                    b.ToTable("Tasks");
                 });
 
             modelBuilder.Entity("KhoiProjectManagement.Domain.ProjectUser", b =>
@@ -1175,7 +1263,7 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("ProjectUsers", (string)null);
+                    b.ToTable("ProjectUsers");
                 });
 
             modelBuilder.Entity("KhoiProjectManagement.Domain.RefreshToken", b =>
@@ -1210,7 +1298,7 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("RefreshTokens", (string)null);
+                    b.ToTable("RefreshTokens");
                 });
 
             modelBuilder.Entity("KhoiProjectManagement.Domain.Reminder", b =>
@@ -1289,7 +1377,45 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
 
                     b.HasIndex("RelatedProjectId");
 
-                    b.ToTable("Reminders", (string)null);
+                    b.ToTable("Reminders");
+                });
+
+            modelBuilder.Entity("KhoiProjectManagement.Domain.ReportExportHistory", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<byte[]>("FileContent")
+                        .IsRequired()
+                        .HasColumnType("bytea");
+
+                    b.Property<long>("FileSizeBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Format")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTime>("GeneratedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("GeneratedByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ReportType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GeneratedByUserId");
+
+                    b.ToTable("ReportExportHistories");
                 });
 
             modelBuilder.Entity("KhoiProjectManagement.Domain.Role", b =>
@@ -1317,7 +1443,7 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Roles", (string)null);
+                    b.ToTable("Roles");
 
                     b.HasData(
                         new
@@ -1355,7 +1481,7 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
 
                     b.HasIndex("PermissionId");
 
-                    b.ToTable("RolePermissions", (string)null);
+                    b.ToTable("RolePermissions");
 
                     b.HasData(
                         new
@@ -1555,6 +1681,43 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
                         });
                 });
 
+            modelBuilder.Entity("KhoiProjectManagement.Domain.ScheduledReport", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CreatedByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Format")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("LastRunAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("NextRunAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ReportType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.ToTable("ScheduledReports");
+                });
+
             modelBuilder.Entity("KhoiProjectManagement.Domain.Space", b =>
                 {
                     b.Property<int>("Id")
@@ -1596,7 +1759,7 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
 
                     b.HasIndex("ParentSpaceId");
 
-                    b.ToTable("Spaces", (string)null);
+                    b.ToTable("Spaces");
                 });
 
             modelBuilder.Entity("KhoiProjectManagement.Domain.SpacePermission", b =>
@@ -1634,7 +1797,7 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
                     b.HasIndex("SpaceId", "RoleId", "UserId")
                         .IsUnique();
 
-                    b.ToTable("SpacePermissions", (string)null);
+                    b.ToTable("SpacePermissions");
                 });
 
             modelBuilder.Entity("KhoiProjectManagement.Domain.Tag", b =>
@@ -1660,7 +1823,7 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Tags", (string)null);
+                    b.ToTable("Tags");
 
                     b.HasData(
                         new
@@ -1712,7 +1875,7 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
 
                     b.HasIndex("TagId");
 
-                    b.ToTable("TaskTags", (string)null);
+                    b.ToTable("TaskTags");
                 });
 
             modelBuilder.Entity("KhoiProjectManagement.Domain.Timesheet", b =>
@@ -1755,7 +1918,7 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Timesheets", (string)null);
+                    b.ToTable("Timesheets");
                 });
 
             modelBuilder.Entity("KhoiProjectManagement.Domain.TimesheetEntry", b =>
@@ -1788,7 +1951,7 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
 
                     b.HasIndex("TimesheetId");
 
-                    b.ToTable("TimesheetEntries", (string)null);
+                    b.ToTable("TimesheetEntries");
                 });
 
             modelBuilder.Entity("KhoiProjectManagement.Domain.User", b =>
@@ -1815,6 +1978,11 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
                     b.Property<DateTime?>("LastLoginAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<bool>("MustChangePassword")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -1835,7 +2003,7 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Users", (string)null);
+                    b.ToTable("Users");
 
                     b.HasData(
                         new
@@ -1844,6 +2012,7 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
                             CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Email = "kholisa@khoitech.Africa",
                             IsActive = true,
+                            MustChangePassword = false,
                             Name = "Kolisa Mjobo",
                             PasswordHash = "$2a$11$Mg5gaJc5mAg7.lr7Nn6ire/RyTfOGkwGc3uid3jUmn43hN4NOBvbe",
                             Position = "Full stack Developer",
@@ -1855,6 +2024,7 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
                             CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Email = "seati@khoitech.Africa",
                             IsActive = true,
+                            MustChangePassword = false,
                             Name = "Seati Moloi",
                             PasswordHash = "$2a$11$yaq0/sKRX14GeyRfr8CMrehqRat5ufDxjqz9wPdTaAIwzsBBBsb7C",
                             Position = "Business Analyst",
@@ -1866,6 +2036,7 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
                             CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Email = "kenneth@khoitech.Africa",
                             IsActive = true,
+                            MustChangePassword = false,
                             Name = "Kenneth Mothobi",
                             PasswordHash = "$2a$11$Gz1fjWb8BDrfP21Iq2g9tO2fJjSJRLqMUO2N7/v0oboJNPiQVAkZy",
                             Position = "System Analyst",
@@ -1877,6 +2048,7 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
                             CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Email = "thato@khoitech.Africa",
                             IsActive = true,
+                            MustChangePassword = false,
                             Name = "Thato",
                             PasswordHash = "$2a$11$Gz1fjWb8BDrfP21Iq2g9tO2fJjSJRLqMUO2N7/v0oboJNPiQVAkZy",
                             Position = "Marketing Manager",
@@ -1888,6 +2060,7 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
                             CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Email = "metsing@khoitech.Africa",
                             IsActive = true,
+                            MustChangePassword = false,
                             Name = "Metsing",
                             PasswordHash = "$2a$11$Gz1fjWb8BDrfP21Iq2g9tO2fJjSJRLqMUO2N7/v0oboJNPiQVAkZy",
                             Position = "Finance Manager",
@@ -1899,6 +2072,7 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
                             CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Email = "Relebohile@khoitech.Africa",
                             IsActive = true,
+                            MustChangePassword = false,
                             Name = "Lebo",
                             PasswordHash = "$2a$11$Gz1fjWb8BDrfP21Iq2g9tO2fJjSJRLqMUO2N7/v0oboJNPiQVAkZy",
                             Position = "Client Support Manager",
@@ -1921,7 +2095,7 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
 
                     b.HasIndex("RoleId");
 
-                    b.ToTable("UserRoles", (string)null);
+                    b.ToTable("UserRoles");
 
                     b.HasData(
                         new
@@ -2001,7 +2175,7 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
 
                     b.HasIndex("VaultEntryId");
 
-                    b.ToTable("VaultAuditLogs", (string)null);
+                    b.ToTable("VaultAuditLogs");
                 });
 
             modelBuilder.Entity("KhoiProjectManagement.Domain.VaultEntry", b =>
@@ -2058,7 +2232,7 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
 
                     b.HasIndex("UpdatedBy");
 
-                    b.ToTable("VaultEntries", (string)null);
+                    b.ToTable("VaultEntries");
                 });
 
             modelBuilder.Entity("KhoiProjectManagement.Domain.WikiPage", b =>
@@ -2111,7 +2285,7 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
 
                     b.HasIndex("UpdatedBy");
 
-                    b.ToTable("WikiPages", (string)null);
+                    b.ToTable("WikiPages");
                 });
 
             modelBuilder.Entity("KhoiProjectManagement.Domain.WikiPageComment", b =>
@@ -2155,7 +2329,7 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
 
                     b.HasIndex("WikiPageId");
 
-                    b.ToTable("WikiPageComments", (string)null);
+                    b.ToTable("WikiPageComments");
                 });
 
             modelBuilder.Entity("KhoiProjectManagement.Domain.WikiPageTag", b =>
@@ -2170,7 +2344,7 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
 
                     b.HasIndex("TagId");
 
-                    b.ToTable("WikiPageTags", (string)null);
+                    b.ToTable("WikiPageTags");
                 });
 
             modelBuilder.Entity("KhoiProjectManagement.Domain.WikiPageVersion", b =>
@@ -2206,7 +2380,7 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
 
                     b.HasIndex("WikiPageId");
 
-                    b.ToTable("WikiPageVersions", (string)null);
+                    b.ToTable("WikiPageVersions");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.DataProtection.EntityFrameworkCore.DataProtectionKey", b =>
@@ -2225,7 +2399,18 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("DataProtectionKeys", (string)null);
+                    b.ToTable("DataProtectionKeys");
+                });
+
+            modelBuilder.Entity("KhoiProjectManagement.Domain.ActivityLogEntry", b =>
+                {
+                    b.HasOne("KhoiProjectManagement.Domain.User", "ActorUser")
+                        .WithMany()
+                        .HasForeignKey("ActorUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ActorUser");
                 });
 
             modelBuilder.Entity("KhoiProjectManagement.Domain.Attachment", b =>
@@ -2665,6 +2850,17 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
                     b.Navigation("RelatedProject");
                 });
 
+            modelBuilder.Entity("KhoiProjectManagement.Domain.ReportExportHistory", b =>
+                {
+                    b.HasOne("KhoiProjectManagement.Domain.User", "GeneratedByUser")
+                        .WithMany()
+                        .HasForeignKey("GeneratedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("GeneratedByUser");
+                });
+
             modelBuilder.Entity("KhoiProjectManagement.Domain.RolePermission", b =>
                 {
                     b.HasOne("KhoiProjectManagement.Domain.Permission", "Permission")
@@ -2682,6 +2878,17 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
                     b.Navigation("Permission");
 
                     b.Navigation("Role");
+                });
+
+            modelBuilder.Entity("KhoiProjectManagement.Domain.ScheduledReport", b =>
+                {
+                    b.HasOne("KhoiProjectManagement.Domain.User", "CreatedByUser")
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("CreatedByUser");
                 });
 
             modelBuilder.Entity("KhoiProjectManagement.Domain.Space", b =>

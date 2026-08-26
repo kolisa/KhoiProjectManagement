@@ -10,6 +10,7 @@
 		<PackageReference Include="Microsoft.AspNetCore.Http.Features" />
 		<PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
 		<PackageReference Include="BCrypt.Net-Next" />
+		<PackageReference Include="QuestPDF" />
 		<PackageReference Include="System.IdentityModel.Tokens.Jwt" />
 		<PackageReference Include="FluentValidation.AspNetCore" />
 	</ItemGroup>

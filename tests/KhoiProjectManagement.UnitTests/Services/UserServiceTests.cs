@@ -14,8 +14,9 @@ namespace KhoiProjectManagement.UnitTests.Services
         private readonly IRepository<Role> _roleRepo = Substitute.For<IRepository<Role>>();
         private readonly IRepository<UserRole> _userRoleRepo = Substitute.For<IRepository<UserRole>>();
         private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
+        private readonly IEmailService _emailService = Substitute.For<IEmailService>();
 
-        private UserService CreateSut() => new(_userRepo, _roleRepo, _userRoleRepo, _unitOfWork);
+        private UserService CreateSut() => new(_userRepo, _roleRepo, _userRoleRepo, _unitOfWork, _emailService);
 
         [Fact]
         public async Task CreateUserAsync_WhenEmailAlreadyExists_ThrowsAndNeverAddsAUser()
@@ -67,6 +68,64 @@ namespace KhoiProjectManagement.UnitTests.Services
 
             Assert.Equal("Odd Role", result.Name);
             _userRoleRepo.DidNotReceive().Add(Arg.Any<UserRole>());
+        }
+
+        [Fact]
+        public async Task CreateUserWithTempPasswordAsync_WhenEmailAlreadyExists_ThrowsAndNeverAddsAUser()
+        {
+            var existing = new User { Id = 1, Email = "taken@khoitech.africa", Name = "Existing" };
+            _userRepo.Query().Returns(new List<User> { existing }.BuildMock());
+
+            var sut = CreateSut();
+            var dto = new CreateAdminUserDto { Name = "New Guy", Email = "taken@khoitech.africa", Role = "member", Position = "QA" };
+
+            await Assert.ThrowsAsync<InvalidOperationException>(() => sut.CreateUserWithTempPasswordAsync(dto));
+            _userRepo.DidNotReceive().Add(Arg.Any<User>());
+        }
+
+        [Fact]
+        public async Task CreateUserWithTempPasswordAsync_WhenEmailIsNew_GeneratesAndEmailsATempPasswordAndForcesReset()
+        {
+            _userRepo.Query().Returns(new List<User>().BuildMock());
+            var memberRole = new Role { Id = 3, Name = "Member" };
+            _roleRepo.Query().Returns(new List<Role> { memberRole }.BuildMock());
+
+            User? added = null;
+            _userRepo.When(r => r.Add(Arg.Any<User>())).Do(ci =>
+            {
+                added = ci.Arg<User>();
+                added.Id = 42;
+            });
+
+            var sut = CreateSut();
+            var dto = new CreateAdminUserDto { Name = "New Guy", Email = "new@khoitech.africa", Role = "member", Position = "QA" };
+            var result = await sut.CreateUserWithTempPasswordAsync(dto);
+
+            Assert.Equal("New Guy", result.Name);
+            Assert.True(result.MustChangePassword);
+            Assert.True(added!.MustChangePassword);
+            Assert.NotEmpty(added.PasswordHash);
+            _userRoleRepo.Received(1).Add(Arg.Is<UserRole>(ur => ur.UserId == 42 && ur.RoleId == 3));
+            await _emailService.Received(1).SendTemporaryPasswordEmailAsync("new@khoitech.africa", "New Guy", Arg.Is<string>(p => !string.IsNullOrEmpty(p) && BCrypt.Net.BCrypt.Verify(p, added.PasswordHash)));
+        }
+
+        [Fact]
+        public async Task CreateUserWithTempPasswordAsync_WhenEmailSendFails_StillCreatesTheUser()
+        {
+            // Same swallow-and-log reasoning as AuthService.RequestPasswordResetAsync - the account
+            // must exist and be usable (via forgot-password) even if the temp-password send fails.
+            _userRepo.Query().Returns(new List<User>().BuildMock());
+            _roleRepo.Query().Returns(new List<Role>().BuildMock());
+            _userRepo.When(r => r.Add(Arg.Any<User>())).Do(ci => ci.Arg<User>().Id = 7);
+            _emailService.SendTemporaryPasswordEmailAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>())
+                .Returns(Task.FromException(new InvalidOperationException("SMTP unreachable")));
+
+            var sut = CreateSut();
+            var dto = new CreateAdminUserDto { Name = "Resilient", Email = "resilient@khoitech.africa", Role = "member", Position = "QA" };
+            var exception = await Record.ExceptionAsync(() => sut.CreateUserWithTempPasswordAsync(dto));
+
+            Assert.Null(exception);
+            _userRepo.Received(1).Add(Arg.Any<User>());
         }
 
         [Fact]

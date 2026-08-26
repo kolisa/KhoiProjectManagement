@@ -28,6 +28,11 @@ namespace KhoiProjectManagement.Application
 
         Task<List<SpacePermissionDto>> GetSpacePermissionsAsync(int spaceId);
 
+        // Distinct people who can access this Space - direct user grants plus everyone covered by a
+        // role grant, deduplicated. Safe to expose to any caller who can already see the Space (unlike
+        // GetSpacePermissionsAsync, a plain count reveals nothing about who specifically has access).
+        Task<int> GetSpaceGranteeCountAsync(int spaceId);
+
         // Full replace of a Space's grants (both role- and user-targeted) - PUT semantics. Always
         // preserves the calling user's own Manage grant regardless of what's submitted, so a caller
         // can never accidentally lock themselves (or everyone) out of a Space they can currently manage.

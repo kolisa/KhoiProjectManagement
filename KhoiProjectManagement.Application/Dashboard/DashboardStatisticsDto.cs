@@ -16,5 +16,12 @@ namespace KhoiProjectManagement.Application
         public int TodoTasks { get; set; }
         public int OverdueTasks { get; set; }
         public double CompletionRate { get; set; }
+
+        // Null when no DashboardStatsSnapshot >= 7 days old exists yet (e.g. the first week after this
+        // shipped) - the frontend renders no delta badge rather than fabricate a trend.
+        public int? ActiveProjectsDelta { get; set; }
+        public int? TotalTasksDelta { get; set; }
+        public int? OverdueTasksDelta { get; set; }
+        public double? CompletionRateDelta { get; set; }
     }
 }

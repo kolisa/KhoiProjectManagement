@@ -15,6 +15,7 @@ namespace KhoiProjectManagement.Application
         private readonly IUnitOfWork _unitOfWork;
         private readonly INotificationService _notificationService;
         private readonly IEmailService _emailService;
+        private readonly IActivityLogService _activityLogService;
 
         public TaskService(
             IRepository<ProjectTask> taskRepo,
@@ -24,7 +25,8 @@ namespace KhoiProjectManagement.Application
             IRepository<Tag> tagRepo,
             IUnitOfWork unitOfWork,
             INotificationService notificationService,
-            IEmailService emailService)
+            IEmailService emailService,
+            IActivityLogService activityLogService)
         {
             _taskRepo = taskRepo;
             _userRepo = userRepo;
@@ -34,6 +36,7 @@ namespace KhoiProjectManagement.Application
             _unitOfWork = unitOfWork;
             _notificationService = notificationService;
             _emailService = emailService;
+            _activityLogService = activityLogService;
         }
 
         public async Task<IEnumerable<TaskDto>> GetTasksAsync(TaskFilterDto filter)
@@ -167,7 +170,7 @@ namespace KhoiProjectManagement.Application
             }
         }
 
-        public async Task<bool> UpdateTaskAsync(int id, UpdateTaskDto updateTaskDto)
+        public async Task<bool> UpdateTaskAsync(int id, UpdateTaskDto updateTaskDto, int actingUserId)
         {
             await using var transaction = await _unitOfWork.BeginTransactionAsync();
 
@@ -217,6 +220,8 @@ namespace KhoiProjectManagement.Application
                             taskId: task.Id
                         );
                     }
+
+                    await _activityLogService.LogAsync("Task", task.Id, task.Title, actingUserId, "Completed");
                 }
 
                 // Send notification for assignment changes
@@ -261,7 +266,7 @@ namespace KhoiProjectManagement.Application
             }
         }
 
-        public async Task<bool> UpdateTaskStatusAsync(int id, string status)
+        public async Task<bool> UpdateTaskStatusAsync(int id, string status, int actingUserId)
         {
             var task = await _taskRepo.FindAsync(id);
             if (task == null)
@@ -278,14 +283,19 @@ namespace KhoiProjectManagement.Application
             await _unitOfWork.SaveChangesAsync();
 
             // Send notification
-            if (oldStatus != status && status == "completed" && task.AssignedToId.HasValue)
+            if (oldStatus != status && status == "completed")
             {
-                await _notificationService.CreateNotificationAsync(
-                    task.AssignedToId.Value,
-                    "completion",
-                    $"Task '{task.Title}' has been marked as completed",
-                    taskId: task.Id
-                );
+                if (task.AssignedToId.HasValue)
+                {
+                    await _notificationService.CreateNotificationAsync(
+                        task.AssignedToId.Value,
+                        "completion",
+                        $"Task '{task.Title}' has been marked as completed",
+                        taskId: task.Id
+                    );
+                }
+
+                await _activityLogService.LogAsync("Task", task.Id, task.Title, actingUserId, "Completed");
             }
 
             return true;

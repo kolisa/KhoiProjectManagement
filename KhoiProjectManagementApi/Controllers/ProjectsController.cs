@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using KhoiProjectManagement.Application;
 using KhoiProjectManagement.Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -38,7 +39,7 @@ namespace KhoiProjectManagementApi.Controllers
         [Authorize(Policy = "projects.create")]
         public async Task<ActionResult<ProjectDto>> CreateProject(CreateProjectDto createProjectDto)
         {
-            var project = await _projectService.CreateProjectAsync(createProjectDto);
+            var project = await _projectService.CreateProjectAsync(createProjectDto, GetUserId());
             return CreatedAtAction(nameof(GetProject), new { id = project.Id }, project);
         }
 
@@ -72,6 +73,12 @@ namespace KhoiProjectManagementApi.Controllers
                 return NotFound();
 
             return Ok(stats);
+        }
+
+        private int GetUserId()
+        {
+            var claim = User.FindFirst(ClaimTypes.NameIdentifier)!;
+            return int.Parse(claim.Value);
         }
     }
 }

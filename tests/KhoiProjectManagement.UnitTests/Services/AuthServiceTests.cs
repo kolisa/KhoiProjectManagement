@@ -38,14 +38,15 @@ namespace KhoiProjectManagement.UnitTests.Services
             _refreshTokenRepo, _userRoleRepo, _rolePermissionRepo, _userRepo, _passwordResetTokenRepo,
             _unitOfWork, _userService, _emailService, Config(), _logger);
 
-        private static TeamMemberDto SampleUser(int id = 1) => new()
+        private static TeamMemberDto SampleUser(int id = 1, bool mustChangePassword = false) => new()
         {
             Id = id,
             Name = "Test User",
             Email = "test@khoitech.africa",
             Role = "member",
             Position = "Engineer",
-            IsActive = true
+            IsActive = true,
+            MustChangePassword = mustChangePassword
         };
 
         private void SetEmptyRoleAndPermissionQueries()
@@ -71,6 +72,26 @@ namespace KhoiProjectManagement.UnitTests.Services
             Assert.Equal(user.Id, result.User.Id);
             await _userService.Received(1).UpdateLastLoginAsync(user.Id);
             _refreshTokenRepo.Received(1).Add(Arg.Is<RefreshToken>(rt => rt.UserId == user.Id));
+        }
+
+        [Fact]
+        public async Task LoginAsync_WhenMustChangePasswordIsTrue_ReturnsResetTokenInsteadOfSessionTokens()
+        {
+            var user = SampleUser(mustChangePassword: true);
+            _userService.ValidateUserCredentialsAsync(user.Email, "temp-password").Returns(true);
+            _userService.GetUserByEmailAsync(user.Email).Returns(user);
+
+            var sut = CreateSut();
+            var result = await sut.LoginAsync(user.Email, "temp-password");
+
+            Assert.NotNull(result);
+            Assert.True(result!.MustChangePassword);
+            Assert.False(string.IsNullOrEmpty(result.PasswordResetToken));
+            Assert.True(string.IsNullOrEmpty(result.Token));
+            Assert.True(string.IsNullOrEmpty(result.RefreshToken));
+            Assert.Null(result.User);
+            _passwordResetTokenRepo.Received(1).Add(Arg.Is<PasswordResetToken>(t => t.UserId == user.Id));
+            _refreshTokenRepo.DidNotReceive().Add(Arg.Any<RefreshToken>());
         }
 
         [Fact]
@@ -257,6 +278,24 @@ namespace KhoiProjectManagement.UnitTests.Services
             Assert.NotEqual("old-hash", user.PasswordHash);
             Assert.NotNull(resetToken.UsedAt);
             Assert.All(activeTokens, t => Assert.NotNull(t.RevokedAt));
+        }
+
+        [Fact]
+        public async Task ResetPasswordAsync_WhenTokenIsValid_ClearsMustChangePassword()
+        {
+            const string raw = "valid-reset-token-2";
+            var resetToken = new PasswordResetToken { Id = 2, UserId = 43, TokenHash = Hash(raw), ExpiresAt = DateTime.UtcNow.AddMinutes(30) };
+            _passwordResetTokenRepo.Query().Returns(new List<PasswordResetToken> { resetToken }.BuildMock());
+
+            var user = new User { Id = 43, Email = "forced@khoitech.africa", Name = "Forced Reset", PasswordHash = "old-hash", MustChangePassword = true };
+            _userRepo.Query().Returns(new List<User> { user }.BuildMock());
+            _refreshTokenRepo.Query().Returns(new List<RefreshToken>().BuildMock());
+
+            var sut = CreateSut();
+            var result = await sut.ResetPasswordAsync(raw, "NewP@ssw0rd!");
+
+            Assert.True(result);
+            Assert.False(user.MustChangePassword);
         }
 
         private static string Hash(string value)

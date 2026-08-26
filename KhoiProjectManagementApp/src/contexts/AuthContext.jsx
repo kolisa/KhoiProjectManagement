@@ -33,6 +33,12 @@ export const AuthProvider = ({ children }) => {
     const login = async (email, password) => {
         const apiService = new ApiService();
         const response = await apiService.login(email, password);
+        // A temp/forced-reset password authenticates correctly but issues no session - the caller
+        // (LoginForm) must send the person to the reset-password flow instead of treating this as a
+        // normal login, so don't set user or throw here.
+        if (response?.mustChangePassword) {
+            return response;
+        }
         if (response?.user) {
             setUser({ ...response.user, permissions: response.permissions || [] });
             return response;

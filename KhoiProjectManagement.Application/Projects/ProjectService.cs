@@ -16,6 +16,7 @@ namespace KhoiProjectManagement.Application
         private readonly INotificationService _notificationService;
         private readonly ISpaceService _spaceService;
         private readonly IEmailService _emailService;
+        private readonly IActivityLogService _activityLogService;
 
         public ProjectService(
             IRepository<Project> projectRepo,
@@ -26,7 +27,8 @@ namespace KhoiProjectManagement.Application
             IUnitOfWork unitOfWork,
             INotificationService notificationService,
             ISpaceService spaceService,
-            IEmailService emailService)
+            IEmailService emailService,
+            IActivityLogService activityLogService)
         {
             _projectRepo = projectRepo;
             _projectUserRepo = projectUserRepo;
@@ -37,6 +39,7 @@ namespace KhoiProjectManagement.Application
             _notificationService = notificationService;
             _spaceService = spaceService;
             _emailService = emailService;
+            _activityLogService = activityLogService;
         }
 
         public async Task<IEnumerable<ProjectDto>> GetAllProjectsAsync()
@@ -67,7 +70,7 @@ namespace KhoiProjectManagement.Application
             return project == null ? null : MapToDto(project);
         }
 
-        public async Task<ProjectDto> CreateProjectAsync(CreateProjectDto createProjectDto)
+        public async Task<ProjectDto> CreateProjectAsync(CreateProjectDto createProjectDto, int actingUserId)
         {
             await using var transaction = await _unitOfWork.BeginTransactionAsync();
 
@@ -80,7 +83,7 @@ namespace KhoiProjectManagement.Application
                     Priority = createProjectDto.Priority,
                     StartDate = createProjectDto.StartDate,
                     EndDate = createProjectDto.EndDate,
-                    CreatedBy = 1, // This should come from the current user context
+                    CreatedBy = actingUserId,
                     Status = "active"
                 };
 
@@ -144,6 +147,8 @@ namespace KhoiProjectManagement.Application
                         }
                     }
                 }
+
+                await _activityLogService.LogAsync("Project", project.Id, project.Name, actingUserId, "Created");
 
                 // Reload to get full data
                 return await GetProjectByIdAsync(project.Id) ?? throw new InvalidOperationException("Project not found after creation");

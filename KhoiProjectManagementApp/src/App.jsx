@@ -63,6 +63,7 @@ const StatusBadge = ({ status }) => {
     const statusColors = {
         'todo': 'bg-[#F2F2F4] text-[#62626A]',
         'in-progress': 'bg-[#EEEEFF] text-[#4131B0]',
+        'blocked': 'bg-[#FFEBE8] text-[#B71824]',
         'completed': 'bg-[#E3F8E9] text-[#005F2E]'
     };
 
@@ -138,7 +139,7 @@ const ErrorMessage = ({ message, onRetry }) => (
 );
 
 // Login Component
-const LoginForm = ({ onForgotPassword }) => {
+const LoginForm = ({ onForgotPassword, onMustChangePassword }) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
@@ -151,7 +152,10 @@ const LoginForm = ({ onForgotPassword }) => {
         setError('');
 
         try {
-            await login(email, password);
+            const result = await login(email, password);
+            if (result?.mustChangePassword) {
+                onMustChangePassword(result.passwordResetToken);
+            }
         } catch (error) {
             // A NetworkError means the request never reached the server at all (CORS block, offline,
             // timeout, DNS failure) - blaming the password for that is actively misleading and sends
@@ -284,8 +288,23 @@ const ProjectManagementSystem = () => {
     const [tasks, setTasks] = useState([]);
     const [teamMembers, setTeamMembers] = useState([]);
     const [notifications, setNotifications] = useState([]);
+    const [recentExports, setRecentExports] = useState([]);
+    const [reportSchedules, setReportSchedules] = useState([]);
+    const [reportFormats, setReportFormats] = useState({ ProjectSummary: 'Csv', TeamPerformance: 'Csv', OverdueTasks: 'Csv' });
     const [widgetPrefs, setWidgetPrefs] = useState([]);
     const [pendingTimesheets, setPendingTimesheets] = useState([]);
+    const [myTasks, setMyTasks] = useState([]);
+    const [weeklyCompletion, setWeeklyCompletion] = useState([0, 0, 0, 0, 0, 0, 0]);
+    const [activityFeed, setActivityFeed] = useState([]);
+    const [dashboardMyTasksTab, setDashboardMyTasksTab] = useState('today');
+    const [remindersActiveCount, setRemindersActiveCount] = useState(null);
+
+    // Sidebar nav badge counts - fetched once here (not per-tab) so they're visible regardless of
+    // which tab the user lands on, not just after visiting Reminders once.
+    useEffect(() => {
+        apiService.getReminderSummary().then((s) => setRemindersActiveCount(s?.totalActive ?? null)).catch(() => {});
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
     const [dashboardStats, setDashboardStats] = useState({
         totalProjects: 0,
         activeProjects: 0,
@@ -294,7 +313,11 @@ const ProjectManagementSystem = () => {
         inProgressTasks: 0,
         todoTasks: 0,
         overdueTasks: 0,
-        completionRate: 0
+        completionRate: 0,
+        activeProjectsDelta: null,
+        totalTasksDelta: null,
+        overdueTasksDelta: null,
+        completionRateDelta: null
     });
 
     // Loading and error states
@@ -395,8 +418,7 @@ const ProjectManagementSystem = () => {
         name: '',
         role: 'member',
         position: '',
-        email: '',
-        password: ''
+        email: ''
     });
 
     // Data loading functions
@@ -404,12 +426,15 @@ const ProjectManagementSystem = () => {
         setLoading(prev => ({ ...prev, dashboard: true }));
         try {
             const canApproveTimesheets = hasPermission(user?.permissions, 'timesheets.approve');
-            const [stats, recentTasks, notifs, widgetPrefsResult, timesheetsResult] = await Promise.all([
+            const [stats, recentTasks, notifs, widgetPrefsResult, timesheetsResult, myTasksResult, weeklyCompletionResult, activityResult] = await Promise.all([
                 apiService.getDashboardStats(),
                 apiService.getTasks({ limit: 5 }),
                 apiService.getNotifications(),
                 apiService.getMyDashboardWidgetPreferences(),
                 apiService.getTimesheets(undefined, canApproveTimesheets ? 'Submitted' : undefined),
+                apiService.getTasks({ assignedToId: user?.id }),
+                apiService.getDashboardWeeklyCompletion(),
+                apiService.getDashboardActivity(),
             ]);
 
             setDashboardStats(stats || dashboardStats);
@@ -421,6 +446,9 @@ const ProjectManagementSystem = () => {
                     ? (timesheetsResult || [])
                     : (timesheetsResult || []).filter((t) => t.status === 'Draft' || t.status === 'Rejected')
             );
+            setMyTasks(myTasksResult || []);
+            setWeeklyCompletion(weeklyCompletionResult || [0, 0, 0, 0, 0, 0, 0]);
+            setActivityFeed(activityResult || []);
             setErrors(prev => ({ ...prev, dashboard: null }));
         } catch (error) {
             setErrors(prev => ({ ...prev, dashboard: error.message }));
@@ -493,6 +521,8 @@ const ProjectManagementSystem = () => {
             loadTasks();
         } else if (activeTab === 'team') {
             loadTeamMembers();
+        } else if (activeTab === 'reports') {
+            loadReportsMeta();
         }
     }, [activeTab]);
 
@@ -632,8 +662,7 @@ const ProjectManagementSystem = () => {
                 name: newMember.name,
                 role: newMember.role,
                 position: newMember.position,
-                email: newMember.email,
-                password: newMember.password
+                email: newMember.email
             };
 
             await apiService.createUser(memberData);
@@ -642,13 +671,12 @@ const ProjectManagementSystem = () => {
                 name: '',
                 role: 'member',
                 position: '',
-                email: '',
-                password: ''
+                email: ''
             });
             setShowAddMember(false);
 
             await loadTeamMembers();
-            alert('Team member added successfully!');
+            alert('Team member added. A temporary password has been emailed to them.');
         } catch (error) {
             alert(`Error adding team member: ${error.message}`);
         }
@@ -724,41 +752,46 @@ const ProjectManagementSystem = () => {
         }
     };
 
-    const generateReport = async (type) => {
+    const loadReportsMeta = async () => {
+        try {
+            const [exports, schedules] = await Promise.all([
+                apiService.getRecentReportExports(),
+                apiService.getReportSchedules(),
+            ]);
+            setRecentExports(exports || []);
+            setReportSchedules(schedules || []);
+        } catch (error) {
+            setErrors(prev => ({ ...prev, reports: error.message }));
+        }
+    };
+
+    const generateReport = async (reportType) => {
         setLoading(prev => ({ ...prev, reports: true }));
         try {
-            let reportData;
-
-            switch (type) {
-                case 'project-summary':
-                    reportData = await apiService.getProjectSummaryReport();
-                    break;
-                case 'team-performance':
-                    reportData = await apiService.getTeamPerformanceReport();
-                    break;
-                case 'overdue-tasks':
-                    reportData = await apiService.getOverdueTasksReport();
-                    break;
-                default:
-                    throw new Error('Unknown report type');
-            }
-
-            // Create downloadable file
-            const blob = new Blob([JSON.stringify(reportData, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `${reportData.title.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.json`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-
-            alert(`${reportData.title} downloaded successfully!`);
+            await apiService.exportReport(reportType, reportFormats[reportType] || 'Csv');
+            await loadReportsMeta();
         } catch (error) {
             alert(`Error generating report: ${error.message}`);
         } finally {
             setLoading(prev => ({ ...prev, reports: false }));
+        }
+    };
+
+    const scheduleReport = async (reportType) => {
+        try {
+            await apiService.createReportSchedule({ reportType, format: reportFormats[reportType] || 'Csv' });
+            await loadReportsMeta();
+        } catch (error) {
+            alert(`Error scheduling report: ${error.message}`);
+        }
+    };
+
+    const cancelReportSchedule = async (id) => {
+        try {
+            await apiService.deleteReportSchedule(id);
+            await loadReportsMeta();
+        } catch (error) {
+            alert(`Error cancelling schedule: ${error.message}`);
         }
     };
 
@@ -770,6 +803,12 @@ const ProjectManagementSystem = () => {
             : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
         }`;
 
+    const navCounts = {
+        reminders: remindersActiveCount,
+        projects: dashboardStats.totalProjects,
+        tasks: dashboardStats.totalTasks,
+    };
+
     const renderNavGroups = (onNavigate) => (
         <>
             {NAV_GROUPS.map((group) => (
@@ -780,12 +819,18 @@ const ProjectManagementSystem = () => {
                         </p>
                     )}
                     <div className="px-3 space-y-0.5">
-                        {group.items.map(({ key, label, icon: Icon }) => (
-                            <button key={key} onClick={() => onNavigate(key)} className={navButtonClass(key)}>
-                                <Icon className="h-[18px] w-[18px] flex-shrink-0" />
-                                {label}
-                            </button>
-                        ))}
+                        {group.items.map(({ key, label, icon: Icon }) => {
+                            const count = navCounts[key];
+                            return (
+                                <button key={key} onClick={() => onNavigate(key)} className={navButtonClass(key)}>
+                                    <Icon className="h-[18px] w-[18px] flex-shrink-0" />
+                                    {label}
+                                    {!!count && (
+                                        <span className="ml-auto text-xs font-medium text-gray-400">{count}</span>
+                                    )}
+                                </button>
+                            );
+                        })}
                     </div>
                 </div>
             ))}
@@ -991,7 +1036,14 @@ const ProjectManagementSystem = () => {
                 {activeTab === 'dashboard' && (
                     <div className="space-y-6">
                         <div>
-                            <h2 className="text-3xl font-bold text-gray-900 tracking-tight">Dashboard</h2>
+                            <h2 className="text-[27px] font-bold text-gray-900 tracking-tight">
+                                {(() => {
+                                    const hour = new Date().getHours();
+                                    const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+                                    const firstName = (user?.name || '').split(' ')[0];
+                                    return firstName ? `${greeting}, ${firstName}` : greeting;
+                                })()}
+                            </h2>
                             <p className="text-gray-500">Overview of all projects and tasks</p>
                         </div>
 
@@ -1007,6 +1059,19 @@ const ProjectManagementSystem = () => {
                             // has left enabled in the company-wide allow-list. Stat cards stay together in
                             // one grid (only which cards appear is configurable, not full interleaving with
                             // the full-width sections below) - a deliberate scope boundary, not an oversight.
+                            const DeltaBadge = ({ value, invert = false, neutral = false }) => {
+                                if (value === null || value === undefined || value === 0) return null;
+                                const sign = value > 0 ? '+' : '';
+                                const toneClass = neutral
+                                    ? 'text-gray-500 bg-gray-100'
+                                    : (invert ? value < 0 : value > 0) ? 'text-green-700 bg-green-50' : 'text-red-700 bg-red-50';
+                                return (
+                                    <span className={`text-xs font-semibold px-1.5 py-0.5 rounded-md ${toneClass}`}>
+                                        {sign}{Math.round(value)}
+                                    </span>
+                                );
+                            };
+
                             const STAT_CARDS = {
                                 total_projects: (
                                     <div className="bg-white p-5 rounded-[14px] border border-gray-100 shadow-sm">
@@ -1029,7 +1094,10 @@ const ProjectManagementSystem = () => {
                                             </div>
                                             <div>
                                                 <p className="text-sm font-medium text-gray-500">Active Projects</p>
-                                                <p className="text-2xl font-bold text-gray-900">{dashboardStats.activeProjects}</p>
+                                                <div className="flex items-baseline gap-2">
+                                                    <p className="text-2xl font-bold text-gray-900">{dashboardStats.activeProjects}</p>
+                                                    <DeltaBadge value={dashboardStats.activeProjectsDelta} />
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -1042,7 +1110,10 @@ const ProjectManagementSystem = () => {
                                             </div>
                                             <div>
                                                 <p className="text-sm font-medium text-gray-500">Total Tasks</p>
-                                                <p className="text-2xl font-bold text-gray-900">{dashboardStats.totalTasks}</p>
+                                                <div className="flex items-baseline gap-2">
+                                                    <p className="text-2xl font-bold text-gray-900">{dashboardStats.totalTasks}</p>
+                                                    <DeltaBadge value={dashboardStats.totalTasksDelta} neutral />
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -1056,7 +1127,10 @@ const ProjectManagementSystem = () => {
                                                 </div>
                                                 <div>
                                                     <p className={`text-sm font-medium ${dashboardStats.overdueTasks > 0 ? 'text-red-600' : 'text-gray-500'}`}>Overdue Tasks</p>
-                                                    <p className="text-2xl font-bold text-gray-900">{dashboardStats.overdueTasks}</p>
+                                                    <div className="flex items-baseline gap-2">
+                                                        <p className="text-2xl font-bold text-gray-900">{dashboardStats.overdueTasks}</p>
+                                                        <DeltaBadge value={dashboardStats.overdueTasksDelta} invert />
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -1078,7 +1152,10 @@ const ProjectManagementSystem = () => {
                                             </div>
                                             <div>
                                                 <p className="text-sm font-medium text-gray-500">Completion Rate</p>
-                                                <p className="text-2xl font-bold text-gray-900">{Math.round(dashboardStats.completionRate)}%</p>
+                                                <div className="flex items-baseline gap-2">
+                                                    <p className="text-2xl font-bold text-gray-900">{Math.round(dashboardStats.completionRate)}%</p>
+                                                    <DeltaBadge value={dashboardStats.completionRateDelta} />
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -1092,7 +1169,29 @@ const ProjectManagementSystem = () => {
                                 : Object.keys(STAT_CARDS);
                             const sectionOrder = widgetPrefs.length > 0
                                 ? widgetPrefs.map((w) => w.widgetKey)
-                                : ['recent_tasks', 'recent_mentions', 'pending_timesheets'];
+                                : ['my_tasks', 'recent_tasks', 'recent_mentions', 'pending_timesheets', 'weekly_completion_chart', 'activity_feed'];
+
+                            const myTaskGroups = {
+                                today: myTasks.filter((t) => t.status !== 'completed' && t.dueDate && new Date(t.dueDate).toDateString() === new Date().toDateString()),
+                                upcoming: myTasks.filter((t) => t.status !== 'completed' && (!t.dueDate || new Date(t.dueDate).toDateString() !== new Date().toDateString())),
+                                done: myTasks.filter((t) => t.status === 'completed'),
+                            };
+
+                            const ACTIVITY_VERBS = {
+                                Created: 'created',
+                                Completed: 'completed',
+                                MarkedPaid: 'marked paid',
+                                StatusChanged: 'updated the status of',
+                            };
+                            const formatRelativeTime = (iso) => {
+                                const diffMs = Date.now() - new Date(iso).getTime();
+                                const mins = Math.round(diffMs / 60000);
+                                if (mins < 1) return 'just now';
+                                if (mins < 60) return `${mins}m ago`;
+                                const hours = Math.round(mins / 60);
+                                if (hours < 24) return `${hours}h ago`;
+                                return `${Math.round(hours / 24)}d ago`;
+                            };
 
                             const recentMentions = notifications.filter((n) => n.type === 'mention').slice(0, 5);
 
@@ -1181,6 +1280,93 @@ const ProjectManagementSystem = () => {
                                             </div>
                                         </div>
                                     ))}
+
+                                    {sectionOrder.filter((k) => k === 'my_tasks' && isVisible(k)).map(() => (
+                                        <div key="my_tasks" className="bg-white rounded-2xl border border-gray-100 shadow-sm">
+                                            <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-4">
+                                                <h3 className="text-base font-semibold text-gray-900">My Tasks</h3>
+                                                <div className="flex gap-4 ml-2">
+                                                    {['today', 'upcoming', 'done'].map((tab) => (
+                                                        <button
+                                                            key={tab}
+                                                            onClick={() => setDashboardMyTasksTab(tab)}
+                                                            className={`text-sm font-medium capitalize pb-0.5 ${dashboardMyTasksTab === tab ? 'text-blue-600 border-b-2 border-blue-600 font-semibold' : 'text-gray-500 hover:text-gray-700'}`}
+                                                        >
+                                                            {tab} <span className="text-gray-400 font-normal">{myTaskGroups[tab].length}</span>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                            <div className="divide-y divide-gray-100">
+                                                {myTaskGroups[dashboardMyTasksTab].length === 0 ? (
+                                                    <div className="px-6 py-8 text-center text-gray-500">Nothing here</div>
+                                                ) : (
+                                                    myTaskGroups[dashboardMyTasksTab].slice(0, 6).map((t) => (
+                                                        <div key={t.id} className="px-6 py-3 flex items-center justify-between">
+                                                            <div className="min-w-0">
+                                                                <p className="text-sm font-medium text-gray-900 truncate">{t.title}</p>
+                                                                <p className="text-xs text-gray-500">{t.projectName || getProjectName(t.projectId)}</p>
+                                                            </div>
+                                                            <PriorityBadge priority={t.priority} />
+                                                        </div>
+                                                    ))
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
+
+                                    {sectionOrder.filter((k) => k === 'weekly_completion_chart' && isVisible(k)).map(() => {
+                                        const dayLabels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+                                        const maxCount = Math.max(1, ...weeklyCompletion);
+                                        const todayIndex = (new Date().getDay() + 6) % 7;
+                                        return (
+                                            <div key="weekly_completion_chart" className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                                                <h3 className="text-base font-semibold text-gray-900 mb-4">This Week</h3>
+                                                <div className="flex items-end gap-2 h-24">
+                                                    {weeklyCompletion.map((count, i) => (
+                                                        <div key={i} className="flex-1 flex flex-col items-center gap-1.5">
+                                                            <div
+                                                                className={`w-full rounded-md ${i === todayIndex ? 'bg-blue-600' : 'bg-gray-200'}`}
+                                                                style={{ height: `${Math.max(4, (count / maxCount) * 96)}px` }}
+                                                                title={`${count} completed`}
+                                                            />
+                                                            <span className={`text-xs ${i === todayIndex ? 'font-semibold text-gray-900' : 'text-gray-400'}`}>{dayLabels[i]}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                                <div className="flex items-baseline gap-2 pt-3 mt-2 border-t border-gray-100">
+                                                    <span className="text-sm text-gray-500">Tasks completed</span>
+                                                    <span className="ml-auto text-base font-semibold text-gray-900">{weeklyCompletion.reduce((a, b) => a + b, 0)}</span>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+
+                                    {sectionOrder.filter((k) => k === 'activity_feed' && isVisible(k)).map(() => (
+                                        <div key="activity_feed" className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                                            <h3 className="text-base font-semibold text-gray-900 mb-4">Activity</h3>
+                                            {activityFeed.length === 0 ? (
+                                                <div className="py-4 text-center text-gray-500 text-sm">No activity yet</div>
+                                            ) : (
+                                                <div className="space-y-3">
+                                                    {activityFeed.map((a) => (
+                                                        <div key={a.id} className="flex items-start gap-3">
+                                                            <span className={`h-1.5 w-1.5 rounded-full mt-1.5 flex-shrink-0 ${a.action === 'Completed' ? 'bg-green-500' : a.action === 'MarkedPaid' ? 'bg-green-500' : a.action === 'Created' ? 'bg-blue-500' : 'bg-gray-400'}`} />
+                                                            <div>
+                                                                <p className="text-sm text-gray-700">
+                                                                    <span className="font-medium text-gray-900">{a.actorNameSnapshot}</span>{' '}
+                                                                    {ACTIVITY_VERBS[a.action] || 'updated'}{' '}
+                                                                    <span className="font-medium text-gray-900">&quot;{a.entityNameSnapshot}&quot;</span>
+                                                                    {a.details && <span className="text-gray-500"> &middot; {a.details}</span>}
+                                                                </p>
+                                                                <p className="text-xs text-gray-400">{formatRelativeTime(a.timestamp)}</p>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
                                 </>
                             );
                         })()}
@@ -1192,8 +1378,10 @@ const ProjectManagementSystem = () => {
                     <div className="space-y-6">
                         <div className="flex justify-between items-center">
                             <div>
-                                <h2 className="text-3xl font-bold text-gray-900 tracking-tight">Projects</h2>
-                                <p className="text-gray-500">Manage your projects</p>
+                                <h2 className="text-[27px] font-bold text-gray-900 tracking-tight">Projects</h2>
+                                <p className="text-gray-500">
+                                    {projects.length} project{projects.length !== 1 ? 's' : ''} &middot; {projects.filter(p => p.status === 'active').length} active
+                                </p>
                             </div>
                             {hasPermission(user?.permissions, 'projects.create') && (
                                 <button
@@ -1294,8 +1482,10 @@ const ProjectManagementSystem = () => {
                     <div className="space-y-6">
                         <div className="flex justify-between items-center">
                             <div>
-                                <h2 className="text-3xl font-bold text-gray-900 tracking-tight">Tasks</h2>
-                                <p className="text-gray-500">Manage all tasks</p>
+                                <h2 className="text-[27px] font-bold text-gray-900 tracking-tight">Tasks</h2>
+                                <p className="text-gray-500">
+                                    {tasks.length} task{tasks.length !== 1 ? 's' : ''} &middot; {tasks.filter(t => t.isOverdue).length} overdue
+                                </p>
                             </div>
                             <button
                                 onClick={() => setShowAddTask(true)}
@@ -1315,6 +1505,7 @@ const ProjectManagementSystem = () => {
                                 <option value="all">All Status</option>
                                 <option value="todo">To Do</option>
                                 <option value="in-progress">In Progress</option>
+                                <option value="blocked">Blocked</option>
                                 <option value="completed">Completed</option>
                                 <option value="overdue">Overdue</option>
                             </select>
@@ -1379,6 +1570,7 @@ const ProjectManagementSystem = () => {
                                                             >
                                                                 <option value="todo">To Do</option>
                                                                 <option value="in-progress">In Progress</option>
+                                                                <option value="blocked">Blocked</option>
                                                                 <option value="completed">Completed</option>
                                                             </select>
                                                         </td>
@@ -1419,8 +1611,8 @@ const ProjectManagementSystem = () => {
                     <div className="space-y-6">
                         <div className="flex justify-between items-center">
                             <div>
-                                <h2 className="text-3xl font-bold text-gray-900 tracking-tight">Team</h2>
-                                <p className="text-gray-500">Manage team members</p>
+                                <h2 className="text-[27px] font-bold text-gray-900 tracking-tight">Team</h2>
+                                <p className="text-gray-500">{teamMembers.length} member{teamMembers.length !== 1 ? 's' : ''}</p>
                             </div>
                             {hasPermission(user?.permissions, 'users.create') && (
                                 <button
@@ -1460,6 +1652,27 @@ const ProjectManagementSystem = () => {
                                             <div className="space-y-3">
                                                 <RoleBadge role={member.role} />
                                                 <p className="text-sm text-gray-500">{member.email}</p>
+                                                {(() => {
+                                                    const openCount = tasks.filter(t => t.assignedToId === member.id && t.status !== 'completed').length;
+                                                    // Open tasks relative to a 10-task "full load" line - not a real capacity
+                                                    // setting anywhere, just a sensible fixed threshold for the bar/amber cue.
+                                                    const workloadPct = Math.min(100, (openCount / 10) * 100);
+                                                    const isHeavy = workloadPct >= 80;
+                                                    return (
+                                                        <div className="pt-1">
+                                                            <div className="flex items-center justify-between mb-1">
+                                                                <span className="text-xs text-gray-400 uppercase tracking-wide">Workload</span>
+                                                                <span className="text-xs text-gray-500">{openCount} open</span>
+                                                            </div>
+                                                            <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                                                                <div
+                                                                    className={`h-full rounded-full ${isHeavy ? 'bg-amber-500' : 'bg-blue-600'}`}
+                                                                    style={{ width: `${workloadPct}%` }}
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })()}
                                                 <div className="grid grid-cols-3 gap-2 pt-3 border-t border-gray-100 text-center">
                                                     <div>
                                                         <p className="text-lg font-bold text-gray-900">{tasks.filter(t => t.assignedToId === member.id).length}</p>
@@ -1525,93 +1738,98 @@ const ProjectManagementSystem = () => {
                 {activeTab === 'reports' && (
                     <div className="space-y-6">
                         <div>
-                            <h2 className="text-3xl font-bold text-gray-900 tracking-tight">Reports</h2>
+                            <h2 className="text-[27px] font-bold text-gray-900 tracking-tight">Reports</h2>
                             <p className="text-gray-500">Generate and download reports</p>
                         </div>
 
                         {hasPermission(user?.permissions, 'reports.view') ? (
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-                                    <div className="flex items-center mb-4">
-                                        <div className="bg-blue-50 rounded-lg p-3 mr-3 flex-shrink-0">
-                                            <FileText className="h-6 w-6 text-blue-600" />
-                                        </div>
-                                        <h3 className="text-lg font-semibold text-gray-900">Project Summary</h3>
-                                    </div>
-                                    <p className="text-gray-500 mb-4">Overview of all projects, their status, and completion rates.</p>
-                                    <button
-                                        onClick={() => generateReport('project-summary')}
-                                        disabled={loading.reports}
-                                        className="w-full inline-flex items-center justify-center gap-2 bg-blue-600 text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors disabled:opacity-50"
-                                    >
-                                        {loading.reports ? (
-                                            <>
-                                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                                                Generating...
-                                            </>
-                                        ) : (
-                                            <>
-                                                <Download className="h-4 w-4" />
-                                                Generate Report
-                                            </>
-                                        )}
-                                    </button>
+                            <>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                    {[
+                                        { type: 'ProjectSummary', icon: FileText, color: 'blue', title: 'Project Summary', desc: 'Overview of all projects, their status, and completion rates.' },
+                                        { type: 'TeamPerformance', icon: Users, color: 'green', title: 'Team Performance', desc: 'Individual team member performance and task completion statistics.' },
+                                        { type: 'OverdueTasks', icon: Flag, color: 'red', title: 'Overdue Tasks', desc: 'List of all overdue tasks with assignees and due dates.' },
+                                    ].map(({ type, icon: Icon, color, title, desc }) => {
+                                        const schedule = reportSchedules.find((s) => s.reportType === type);
+                                        return (
+                                            <div key={type} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col">
+                                                <div className="flex items-center mb-4">
+                                                    <div className={`bg-${color}-50 rounded-lg p-3 mr-3 flex-shrink-0`}>
+                                                        <Icon className={`h-6 w-6 text-${color}-600`} />
+                                                    </div>
+                                                    <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+                                                </div>
+                                                <p className="text-gray-500 mb-4 flex-1">{desc}</p>
+
+                                                <div className="flex gap-2 mb-3">
+                                                    {['Csv', 'Pdf'].map((fmt) => (
+                                                        <button
+                                                            key={fmt}
+                                                            onClick={() => setReportFormats((prev) => ({ ...prev, [type]: fmt }))}
+                                                            className={`flex-1 text-xs font-semibold py-1.5 rounded-md transition-colors ${reportFormats[type] === fmt ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                                                        >
+                                                            {fmt.toUpperCase()}
+                                                        </button>
+                                                    ))}
+                                                </div>
+
+                                                <div className="flex gap-2">
+                                                    <button
+                                                        onClick={() => generateReport(type)}
+                                                        disabled={loading.reports}
+                                                        className="flex-1 inline-flex items-center justify-center gap-2 bg-blue-600 text-white py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors disabled:opacity-50"
+                                                    >
+                                                        <Download className="h-4 w-4" />
+                                                        Generate
+                                                    </button>
+                                                    {schedule ? (
+                                                        <button
+                                                            onClick={() => cancelReportSchedule(schedule.id)}
+                                                            title={`Scheduled weekly, next run ${new Date(schedule.nextRunAt).toLocaleDateString()}`}
+                                                            className="inline-flex items-center gap-2 bg-white text-gray-700 border border-gray-300 px-3 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-gray-50 transition-colors"
+                                                        >
+                                                            Weekly &middot; Cancel
+                                                        </button>
+                                                    ) : (
+                                                        <button
+                                                            onClick={() => scheduleReport(type)}
+                                                            className="inline-flex items-center gap-2 bg-white text-gray-700 border border-gray-300 px-3 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-gray-50 transition-colors"
+                                                        >
+                                                            Schedule
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
 
-                                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-                                    <div className="flex items-center mb-4">
-                                        <div className="bg-green-50 rounded-lg p-3 mr-3 flex-shrink-0">
-                                            <Users className="h-6 w-6 text-green-600" />
-                                        </div>
-                                        <h3 className="text-lg font-semibold text-gray-900">Team Performance</h3>
+                                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm">
+                                    <div className="px-6 py-4 border-b border-gray-100">
+                                        <h3 className="text-base font-semibold text-gray-900">Recent Exports</h3>
                                     </div>
-                                    <p className="text-gray-500 mb-4">Individual team member performance and task completion statistics.</p>
-                                    <button
-                                        onClick={() => generateReport('team-performance')}
-                                        disabled={loading.reports}
-                                        className="w-full inline-flex items-center justify-center gap-2 bg-green-600 text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-green-700 shadow-sm transition-colors disabled:opacity-50"
-                                    >
-                                        {loading.reports ? (
-                                            <>
-                                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                                                Generating...
-                                            </>
+                                    <div className="divide-y divide-gray-100">
+                                        {recentExports.length === 0 ? (
+                                            <div className="px-6 py-8 text-center text-gray-500">No exports yet</div>
                                         ) : (
-                                            <>
-                                                <Download className="h-4 w-4" />
-                                                Generate Report
-                                            </>
+                                            recentExports.map((exp) => (
+                                                <div key={exp.id} className="px-6 py-3 flex items-center justify-between">
+                                                    <div>
+                                                        <p className="text-sm font-medium text-gray-900">{exp.reportType} &middot; {exp.format.toUpperCase()}</p>
+                                                        <p className="text-xs text-gray-500">{exp.generatedByName} &middot; {new Date(exp.generatedAt).toLocaleString()} &middot; {(exp.fileSizeBytes / 1024).toFixed(0)} KB</p>
+                                                    </div>
+                                                    <button
+                                                        onClick={() => apiService.downloadReportExport(exp.id, `${exp.reportType}.${exp.format === 'Pdf' ? 'pdf' : 'csv'}`)}
+                                                        className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                                                    >
+                                                        Download
+                                                    </button>
+                                                </div>
+                                            ))
                                         )}
-                                    </button>
-                                </div>
-
-                                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-                                    <div className="flex items-center mb-4">
-                                        <div className="bg-red-50 rounded-lg p-3 mr-3 flex-shrink-0">
-                                            <Flag className="h-6 w-6 text-red-600" />
-                                        </div>
-                                        <h3 className="text-lg font-semibold text-gray-900">Overdue Tasks</h3>
                                     </div>
-                                    <p className="text-gray-500 mb-4">List of all overdue tasks with assignees and due dates.</p>
-                                    <button
-                                        onClick={() => generateReport('overdue-tasks')}
-                                        disabled={loading.reports}
-                                        className="w-full inline-flex items-center justify-center gap-2 bg-red-600 text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-red-700 shadow-sm transition-colors disabled:opacity-50"
-                                    >
-                                        {loading.reports ? (
-                                            <>
-                                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                                                Generating...
-                                            </>
-                                        ) : (
-                                            <>
-                                                <Download className="h-4 w-4" />
-                                                Generate Report
-                                            </>
-                                        )}
-                                    </button>
                                 </div>
-                            </div>
+                            </>
                         ) : (
                             <div className="bg-gray-50 rounded-xl border border-gray-100 p-8 text-center">
                                 <Shield className="h-12 w-12 text-gray-400 mx-auto mb-4" />
@@ -1850,14 +2068,9 @@ const ProjectManagementSystem = () => {
                                     className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
                                     required
                                 />
-                                <input
-                                    type="password"
-                                    placeholder="Password"
-                                    value={newMember.password}
-                                    onChange={(e) => setNewMember({ ...newMember, password: e.target.value })}
-                                    className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
-                                    required
-                                />
+                                <p className="text-xs text-gray-500">
+                                    A temporary password will be generated and emailed to this address. They'll be asked to set their own password on first login.
+                                </p>
                             </div>
                             <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3">
                                 <button
@@ -1898,6 +2111,10 @@ const App = () => {
 const AuthGuard = () => {
     const { user, loading } = useAuth();
     const [authView, setAuthView] = useState('login'); // 'login' | 'forgot'
+    // Set when a login attempt reports MustChangePassword (temp/admin-issued password, or an account
+    // retroactively forced to reset) - same ResetPasswordForm as the emailed-link path below, just
+    // reached without a URL round-trip since the token came straight back from /auth/login.
+    const [forcedResetToken, setForcedResetToken] = useState(null);
 
     // The emailed reset link points at /reset-password?token=... - this app has no router, so a
     // direct hit on that path is detected here (same manual technique as Wiki/Library share deep
@@ -1911,11 +2128,16 @@ const AuthGuard = () => {
         if (window.location.pathname === '/reset-password') {
             window.history.replaceState({}, '', '/');
         }
+        setForcedResetToken(null);
         setAuthView('login');
     };
 
     if (resetToken) {
         return <ResetPasswordForm token={resetToken} onBackToLogin={backToLogin} />;
+    }
+
+    if (forcedResetToken) {
+        return <ResetPasswordForm token={forcedResetToken} onBackToLogin={backToLogin} />;
     }
 
     if (loading) {
@@ -1932,7 +2154,7 @@ const AuthGuard = () => {
 
     return authView === 'forgot'
         ? <ForgotPasswordForm onBackToLogin={backToLogin} />
-        : <LoginForm onForgotPassword={() => setAuthView('forgot')} />;
+        : <LoginForm onForgotPassword={() => setAuthView('forgot')} onMustChangePassword={setForcedResetToken} />;
 };
 
 export default App;

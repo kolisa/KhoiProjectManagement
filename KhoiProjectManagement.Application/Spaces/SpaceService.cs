@@ -15,6 +15,7 @@ namespace KhoiProjectManagement.Application
         private readonly IRepository<SpacePermission> _spacePermissionRepo;
         private readonly IRepository<User> _userRepo;
         private readonly IRepository<VaultEntry> _vaultEntryRepo;
+        private readonly IRepository<UserRole> _userRoleRepo;
         private readonly IUnitOfWork _unitOfWork;
         private readonly ISpacePermissionResolver _resolver;
 
@@ -24,6 +25,7 @@ namespace KhoiProjectManagement.Application
             IRepository<SpacePermission> spacePermissionRepo,
             IRepository<User> userRepo,
             IRepository<VaultEntry> vaultEntryRepo,
+            IRepository<UserRole> userRoleRepo,
             IUnitOfWork unitOfWork,
             ISpacePermissionResolver resolver)
         {
@@ -32,6 +34,7 @@ namespace KhoiProjectManagement.Application
             _spacePermissionRepo = spacePermissionRepo;
             _userRepo = userRepo;
             _vaultEntryRepo = vaultEntryRepo;
+            _userRoleRepo = userRoleRepo;
             _unitOfWork = unitOfWork;
             _resolver = resolver;
         }
@@ -230,6 +233,20 @@ namespace KhoiProjectManagement.Application
                 UserName = sp.User?.Name,
                 Level = sp.Level.ToString()
             }).ToList();
+        }
+
+        public async Task<int> GetSpaceGranteeCountAsync(int spaceId)
+        {
+            var grants = await _spacePermissionRepo.Query().Where(sp => sp.SpaceId == spaceId).ToListAsync();
+
+            var directUserIds = grants.Where(g => g.UserId.HasValue).Select(g => g.UserId!.Value);
+
+            var roleIds = grants.Where(g => g.RoleId.HasValue).Select(g => g.RoleId!.Value).ToList();
+            var roleUserIds = roleIds.Count == 0
+                ? new List<int>()
+                : await _userRoleRepo.Query().Where(ur => roleIds.Contains(ur.RoleId)).Select(ur => ur.UserId).ToListAsync();
+
+            return directUserIds.Concat(roleUserIds).Distinct().Count();
         }
 
         public async Task<bool> SetSpacePermissionsAsync(int spaceId, List<SetSpacePermissionDto> grants, int createdByUserId)

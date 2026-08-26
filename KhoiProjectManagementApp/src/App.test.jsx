@@ -14,6 +14,8 @@ const dashboardHandlers = () => [
   http.get(`${API_BASE_URL}/notifications`, () => HttpResponse.json([])),
   http.get(`${API_BASE_URL}/dashboard/widgets/my-preferences`, () => HttpResponse.json([])),
   http.get(`${API_BASE_URL}/timesheets`, () => HttpResponse.json([])),
+  http.get(`${API_BASE_URL}/dashboard/weekly-completion`, () => HttpResponse.json([0, 0, 0, 0, 0, 0, 0])),
+  http.get(`${API_BASE_URL}/dashboard/activity`, () => HttpResponse.json([])),
 ];
 
 // App.jsx's real LoginForm/AuthGuard aren't separately exported (see CLAUDE.md's frontend-structure
@@ -78,14 +80,7 @@ describe('App (LoginForm / AuthGuard)', () => {
 
     server.use(
       http.post(`${API_BASE_URL}/auth/login`, () => HttpResponse.json(loginResponse)),
-      http.get(`${API_BASE_URL}/dashboard/statistics`, () => HttpResponse.json({
-        totalProjects: 0, activeProjects: 0, totalTasks: 0, completedTasks: 0,
-        inProgressTasks: 0, todoTasks: 0, overdueTasks: 0, completionRate: 0,
-      })),
-      http.get(`${API_BASE_URL}/tasks`, () => HttpResponse.json([])),
-      http.get(`${API_BASE_URL}/notifications`, () => HttpResponse.json([])),
-      http.get(`${API_BASE_URL}/dashboard/widgets/my-preferences`, () => HttpResponse.json([])),
-      http.get(`${API_BASE_URL}/timesheets`, () => HttpResponse.json([]))
+      ...dashboardHandlers()
     );
 
     const user = userEvent.setup();
@@ -96,7 +91,7 @@ describe('App (LoginForm / AuthGuard)', () => {
     await user.type(screen.getByPlaceholderText(/^password$/i), 'admin123');
     await user.click(screen.getByRole('button', { name: /sign in/i }));
 
-    await waitFor(() => expect(screen.getByRole('heading', { name: /dashboard/i })).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole('heading', { name: /good (morning|afternoon|evening)/i })).toBeInTheDocument());
     // Login form must be gone, not just the dashboard heading present alongside it.
     expect(screen.queryByText(/sign in to khoi pro/i)).not.toBeInTheDocument();
   });
@@ -114,16 +109,7 @@ describe('App > Projects tab data loading', () => {
   };
 
   const mockDashboardLoad = () => {
-    server.use(
-      http.get(`${API_BASE_URL}/dashboard/statistics`, () => HttpResponse.json({
-        totalProjects: 0, activeProjects: 0, totalTasks: 0, completedTasks: 0,
-        inProgressTasks: 0, todoTasks: 0, overdueTasks: 0, completionRate: 0,
-      })),
-      http.get(`${API_BASE_URL}/tasks`, () => HttpResponse.json([])),
-      http.get(`${API_BASE_URL}/notifications`, () => HttpResponse.json([])),
-      http.get(`${API_BASE_URL}/dashboard/widgets/my-preferences`, () => HttpResponse.json([])),
-      http.get(`${API_BASE_URL}/timesheets`, () => HttpResponse.json([]))
-    );
+    server.use(...dashboardHandlers());
   };
 
   const loginAndOpenProjectsTab = async () => {
@@ -136,7 +122,7 @@ describe('App > Projects tab data loading', () => {
     await user.type(screen.getByPlaceholderText(/email address/i), 'admin@khoitech.africa');
     await user.type(screen.getByPlaceholderText(/^password$/i), 'admin123');
     await user.click(screen.getByRole('button', { name: /sign in/i }));
-    await screen.findByRole('heading', { name: /dashboard/i });
+    await screen.findByRole('heading', { name: /good (morning|afternoon|evening)/i });
 
     await user.click(screen.getByRole('button', { name: /^projects$/i }));
     return user;
@@ -220,7 +206,7 @@ describe('App > Edit project', () => {
     await user.type(screen.getByPlaceholderText(/email address/i), 'admin@khoitech.africa');
     await user.type(screen.getByPlaceholderText(/^password$/i), 'admin123');
     await user.click(screen.getByRole('button', { name: /sign in/i }));
-    await screen.findByRole('heading', { name: /dashboard/i });
+    await screen.findByRole('heading', { name: /good (morning|afternoon|evening)/i });
 
     await user.click(screen.getByRole('button', { name: /^projects$/i }));
     await screen.findByRole('heading', { name: /apollo migration/i });

@@ -16,19 +16,22 @@ namespace KhoiProjectManagement.Application
         private readonly IRepository<InvoiceTemplate> _templateRepo;
         private readonly IUnitOfWork _unitOfWork;
         private readonly IConfiguration _configuration;
+        private readonly IActivityLogService _activityLogService;
 
         public InvoiceService(
             IRepository<Invoice> invoiceRepo,
             IRepository<InvoiceLineItem> lineItemRepo,
             IRepository<InvoiceTemplate> templateRepo,
             IUnitOfWork unitOfWork,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            IActivityLogService activityLogService)
         {
             _invoiceRepo = invoiceRepo;
             _lineItemRepo = lineItemRepo;
             _templateRepo = templateRepo;
             _unitOfWork = unitOfWork;
             _configuration = configuration;
+            _activityLogService = activityLogService;
         }
 
         public async Task<List<InvoiceDto>> GetInvoicesAsync()
@@ -119,17 +122,27 @@ namespace KhoiProjectManagement.Application
             return true;
         }
 
-        public async Task<bool> UpdateStatusAsync(int id, string status)
+        public async Task<bool> UpdateStatusAsync(int id, string status, int actingUserId)
         {
             if (!ValidStatuses.Contains(status))
                 throw new InvalidOperationException($"Invalid status '{status}'. Must be one of: {string.Join(", ", ValidStatuses)}.");
 
-            var invoice = await _invoiceRepo.FindAsync(id);
+            var invoice = await _invoiceRepo.Query()
+                .Include(i => i.LineItems)
+                .FirstOrDefaultAsync(i => i.Id == id);
             if (invoice == null)
                 return false;
 
+            var oldStatus = invoice.Status;
             invoice.Status = status;
             await _unitOfWork.SaveChangesAsync();
+
+            if (oldStatus != "Paid" && status == "Paid")
+            {
+                var total = invoice.LineItems.Sum(li => li.Quantity * li.UnitPrice);
+                await _activityLogService.LogAsync("Invoice", invoice.Id, invoice.InvoiceNumber, actingUserId, "MarkedPaid", total.ToString("C0"));
+            }
+
             return true;
         }
 

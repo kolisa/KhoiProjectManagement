@@ -28,6 +28,9 @@ namespace KhoiProjectManagement.Infrastructure.Data
         public DbSet<TaskTag> TaskTags { get; set; }
         public DbSet<EmailLog> EmailLogs { get; set; }
 
+        // Cross-feature activity feed (dashboard's "Activity" widget) - see ActivityLogService.
+        public DbSet<ActivityLogEntry> ActivityLogEntries { get; set; }
+
         // Flat, resource+action permission system for the app's fixed CRUD resources.
         public DbSet<Permission> Permissions { get; set; }
         public DbSet<Role> Roles { get; set; }
@@ -83,8 +86,15 @@ namespace KhoiProjectManagement.Infrastructure.Data
         public DbSet<DashboardWidgetAllowlist> DashboardWidgetAllowlists { get; set; }
         public DbSet<DashboardWidgetPreference> DashboardWidgetPreferences { get; set; }
 
+        // Daily snapshot of dashboard stats, read back for the KPI cards' trend deltas.
+        public DbSet<DashboardStatsSnapshot> DashboardStatsSnapshots { get; set; }
+
         // Personal reminders - own by AssignedTo/CreatedBy, no Space involved (flat, like Timesheets/HR).
         public DbSet<Reminder> Reminders { get; set; }
+
+        // Reports' first Domain entities - persisted export history + recurring schedules.
+        public DbSet<ReportExportHistory> ReportExportHistories { get; set; }
+        public DbSet<ScheduledReport> ScheduledReports { get; set; }
 
         // Required by IDataProtectionKeyContext - lets the Data Protection key ring live in this same
         // Postgres database, shared across instances by construction (see ServiceCollectionExtensions).
@@ -120,6 +130,10 @@ namespace KhoiProjectManagement.Infrastructure.Data
                 e.Property(u => u.Role).IsRequired();
                 e.Property(u => u.Position).HasMaxLength(100);
                 e.Property(u => u.PasswordHash).IsRequired();
+                // Defaulting true retroactively forces a reset on every pre-existing real account when
+                // this column is added - the 6 documented demo accounts below are explicitly pinned back
+                // to false so they keep working exactly as documented.
+                e.Property(u => u.MustChangePassword).HasDefaultValue(true);
             });
 
             modelBuilder.Entity<Project>(e =>
@@ -196,6 +210,27 @@ namespace KhoiProjectManagement.Infrastructure.Data
                 e.Property(a => a.EntryNameSnapshot).IsRequired().HasMaxLength(200);
                 e.Property(a => a.IpAddress).HasMaxLength(45);
                 e.Property(a => a.Details).HasMaxLength(500);
+            });
+
+            modelBuilder.Entity<ActivityLogEntry>(e =>
+            {
+                e.Property(a => a.EntityType).IsRequired().HasMaxLength(50);
+                e.Property(a => a.EntityNameSnapshot).IsRequired().HasMaxLength(200);
+                e.Property(a => a.ActorNameSnapshot).IsRequired().HasMaxLength(200);
+                e.Property(a => a.Action).IsRequired().HasMaxLength(50);
+                e.Property(a => a.Details).HasMaxLength(500);
+            });
+
+            modelBuilder.Entity<ReportExportHistory>(e =>
+            {
+                e.Property(r => r.ReportType).IsRequired().HasMaxLength(50);
+                e.Property(r => r.Format).IsRequired().HasMaxLength(20);
+            });
+
+            modelBuilder.Entity<ScheduledReport>(e =>
+            {
+                e.Property(s => s.ReportType).IsRequired().HasMaxLength(50);
+                e.Property(s => s.Format).IsRequired().HasMaxLength(20);
             });
 
             modelBuilder.Entity<WikiPage>()
@@ -402,6 +437,26 @@ namespace KhoiProjectManagement.Infrastructure.Data
                 .HasOne(a => a.User)
                 .WithMany()
                 .HasForeignKey(a => a.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // ActorNameSnapshot means this survives the actor being deleted, same reasoning as
+            // VaultAuditLog - but the FK itself still restricts, matching VaultAuditLog.UserId above.
+            modelBuilder.Entity<ActivityLogEntry>()
+                .HasOne(a => a.ActorUser)
+                .WithMany()
+                .HasForeignKey(a => a.ActorUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<ReportExportHistory>()
+                .HasOne(r => r.GeneratedByUser)
+                .WithMany()
+                .HasForeignKey(r => r.GeneratedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<ScheduledReport>()
+                .HasOne(s => s.CreatedByUser)
+                .WithMany()
+                .HasForeignKey(s => s.CreatedByUserId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             // Restrict, not Cascade: mirrors VaultEntry.Space - don't silently cascade-delete content
@@ -748,7 +803,8 @@ namespace KhoiProjectManagement.Infrastructure.Data
                     Position = "Full stack Developer",
                     PasswordHash = adminPasswordHash,
                     CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc),
-                    IsActive = true
+                    IsActive = true,
+                    MustChangePassword = false
                 },
                 new User
                 {
@@ -759,7 +815,8 @@ namespace KhoiProjectManagement.Infrastructure.Data
                     Position = "Business Analyst",
                     PasswordHash = managerPasswordHash,
                     CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc),
-                    IsActive = true
+                    IsActive = true,
+                    MustChangePassword = false
                 },
                 new User
                 {
@@ -770,7 +827,8 @@ namespace KhoiProjectManagement.Infrastructure.Data
                     Position = "System Analyst",
                     PasswordHash = memberPasswordHash,
                     CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc),
-                    IsActive = true
+                    IsActive = true,
+                    MustChangePassword = false
                 },
                 new User
                 {
@@ -781,7 +839,8 @@ namespace KhoiProjectManagement.Infrastructure.Data
                     Position = "Marketing Manager",
                     PasswordHash = memberPasswordHash,
                     CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc),
-                    IsActive = true
+                    IsActive = true,
+                    MustChangePassword = false
                 },
                 new User
                 {
@@ -792,7 +851,8 @@ namespace KhoiProjectManagement.Infrastructure.Data
                     Position = "Finance Manager",
                     PasswordHash = memberPasswordHash,
                     CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc),
-                    IsActive = true
+                    IsActive = true,
+                    MustChangePassword = false
                 },
                 new User
                 {
@@ -803,7 +863,8 @@ namespace KhoiProjectManagement.Infrastructure.Data
                     Position = "Client Support Manager",
                     PasswordHash = memberPasswordHash,
                     CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc),
-                    IsActive = true
+                    IsActive = true,
+                    MustChangePassword = false
                 }
             );
 

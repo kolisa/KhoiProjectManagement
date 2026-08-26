@@ -13,11 +13,13 @@ namespace KhoiProjectManagementApi.Controllers
     {
         private readonly IDashboardService _dashboardService;
         private readonly IDashboardWidgetService _widgetService;
+        private readonly IActivityLogService _activityLogService;
 
-        public DashboardController(IDashboardService dashboardService, IDashboardWidgetService widgetService)
+        public DashboardController(IDashboardService dashboardService, IDashboardWidgetService widgetService, IActivityLogService activityLogService)
         {
             _dashboardService = dashboardService;
             _widgetService = widgetService;
+            _activityLogService = activityLogService;
         }
 
         [HttpGet("statistics")]
@@ -25,6 +27,18 @@ namespace KhoiProjectManagementApi.Controllers
         {
             var statistics = await _dashboardService.GetDashboardStatisticsAsync();
             return Ok(statistics);
+        }
+
+        [HttpGet("weekly-completion")]
+        public async Task<ActionResult<int[]>> GetWeeklyCompletion()
+        {
+            return Ok(await _dashboardService.GetWeeklyCompletionAsync());
+        }
+
+        [HttpGet("activity")]
+        public async Task<ActionResult<List<ActivityLogEntryDto>>> GetActivity()
+        {
+            return Ok(await _activityLogService.GetRecentAsync(20));
         }
 
         // Every authenticated user can see the full catalog (including disabled entries) - needed so

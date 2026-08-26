@@ -93,7 +93,8 @@ namespace KhoiProjectManagement.Application
                     SortOrder = page.SortOrder,
                     CreatedAt = page.CreatedAt,
                     UpdatedAt = latestVersion?.EditedAt,
-                    Labels = page.WikiPageTags.Select(t => t.Tag.Name).OrderBy(n => n).ToList()
+                    Labels = page.WikiPageTags.Select(t => t.Tag.Name).OrderBy(n => n).ToList(),
+                    WordCount = page.CurrentContentMarkdown.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries).Length
                 });
             }
             return result;

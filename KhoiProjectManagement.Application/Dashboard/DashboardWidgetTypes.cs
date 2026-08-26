@@ -14,6 +14,9 @@ namespace KhoiProjectManagement.Application
         public const string RecentTasks = "recent_tasks";
         public const string RecentMentions = "recent_mentions";
         public const string PendingTimesheets = "pending_timesheets";
+        public const string MyTasks = "my_tasks";
+        public const string WeeklyCompletionChart = "weekly_completion_chart";
+        public const string ActivityFeed = "activity_feed";
 
         public static readonly IReadOnlyList<(string Key, string DisplayName, string Description, int CatalogOrder)> Catalog = new List<(string, string, string, int)>
         {
@@ -25,6 +28,9 @@ namespace KhoiProjectManagement.Application
             (RecentTasks, "Recent Tasks", "Your five most recently updated tasks.", 5),
             (RecentMentions, "Recent Mentions", "Recent wiki/idea comments that mentioned you.", 6),
             (PendingTimesheets, "Pending Timesheets", "Timesheets awaiting your action (submission or approval).", 7),
+            (MyTasks, "My Tasks", "Your tasks grouped into Today, Upcoming and Done.", 8),
+            (WeeklyCompletionChart, "This Week", "Tasks you completed each day this week.", 9),
+            (ActivityFeed, "Activity", "Recent company-wide activity - projects, tasks, invoices, ideas.", 10),
         };
 
         public static bool IsValid(string key) => Catalog.Any(c => c.Key == key);

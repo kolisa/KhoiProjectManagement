@@ -8,5 +8,7 @@ namespace KhoiProjectManagement.Application
         Task SendMentionEmailAsync(string toEmail, string mentionedByName, string contextLabel, string contextTitle, string commentBody);
         Task SendReminderDueEmailAsync(string toEmail, string reminderTitle, DateTime dueAt);
         Task SendPasswordResetEmailAsync(string toEmail, string userName, string resetLink);
+        Task SendScheduledReportEmailAsync(string toEmail, string reportTitle, byte[] attachmentContent, string attachmentFileName, string attachmentContentType);
+        Task SendTemporaryPasswordEmailAsync(string toEmail, string userName, string tempPassword);
     }
 }

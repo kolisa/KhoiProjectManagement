@@ -3,10 +3,11 @@ using KhoiProjectManagement.Application;
 
 namespace KhoiProjectManagement.Application
 {
-    // "todo"/"in-progress"/"completed" confirmed against the frontend's status badge config in App.js.
+    // "todo"/"in-progress"/"blocked"/"completed" confirmed against the frontend's status badge config
+    // in App.js.
     internal static class TaskStatusRule
     {
-        public static readonly string[] Valid = { "todo", "in-progress", "completed" };
+        public static readonly string[] Valid = { "todo", "in-progress", "blocked", "completed" };
     }
 
     public class CreateTaskDtoValidator : AbstractValidator<CreateTaskDto>

@@ -112,6 +112,15 @@ namespace KhoiProjectManagementApi.Controllers
             return Ok(permissions);
         }
 
+        // Deliberately no Manage check, unlike GetPermissions above - a bare count doesn't reveal who
+        // specifically has access, only how many people do, so anyone who can already see this Space
+        // (enforced by SpaceTree only ever listing Spaces the caller has at least Read on) can see it.
+        [HttpGet("{id}/grantee-count")]
+        public async Task<ActionResult<int>> GetGranteeCount(int id)
+        {
+            return Ok(await _spaceService.GetSpaceGranteeCountAsync(id));
+        }
+
         [HttpPut("{id}/permissions")]
         public async Task<IActionResult> SetPermissions(int id, List<SetSpacePermissionDto> grants)
         {

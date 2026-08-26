@@ -10,6 +10,10 @@ namespace KhoiProjectManagement.Application
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
         public List<string> Labels { get; set; } = new();
+
+        // Word count of the current version's content - the frontend derives "N min read" from this
+        // (a fixed reading-speed heuristic, no need to compute/round server-side).
+        public int WordCount { get; set; }
     }
 
     public class WikiPageDetailDto

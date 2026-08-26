@@ -15,6 +15,10 @@ Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
     .CreateBootstrapLogger();
 
+// Required once at startup or every QuestPDF.Fluent.Document.GeneratePdf() call throws. Community is
+// free for organizations under $1M USD annual gross revenue - fine for this internal tool.
+QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
+
 try
 {
     Log.Information("Starting KhoiProjectManagementApi");
@@ -61,6 +65,8 @@ try
     // BackgroundServices had is reproduced deliberately below via TriggerJob, not via trigger timing.
     var overdueJobKey = new JobKey("OverdueTaskCheck");
     var reminderJobKey = new JobKey("ReminderDueCheck");
+    var dashboardSnapshotJobKey = new JobKey("DashboardSnapshot");
+    var scheduledReportJobKey = new JobKey("ScheduledReport");
     var firstRecurrence = DateBuilder.FutureDate(1, IntervalUnit.Hour);
 
     builder.Services.AddQuartz(q =>
@@ -76,6 +82,20 @@ try
         q.AddTrigger(opts => opts
             .ForJob(reminderJobKey)
             .WithIdentity("ReminderDueCheck-trigger")
+            .StartAt(firstRecurrence)
+            .WithSimpleSchedule(s => s.WithIntervalInHours(1).RepeatForever()));
+
+        q.AddJob<DashboardSnapshotJob>(opts => opts.WithIdentity(dashboardSnapshotJobKey));
+        q.AddTrigger(opts => opts
+            .ForJob(dashboardSnapshotJobKey)
+            .WithIdentity("DashboardSnapshot-trigger")
+            .StartAt(firstRecurrence)
+            .WithSimpleSchedule(s => s.WithIntervalInHours(24).RepeatForever()));
+
+        q.AddJob<ScheduledReportJob>(opts => opts.WithIdentity(scheduledReportJobKey));
+        q.AddTrigger(opts => opts
+            .ForJob(scheduledReportJobKey)
+            .WithIdentity("ScheduledReport-trigger")
             .StartAt(firstRecurrence)
             .WithSimpleSchedule(s => s.WithIntervalInHours(1).RepeatForever()));
     });
@@ -133,6 +153,8 @@ try
         var scheduler = await schedulerFactory.GetScheduler();
         await scheduler.TriggerJob(overdueJobKey);
         await scheduler.TriggerJob(reminderJobKey);
+        await scheduler.TriggerJob(dashboardSnapshotJobKey);
+        await scheduler.TriggerJob(scheduledReportJobKey);
     }
 
     await app.RunAsync();

@@ -10,7 +10,7 @@ namespace KhoiProjectManagement.Application
         Task<InvoiceDto> CreateInvoiceAsync(CreateInvoiceDto dto, int createdBy);
         Task<bool> UpdateInvoiceAsync(int id, UpdateInvoiceDto dto);
         Task<bool> DeleteInvoiceAsync(int id);
-        Task<bool> UpdateStatusAsync(int id, string status);
+        Task<bool> UpdateStatusAsync(int id, string status, int actingUserId);
 
         // An externally-generated invoice document (e.g. a PDF) attached to the record - independent
         // of the structured LineItems, not a replacement for them. Returns whether the frontend should

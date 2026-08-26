@@ -239,6 +239,61 @@ class ApiService {
     return await this.request('/reports/overdue-tasks');
   }
 
+  // Downloads immediately (browser save prompt/Downloads folder) - mirrors downloadBlob's approach
+  // but POST, since the export endpoint also persists a ReportExportHistory row server-side.
+  async exportReport(reportType, format) {
+    const url = `${API_BASE_URL}/reports/${reportType}/export?format=${format}`;
+    const response = await this.fetchWithTimeout(url, {
+      method: 'POST',
+      headers: {
+        ...(this.token && { Authorization: `Bearer ${this.token}` }),
+      },
+    }, UPLOAD_TIMEOUT_MS);
+
+    if (!response.ok) {
+      throw new Error(`API Error: ${response.status} ${response.statusText}`);
+    }
+
+    const disposition = response.headers.get('Content-Disposition') || '';
+    const match = disposition.match(/filename="?([^"]+)"?/);
+    const fileName = match ? match[1] : `${reportType}.${format === 'Pdf' ? 'pdf' : 'csv'}`;
+
+    const blob = await response.blob();
+    const blobUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(blobUrl);
+  }
+
+  async getRecentReportExports() {
+    return await this.request('/reports/exports/recent');
+  }
+
+  async downloadReportExport(id, fileName) {
+    return await this.downloadBlob(`/reports/exports/${id}/download`, fileName);
+  }
+
+  async getReportSchedules() {
+    return await this.request('/reports/schedules');
+  }
+
+  async createReportSchedule(dto) {
+    return await this.request('/reports/schedules', {
+      method: 'POST',
+      body: JSON.stringify(dto),
+    });
+  }
+
+  async deleteReportSchedule(id) {
+    return await this.request(`/reports/schedules/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
   // Notifications
   async getNotifications() {
     return await this.request('/notifications');
@@ -264,6 +319,14 @@ class ApiService {
   // Dashboard
   async getDashboardStats() {
     return await this.request('/dashboard/statistics');
+  }
+
+  async getDashboardWeeklyCompletion() {
+    return await this.request('/dashboard/weekly-completion');
+  }
+
+  async getDashboardActivity() {
+    return await this.request('/dashboard/activity');
   }
 
   async getDashboardWidgetCatalog() {
@@ -296,6 +359,10 @@ class ApiService {
 
   async getSpace(id) {
     return await this.request(`/spaces/${id}`);
+  }
+
+  async getSpaceGranteeCount(id) {
+    return await this.request(`/spaces/${id}/grantee-count`);
   }
 
   async createSpace(spaceData) {
