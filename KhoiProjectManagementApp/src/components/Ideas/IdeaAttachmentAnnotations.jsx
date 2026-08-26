@@ -76,12 +76,12 @@ const IdeaAttachmentAnnotations = ({ apiService, attachmentId, currentUserId, ca
           onChange={(e) => setBody(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') handleAdd(); }}
           placeholder="Add an annotation on this file..."
-          className="flex-1 border rounded px-2 py-1 text-xs"
+          className="flex-1 border border-gray-300 rounded-lg px-3.5 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
         />
         <button
           onClick={handleAdd}
           disabled={posting || !body.trim()}
-          className="text-xs bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 disabled:opacity-50"
+          className="inline-flex items-center gap-2 text-xs font-semibold bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 shadow-sm transition-colors disabled:opacity-50"
         >
           Add
         </button>

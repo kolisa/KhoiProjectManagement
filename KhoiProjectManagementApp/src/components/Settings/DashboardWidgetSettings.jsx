@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { LayoutGrid, ArrowUp, ArrowDown } from 'lucide-react';
 import { hasPermission } from '../../utils/permissions';
+import Toggle from '../Common/Toggle';
 
 const DashboardWidgetSettings = ({ apiService, user }) => {
   const [prefs, setPrefs] = useState(null);
@@ -81,7 +82,7 @@ const DashboardWidgetSettings = ({ apiService, user }) => {
         <p className="text-sm text-gray-500">Choose which widgets appear on your dashboard, and in what order.</p>
       </div>
 
-      <div className="bg-white rounded-lg shadow divide-y max-w-2xl">
+      <div className="bg-white rounded-xl border border-gray-100 shadow-sm divide-y divide-gray-100 max-w-2xl">
         {prefs.map((p, i) => (
           <div key={p.widgetKey} className="p-3 flex items-center justify-between">
             <div className="flex items-center">
@@ -105,16 +106,7 @@ const DashboardWidgetSettings = ({ apiService, user }) => {
               </div>
               <span className="text-sm text-gray-900">{p.displayName}</span>
             </div>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                className="sr-only peer"
-                checked={p.isVisible}
-                disabled={saving}
-                onChange={() => toggleVisible(p.widgetKey)}
-              />
-              <div className="w-9 h-5 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
-            </label>
+            <Toggle checked={p.isVisible} disabled={saving} onChange={() => toggleVisible(p.widgetKey)} />
           </div>
         ))}
       </div>
@@ -125,23 +117,14 @@ const DashboardWidgetSettings = ({ apiService, user }) => {
           <p className="text-sm text-gray-500 mb-2">
             Turning a widget off here removes it for everyone, regardless of their personal preference.
           </p>
-          <div className="bg-white rounded-lg shadow divide-y max-w-2xl">
+          <div className="bg-white rounded-xl border border-gray-100 shadow-sm divide-y divide-gray-100 max-w-2xl">
             {catalog.map((c) => (
               <div key={c.widgetKey} className="p-3 flex items-center justify-between">
                 <div>
                   <div className="text-sm text-gray-900">{c.displayName}</div>
                   <div className="text-xs text-gray-500">{c.description}</div>
                 </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    className="sr-only peer"
-                    checked={c.isEnabled}
-                    disabled={saving}
-                    onChange={() => toggleAllowlistEntry(c.widgetKey, !c.isEnabled)}
-                  />
-                  <div className="w-9 h-5 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
-                </label>
+                <Toggle checked={c.isEnabled} disabled={saving} onChange={() => toggleAllowlistEntry(c.widgetKey, !c.isEnabled)} />
               </div>
             ))}
           </div>

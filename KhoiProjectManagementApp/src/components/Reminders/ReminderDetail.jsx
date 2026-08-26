@@ -1,13 +1,13 @@
 // src/components/Reminders/ReminderDetail.js
 import React, { useState } from 'react';
-import { X, Edit3, Trash2, CheckCircle, RotateCcw, Copy, RefreshCw, Clock } from 'lucide-react';
+import { X, Edit3, Trash2, CheckCircle, RotateCcw, Copy, Clock } from 'lucide-react';
 import PriorityBadge from '../Common/PriorityBadge';
 import StatusBadge from '../Common/StatusBadge';
 
 const STATUS_COLORS = {
-  Pending: 'bg-blue-100 text-blue-800',
-  Snoozed: 'bg-purple-100 text-purple-800',
-  Completed: 'bg-green-100 text-green-800',
+  Pending: 'bg-blue-50 text-blue-700',
+  Snoozed: 'bg-purple-50 text-purple-700',
+  Completed: 'bg-green-50 text-green-700',
 };
 
 const formatDateTime = (iso) => (iso ? new Date(iso).toLocaleString() : '-');
@@ -16,7 +16,7 @@ const ReminderDetail = ({ reminder, onClose, onEdit, onComplete, onReopen, onDel
   const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   return (
-    <div className="bg-white rounded-lg shadow p-6">
+    <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
       <div className="flex justify-between items-start mb-4">
         <div>
           <h3 className="text-xl font-semibold text-gray-900">{reminder.title}</h3>
@@ -24,17 +24,20 @@ const ReminderDetail = ({ reminder, onClose, onEdit, onComplete, onReopen, onDel
             <PriorityBadge priority={reminder.priority} />
             <StatusBadge status={reminder.status} colorMap={STATUS_COLORS} />
             {reminder.recurrenceType && (
-              <span className="inline-flex items-center text-xs bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full">
-                <RefreshCw className="h-3 w-3 mr-1" />
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700">
+                <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
                 {reminder.recurrenceType}
               </span>
             )}
             {reminder.isOverdue && (
-              <span className="text-xs bg-red-100 text-red-800 px-2 py-0.5 rounded-full">Overdue</span>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-red-50 text-red-700">
+                <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                Overdue
+              </span>
             )}
           </div>
         </div>
-        <button onClick={onClose} className="text-gray-400 hover:text-gray-600" aria-label="Close">
+        <button onClick={onClose} className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 p-1 rounded-md transition-colors" aria-label="Close">
           <X className="h-4 w-4" />
         </button>
       </div>
@@ -43,48 +46,48 @@ const ReminderDetail = ({ reminder, onClose, onEdit, onComplete, onReopen, onDel
 
       <dl className="grid grid-cols-2 gap-3 text-sm mb-5">
         <div>
-          <dt className="text-gray-400">Due</dt>
+          <dt className="text-gray-500">Due</dt>
           <dd className="text-gray-900 flex items-center"><Clock className="h-3.5 w-3.5 mr-1" />{formatDateTime(reminder.dueAt)}</dd>
         </div>
         {reminder.snoozedUntil && (
           <div>
-            <dt className="text-gray-400">Snoozed until</dt>
+            <dt className="text-gray-500">Snoozed until</dt>
             <dd className="text-gray-900">{formatDateTime(reminder.snoozedUntil)}</dd>
           </div>
         )}
         <div>
-          <dt className="text-gray-400">Assigned to</dt>
+          <dt className="text-gray-500">Assigned to</dt>
           <dd className="text-gray-900">{reminder.assignedToName}</dd>
         </div>
         <div>
-          <dt className="text-gray-400">Created by</dt>
+          <dt className="text-gray-500">Created by</dt>
           <dd className="text-gray-900">{reminder.createdByName}</dd>
         </div>
         {reminder.category && (
           <div>
-            <dt className="text-gray-400">Category</dt>
+            <dt className="text-gray-500">Category</dt>
             <dd className="text-gray-900">{reminder.category}</dd>
           </div>
         )}
         {reminder.relatedProjectName && (
           <div>
-            <dt className="text-gray-400">Related project</dt>
+            <dt className="text-gray-500">Related project</dt>
             <dd className="text-gray-900">{reminder.relatedProjectName}</dd>
           </div>
         )}
         <div>
-          <dt className="text-gray-400">Created</dt>
+          <dt className="text-gray-500">Created</dt>
           <dd className="text-gray-900">{formatDateTime(reminder.createdAt)}</dd>
         </div>
         {reminder.updatedAt && (
           <div>
-            <dt className="text-gray-400">Last updated</dt>
+            <dt className="text-gray-500">Last updated</dt>
             <dd className="text-gray-900">{formatDateTime(reminder.updatedAt)}</dd>
           </div>
         )}
         {reminder.completedAt && (
           <div>
-            <dt className="text-gray-400">Completed</dt>
+            <dt className="text-gray-500">Completed</dt>
             <dd className="text-gray-900">{formatDateTime(reminder.completedAt)}</dd>
           </div>
         )}
@@ -92,22 +95,22 @@ const ReminderDetail = ({ reminder, onClose, onEdit, onComplete, onReopen, onDel
 
       <div className="flex flex-wrap gap-2 border-t pt-4">
         {reminder.status !== 'Completed' ? (
-          <button onClick={onComplete} className="flex items-center text-sm bg-green-600 text-white px-3 py-1.5 rounded-lg hover:bg-green-700">
-            <CheckCircle className="h-4 w-4 mr-1.5" />
+          <button onClick={onComplete} className="inline-flex items-center gap-2 bg-green-600 text-white px-4 py-2.5 rounded-lg text-sm font-semibold shadow-sm hover:bg-green-700 transition-colors">
+            <CheckCircle className="h-4 w-4" />
             Complete
           </button>
         ) : (
-          <button onClick={onReopen} className="flex items-center text-sm bg-gray-100 text-gray-700 px-3 py-1.5 rounded-lg hover:bg-gray-200">
-            <RotateCcw className="h-4 w-4 mr-1.5" />
+          <button onClick={onReopen} className="inline-flex items-center gap-2 bg-gray-100 text-gray-700 px-4 py-2.5 rounded-lg text-sm font-semibold shadow-sm hover:bg-gray-200 transition-colors">
+            <RotateCcw className="h-4 w-4" />
             Reopen
           </button>
         )}
-        <button onClick={onEdit} className="flex items-center text-sm bg-white border px-3 py-1.5 rounded-lg hover:bg-gray-50">
-          <Edit3 className="h-4 w-4 mr-1.5" />
+        <button onClick={onEdit} className="inline-flex items-center gap-2 border border-gray-300 bg-white px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-gray-50 transition-colors">
+          <Edit3 className="h-4 w-4" />
           Edit
         </button>
-        <button onClick={onDuplicate} className="flex items-center text-sm bg-white border px-3 py-1.5 rounded-lg hover:bg-gray-50">
-          <Copy className="h-4 w-4 mr-1.5" />
+        <button onClick={onDuplicate} className="inline-flex items-center gap-2 border border-gray-300 bg-white px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-gray-50 transition-colors">
+          <Copy className="h-4 w-4" />
           Duplicate
         </button>
         {confirmingDelete ? (
@@ -117,8 +120,8 @@ const ReminderDetail = ({ reminder, onClose, onEdit, onComplete, onReopen, onDel
             <button onClick={() => setConfirmingDelete(false)} className="text-sm text-gray-500 hover:text-gray-700">Cancel</button>
           </div>
         ) : (
-          <button onClick={() => setConfirmingDelete(true)} className="flex items-center text-sm text-red-600 border border-red-200 px-3 py-1.5 rounded-lg hover:bg-red-50">
-            <Trash2 className="h-4 w-4 mr-1.5" />
+          <button onClick={() => setConfirmingDelete(true)} className="inline-flex items-center gap-2 border border-red-200 text-red-600 px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-red-50 transition-colors">
+            <Trash2 className="h-4 w-4" />
             Delete
           </button>
         )}

@@ -186,7 +186,7 @@ const WikiPage = ({ apiService, user, deepLink }) => {
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Search wiki pages..."
-          className="w-full border border-gray-300 rounded-lg pl-9 pr-9 py-2 text-sm"
+          className="w-full border border-gray-300 rounded-lg pl-9 pr-9 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
         />
         {searchQuery && (
           <button
@@ -199,7 +199,7 @@ const WikiPage = ({ apiService, user, deepLink }) => {
         )}
 
         {searchResults !== null && (
-          <div className="absolute z-20 mt-1 w-full bg-white border rounded-lg shadow-lg max-h-96 overflow-y-auto">
+          <div className="absolute z-20 mt-1 w-full bg-white border border-gray-100 rounded-xl shadow-lg max-h-96 overflow-y-auto">
             {searching && <div className="p-3 text-sm text-gray-400">Searching...</div>}
             {!searching && searchResults.length === 0 && (
               <div className="p-3 text-sm text-gray-400">No pages match "{searchQuery}".</div>
@@ -208,7 +208,7 @@ const WikiPage = ({ apiService, user, deepLink }) => {
               <button
                 key={r.id}
                 onClick={() => handleSearchResultClick(r)}
-                className="w-full text-left p-3 hover:bg-gray-50 border-b last:border-b-0"
+                className="w-full text-left p-3 hover:bg-gray-50/60 transition-colors border-b border-gray-100 last:border-b-0"
               >
                 <div className="text-sm font-medium text-gray-900">{r.title}</div>
                 <div className="text-xs text-gray-500 mb-1">{r.spaceName}</div>
@@ -220,13 +220,13 @@ const WikiPage = ({ apiService, user, deepLink }) => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="md:col-span-1 bg-white rounded-lg shadow p-3">
+        <div className="md:col-span-1 bg-white rounded-xl border border-gray-100 shadow-sm p-3">
           <SpaceTree apiService={apiService} selectedSpaceId={selectedSpace?.id} onSelect={handleSelectSpace} />
         </div>
 
         <div className="md:col-span-3 space-y-4">
           {!selectedSpace && (
-            <div className="bg-white rounded-lg shadow p-8 text-center text-gray-400">
+            <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-8 text-center text-gray-400">
               Select a wiki space on the left to browse its pages.
             </div>
           )}
@@ -259,9 +259,9 @@ const WikiPage = ({ apiService, user, deepLink }) => {
                 {canWrite && (
                   <button
                     onClick={() => setCreatingUnderParentId(currentParentPageId)}
-                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center"
+                    className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors"
                   >
-                    <Plus className="h-5 w-5 mr-2" />
+                    <Plus className="h-4 w-4" />
                     New Page
                   </button>
                 )}
@@ -271,7 +271,7 @@ const WikiPage = ({ apiService, user, deepLink }) => {
               {loadingPages && <div className="text-gray-400">Loading pages...</div>}
 
               {!loadingPages && (
-                <div className="bg-white rounded-lg shadow divide-y">
+                <div className="bg-white rounded-xl border border-gray-100 shadow-sm divide-y divide-gray-100">
                   {pages.length === 0 && (
                     <div className="p-6 text-center text-gray-400">No pages here yet.</div>
                   )}
@@ -282,7 +282,7 @@ const WikiPage = ({ apiService, user, deepLink }) => {
                       onDragStart={() => setDragIndex(index)}
                       onDragOver={(e) => e.preventDefault()}
                       onDrop={() => handleDrop(index)}
-                      className={`p-4 hover:bg-gray-50 flex justify-between items-center ${canWrite ? 'cursor-move' : ''} ${dragIndex === index ? 'opacity-40' : ''}`}
+                      className={`p-4 hover:bg-gray-50/60 transition-colors flex justify-between items-center ${canWrite ? 'cursor-move' : ''} ${dragIndex === index ? 'opacity-40' : ''}`}
                     >
                       {canWrite && <GripVertical className="h-4 w-4 mr-1 text-gray-300 flex-shrink-0" />}
                       <button
@@ -294,7 +294,7 @@ const WikiPage = ({ apiService, user, deepLink }) => {
                         {page.labels?.length > 0 && (
                           <span className="ml-2 flex space-x-1 flex-shrink-0">
                             {page.labels.map((l) => (
-                              <span key={l} className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">{l}</span>
+                              <span key={l} className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-gray-100 text-gray-700">{l}</span>
                             ))}
                           </span>
                         )}
@@ -304,7 +304,7 @@ const WikiPage = ({ apiService, user, deepLink }) => {
                           <select
                             value=""
                             onChange={(e) => handleMove(page, e.target.value === 'null' ? null : Number(e.target.value))}
-                            className="text-xs border rounded px-1 py-0.5 text-gray-500"
+                            className="text-xs border border-gray-300 rounded-md px-1.5 py-1 text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
                           >
                             <option value="" disabled>Move to...</option>
                             {moveTargets.map((t) => (

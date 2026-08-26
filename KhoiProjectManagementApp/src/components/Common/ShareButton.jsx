@@ -38,33 +38,33 @@ const ShareButton = ({ url, label }) => {
     <div className="relative" ref={containerRef}>
       <button
         onClick={() => setOpen(!open)}
-        className="text-gray-400 hover:text-gray-600"
+        className="text-gray-400 hover:bg-gray-100 rounded-md p-1.5 transition-colors"
         aria-label="Share"
         title="Share"
       >
         <Share2 className="h-4 w-4" />
       </button>
       {open && (
-        <div className="absolute right-0 mt-2 w-72 bg-white border rounded-lg shadow-lg p-3 z-10">
+        <div className="absolute right-0 mt-2 w-72 bg-white border border-gray-100 rounded-xl shadow-lg p-3 z-10">
           <div className="text-xs text-gray-500 mb-2">Anyone with this link still needs to log in and have access.</div>
           <div className="flex items-center space-x-2 mb-2">
             <input
               readOnly
               value={url}
               onClick={(e) => e.target.select()}
-              className="flex-1 border rounded px-2 py-1 text-xs text-gray-600"
+              className="flex-1 border border-gray-300 rounded-md px-2 py-1.5 text-xs text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
             />
             <button
               onClick={handleCopy}
-              className="flex items-center text-xs text-blue-600 hover:text-blue-800 flex-shrink-0"
+              className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-800 transition-colors flex-shrink-0"
             >
-              {copied ? <Check className="h-3.5 w-3.5 mr-1" /> : <Copy className="h-3.5 w-3.5 mr-1" />}
+              {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
               {copied ? 'Copied' : 'Copy'}
             </button>
           </div>
           <button
             onClick={handleWhatsApp}
-            className="w-full text-sm bg-green-600 text-white py-1.5 rounded-lg hover:bg-green-700"
+            className="w-full inline-flex items-center justify-center text-sm font-semibold bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 shadow-sm transition-colors"
           >
             Share via WhatsApp
           </button>

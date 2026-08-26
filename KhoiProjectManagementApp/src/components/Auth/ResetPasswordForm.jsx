@@ -41,28 +41,51 @@ const ResetPasswordForm = ({ token, onBackToLogin }) => {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 via-blue-50 to-gray-100 py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
-            <div className="absolute -top-24 -left-24 h-96 w-96 rounded-full bg-blue-200/40 blur-3xl" />
-            <div className="absolute -bottom-24 -right-24 h-96 w-96 rounded-full bg-blue-300/30 blur-3xl" />
+        <div className="min-h-screen flex">
+            {/* Brand panel */}
+            <div className="hidden lg:flex lg:w-[44%] relative overflow-hidden flex-col justify-between bg-gradient-to-br from-blue-900 via-blue-700 to-blue-600 px-14 py-14">
+                <div className="absolute -top-32 -right-32 h-[420px] w-[420px] rounded-full bg-blue-300/20 blur-3xl" />
+                <div className="absolute -bottom-40 -left-24 h-[480px] w-[480px] rounded-full bg-blue-400/20 blur-3xl" />
 
-            <div className="max-w-md w-full space-y-8 relative">
-                <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-100 px-8 py-10">
-                    <div className="flex flex-col items-center">
-                        <img src={khoiLogo} alt="Khoi" className="h-12 w-auto mb-4" />
+                <div className="relative flex items-center gap-3">
+                    <img src={khoiLogo} alt="Khoi" className="h-8 w-auto brightness-0 invert" />
+                    <span className="text-white text-lg font-bold tracking-tight">Khoi Pro</span>
+                </div>
+
+                <div className="relative max-w-md">
+                    <h1 className="text-white text-3xl font-extrabold leading-tight tracking-tight mb-4">
+                        Where the whole company keeps its work in one place.
+                    </h1>
+                    <p className="text-blue-100/80 text-base leading-relaxed">
+                        Projects, tasks, wiki, vault and finance &mdash; unified under one roof.
+                    </p>
+                </div>
+
+                <p className="relative text-blue-200/50 text-xs">&copy; 2026 Khoi. All rights reserved.</p>
+            </div>
+
+            {/* Form panel */}
+            <div className="flex-1 flex items-center justify-center bg-gray-50 px-4 sm:px-6 lg:px-8 py-12">
+                <div className="max-w-sm w-full">
+                    <div className="lg:hidden flex flex-col items-center mb-8">
+                        <img src={khoiLogo} alt="Khoi" className="h-10 w-auto mb-3" />
+                    </div>
+
+                    <div className="text-center lg:text-left">
                         {success ? (
                             <>
-                                <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center mb-4">
+                                <div className="h-12 w-12 rounded-full bg-green-50 flex items-center justify-center mb-4 mx-auto lg:mx-0">
                                     <CheckCircle2 className="h-6 w-6 text-green-600" />
                                 </div>
-                                <h2 className="text-2xl font-bold text-gray-900 text-center">Password reset</h2>
-                                <p className="mt-2 text-sm text-gray-600 text-center">
+                                <h2 className="text-2xl font-bold text-gray-900 tracking-tight">Password reset</h2>
+                                <p className="mt-1.5 text-sm text-gray-500">
                                     Your password has been updated. All existing sessions have been signed out for security.
                                 </p>
                             </>
                         ) : (
                             <>
-                                <h2 className="text-2xl font-bold text-gray-900 text-center">Choose a new password</h2>
-                                <p className="mt-2 text-sm text-gray-600 text-center">
+                                <h2 className="text-2xl font-bold text-gray-900 tracking-tight">Choose a new password</h2>
+                                <p className="mt-1.5 text-sm text-gray-500">
                                     Enter a new password for your account.
                                 </p>
                             </>
@@ -113,9 +136,9 @@ const ResetPasswordForm = ({ token, onBackToLogin }) => {
                     <button
                         type="button"
                         onClick={onBackToLogin}
-                        className="mt-6 w-full flex items-center justify-center text-sm font-medium text-gray-500 hover:text-blue-600 transition-colors"
+                        className="mt-6 w-full flex items-center justify-center lg:justify-start gap-1.5 text-sm font-medium text-gray-500 hover:text-blue-600 transition-colors"
                     >
-                        <ArrowLeft className="h-4 w-4 mr-1.5" />
+                        <ArrowLeft className="h-4 w-4" />
                         Back to sign in
                     </button>
                 </div>

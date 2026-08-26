@@ -31,7 +31,7 @@ const LibraryVersionHistory = ({ apiService, file }) => {
   if (!versions) return <div className="text-gray-400 text-sm">Loading version history...</div>;
 
   return (
-    <div className="divide-y border rounded-lg">
+    <div className="divide-y divide-gray-100 border border-gray-100 rounded-xl">
       {versions.map((v) => (
         <div key={v.versionNumber} className="p-3 flex justify-between items-center text-sm">
           <div>
@@ -42,7 +42,7 @@ const LibraryVersionHistory = ({ apiService, file }) => {
           </div>
           <button
             onClick={() => handleDownloadVersion(v.versionNumber)}
-            className="text-blue-600 hover:text-blue-800"
+            className="text-blue-600 hover:bg-gray-100 rounded-md p-1.5 transition-colors"
             aria-label="Download this version"
           >
             <Download className="h-4 w-4" />

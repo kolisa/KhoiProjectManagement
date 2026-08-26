@@ -185,8 +185,8 @@ const RemindersPage = ({ apiService, user }) => {
             onClick={() => handleFilterChange({ view: tab.key || undefined, priority: undefined })}
             className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px ${
               (filters.view || null) === tab.key && !filters.priority
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
+                ? 'border-blue-600 text-blue-600 font-semibold'
+                : 'border-transparent text-gray-500 hover:text-gray-700 transition-colors'
             }`}
           >
             {tab.label}
@@ -212,15 +212,15 @@ const RemindersPage = ({ apiService, user }) => {
       <div className={`grid grid-cols-1 ${selectedReminder ? 'lg:grid-cols-3' : ''} gap-6`}>
         <div className={selectedReminder ? 'lg:col-span-2' : ''}>
           {reminders === null && (
-            <div className="bg-white rounded-lg shadow p-6 space-y-3" aria-busy="true" aria-label="Loading reminders">
+            <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-3" aria-busy="true" aria-label="Loading reminders">
               {[...Array(4)].map((_, i) => (
-                <div key={i} className="h-12 bg-gray-100 rounded animate-pulse" />
+                <div key={i} className="h-12 bg-gray-100 rounded-lg animate-pulse" />
               ))}
             </div>
           )}
 
           {reminders?.length === 0 && (
-            <div className="bg-white rounded-lg shadow p-10 text-center text-gray-400">
+            <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-10 text-center text-gray-400">
               <Bell className="h-10 w-10 mx-auto mb-3 text-gray-300" />
               {Object.keys(filters).length > 0 ? (
                 <>

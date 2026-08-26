@@ -35,21 +35,21 @@ const CommentNode = ({ comment, currentUserId, canManage, canWrite, onReply, onD
 
   return (
     <div style={{ marginLeft: depth * 24 }} className="mt-3">
-      <div className="bg-gray-50 rounded-lg p-3">
+      <div className="bg-gray-50 rounded-lg p-3 border border-gray-100">
         <div className="flex justify-between items-start">
           <div>
             <span className="font-medium text-sm text-gray-900">{comment.authorName}</span>
             <span className="text-xs text-gray-400 ml-2">{new Date(comment.createdAt).toLocaleString()}</span>
           </div>
           {canDelete && (
-            <button onClick={() => onDelete(comment.id)} className="text-gray-400 hover:text-red-600" aria-label="Delete comment">
+            <button onClick={() => onDelete(comment.id)} className="text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md p-0.5 transition-colors" aria-label="Delete comment">
               <Trash2 className="h-3.5 w-3.5" />
             </button>
           )}
         </div>
         <p className="text-sm text-gray-700 mt-1 whitespace-pre-wrap">{comment.body}</p>
         {canWrite && (
-          <button onClick={() => setReplying(!replying)} className="text-xs text-blue-600 hover:text-blue-800 mt-1">
+          <button onClick={() => setReplying(!replying)} className="text-xs font-semibold text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-md px-1.5 py-1 -ml-1.5 mt-1 transition-colors">
             Reply
           </button>
         )}
@@ -59,11 +59,11 @@ const CommentNode = ({ comment, currentUserId, canManage, canWrite, onReply, onD
               type="text"
               value={replyBody}
               onChange={(e) => setReplyBody(e.target.value)}
-              className="flex-1 border border-gray-300 rounded px-2 py-1 text-sm"
+              className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
               placeholder="Write a reply..."
               required
             />
-            <button type="submit" className="text-sm bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700">
+            <button type="submit" className="inline-flex items-center bg-blue-600 text-white px-3.5 py-2 rounded-lg text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors">
               Send
             </button>
           </form>
@@ -114,7 +114,7 @@ const WikiComments = ({ apiService, pageId, currentUserId, myEffectiveLevel, com
 
   return (
     <div>
-      <h4 className="font-medium text-gray-900 mb-2">Comments</h4>
+      <h4 className="text-base font-semibold text-gray-900 mb-2">Comments</h4>
       {canWrite && (
         <form onSubmit={handleAddTopLevel} className="flex space-x-2 mb-4">
           <input
@@ -122,10 +122,10 @@ const WikiComments = ({ apiService, pageId, currentUserId, myEffectiveLevel, com
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
             placeholder="Add a comment..."
-            className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm"
+            className="flex-1 border border-gray-300 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
             required
           />
-          <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-sm">
+          <button type="submit" className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors">
             Comment
           </button>
         </form>

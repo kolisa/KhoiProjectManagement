@@ -4,11 +4,19 @@ import { Lightbulb, Plus, X, MessageSquare } from 'lucide-react';
 import IdeaDetail from './IdeaDetail';
 
 const STATUS_COLORS = {
-  Submitted: 'bg-gray-100 text-gray-800',
-  UnderReview: 'bg-yellow-100 text-yellow-800',
-  Approved: 'bg-green-100 text-green-800',
-  Rejected: 'bg-red-100 text-red-800',
-  ConvertedToProject: 'bg-blue-100 text-blue-800',
+  Submitted: 'bg-gray-50 text-gray-700',
+  UnderReview: 'bg-yellow-50 text-yellow-700',
+  Approved: 'bg-green-50 text-green-700',
+  Rejected: 'bg-red-50 text-red-700',
+  ConvertedToProject: 'bg-blue-50 text-blue-700',
+};
+
+const STATUS_DOT_COLORS = {
+  Submitted: 'bg-gray-500',
+  UnderReview: 'bg-yellow-500',
+  Approved: 'bg-green-500',
+  Rejected: 'bg-red-500',
+  ConvertedToProject: 'bg-blue-500',
 };
 
 const NewIdeaModal = ({ onSave, onClose }) => {
@@ -29,35 +37,37 @@ const NewIdeaModal = ({ onSave, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-lg">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold text-gray-900">New Idea</h3>
+    <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-2xl shadow-xl overflow-hidden w-full max-w-lg">
+        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+          <h3 className="text-base font-semibold text-gray-900">New Idea</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600" aria-label="Close">
             <X className="h-4 w-4" />
           </button>
         </div>
-        {error && <div className="text-red-600 text-sm mb-3">{error}</div>}
-        <input
-          type="text"
-          placeholder="Title"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          className="w-full border rounded-lg px-3 py-2 mb-3"
-        />
-        <textarea
-          placeholder="Describe your idea..."
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          rows={5}
-          className="w-full border rounded-lg px-3 py-2 mb-4"
-        />
-        <div className="flex justify-end space-x-2">
-          <button onClick={onClose} className="px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-100">Cancel</button>
+        <div className="px-6 py-5 space-y-4">
+          {error && <div className="text-red-600 text-sm">{error}</div>}
+          <input
+            type="text"
+            placeholder="Title"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            className="w-full border border-gray-300 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+          />
+          <textarea
+            placeholder="Describe your idea..."
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            rows={5}
+            className="w-full border border-gray-300 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+          />
+        </div>
+        <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3">
+          <button onClick={onClose} className="inline-flex items-center gap-2 bg-white text-gray-700 border border-gray-300 px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-gray-50 transition-colors">Cancel</button>
           <button
             onClick={handleSave}
             disabled={saving || !title.trim() || !description.trim()}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+            className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors disabled:opacity-50"
           >
             {saving ? 'Submitting...' : 'Submit Idea'}
           </button>
@@ -107,9 +117,9 @@ const IdeasPage = ({ apiService, user }) => {
         </div>
         <button
           onClick={() => setShowNewIdea(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center"
+          className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors"
         >
-          <Plus className="h-5 w-5 mr-2" />
+          <Plus className="h-5 w-5" />
           New Idea
         </button>
       </div>
@@ -119,7 +129,7 @@ const IdeasPage = ({ apiService, user }) => {
           <button
             key={s || 'all'}
             onClick={() => setStatusFilter(s)}
-            className={`text-sm px-3 py-1.5 rounded-lg ${statusFilter === s ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+            className={`text-sm px-3 py-1.5 rounded-lg font-medium transition-colors ${statusFilter === s ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100'}`}
           >
             {s || 'All'}
           </button>
@@ -129,18 +139,19 @@ const IdeasPage = ({ apiService, user }) => {
       {error && <div className="text-red-600 text-sm">{error}</div>}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white rounded-lg shadow divide-y">
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm divide-y">
           {ideas === null && <div className="p-6 text-gray-400">Loading...</div>}
           {ideas?.length === 0 && <div className="p-6 text-center text-gray-400">No ideas yet.</div>}
           {ideas?.map((idea) => (
             <div
               key={idea.id}
               onClick={() => setSelectedId(idea.id)}
-              className={`p-4 cursor-pointer hover:bg-gray-50 ${selectedId === idea.id ? 'bg-blue-50' : ''}`}
+              className={`p-4 cursor-pointer hover:bg-gray-50/60 transition-colors ${selectedId === idea.id ? 'bg-blue-50/80' : ''}`}
             >
               <div className="flex justify-between items-start">
                 <div className="font-medium text-gray-900">{idea.title}</div>
-                <span className={`text-xs px-2 py-0.5 rounded-full ${STATUS_COLORS[idea.status] || STATUS_COLORS.Submitted}`}>
+                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${STATUS_COLORS[idea.status] || STATUS_COLORS.Submitted}`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${STATUS_DOT_COLORS[idea.status] || STATUS_DOT_COLORS.Submitted}`} />
                   {idea.status}
                 </span>
               </div>
@@ -164,7 +175,7 @@ const IdeasPage = ({ apiService, user }) => {
               onChanged={load}
             />
           ) : (
-            <div className="bg-white rounded-lg shadow p-8 text-center text-gray-400">
+            <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-8 text-center text-gray-400">
               Select an idea to view details.
             </div>
           )}

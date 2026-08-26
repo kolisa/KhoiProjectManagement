@@ -1,6 +1,6 @@
 // src/components/Library/LibraryPage.js
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Upload, FolderOpen, FolderPlus, Download, Trash2, History, Plus } from 'lucide-react';
+import { Upload, FolderOpen, FolderPlus, Download, Trash2, History, Plus, X } from 'lucide-react';
 import SpaceTree from '../Spaces/SpaceTree';
 import LibraryVersionHistory from './LibraryVersionHistory';
 import { hasSpaceLevel } from '../../utils/spaceLevel';
@@ -158,13 +158,13 @@ const LibraryPage = ({ apiService, user, deepLink }) => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="md:col-span-1 bg-white rounded-lg shadow p-3">
+        <div className="md:col-span-1 bg-white rounded-xl border border-gray-100 shadow-sm p-3">
           <div className="flex justify-between items-center mb-2 px-1">
             <span className="text-xs font-semibold text-gray-500 uppercase">Folders</span>
             {canCreateFolder && (
               <button
                 onClick={() => { setError(null); setShowNewFolder(true); }}
-                className="text-gray-400 hover:text-gray-600"
+                className="text-gray-400 hover:bg-gray-100 rounded-md p-1.5 transition-colors"
                 aria-label={selectedSpace ? 'New subfolder' : 'New root folder'}
                 title={selectedSpace ? `New subfolder under "${selectedSpace.name}"` : 'New root folder'}
               >
@@ -177,7 +177,7 @@ const LibraryPage = ({ apiService, user, deepLink }) => {
 
         <div className="md:col-span-3 space-y-4">
           {!selectedSpace && (
-            <div className="bg-white rounded-lg shadow p-8 text-center text-gray-400">
+            <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-8 text-center text-gray-400">
               Select a folder on the left to view its files.
             </div>
           )}
@@ -191,9 +191,9 @@ const LibraryPage = ({ apiService, user, deepLink }) => {
                     <button
                       onClick={() => uploadInputRef.current?.click()}
                       disabled={uploading}
-                      className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center disabled:opacity-50"
+                      className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors disabled:opacity-50"
                     >
-                      <Upload className="h-5 w-5 mr-2" />
+                      <Upload className="h-5 w-5" />
                       {uploading ? 'Uploading...' : 'Upload File'}
                     </button>
                     <input ref={uploadInputRef} type="file" className="hidden" onChange={handleUploadNew} />
@@ -206,7 +206,7 @@ const LibraryPage = ({ apiService, user, deepLink }) => {
               {loadingFiles && <div className="text-gray-400">Loading files...</div>}
 
               {!loadingFiles && (
-                <div className="bg-white rounded-lg shadow divide-y">
+                <div className="bg-white rounded-xl border border-gray-100 shadow-sm divide-y divide-gray-100">
                   {files.length === 0 && (
                     <div className="p-6 text-center text-gray-400">No files in this folder yet.</div>
                   )}
@@ -222,14 +222,14 @@ const LibraryPage = ({ apiService, user, deepLink }) => {
                         <div className="flex items-center space-x-3">
                           <button
                             onClick={() => handleDownload(file)}
-                            className="text-blue-600 hover:text-blue-800"
+                            className="text-blue-600 hover:bg-gray-100 rounded-md p-1.5 transition-colors"
                             aria-label="Download"
                           >
                             <Download className="h-4 w-4" />
                           </button>
                           <button
                             onClick={() => setExpandedFileId(expandedFileId === file.id ? null : file.id)}
-                            className="text-gray-400 hover:text-gray-600"
+                            className="text-gray-400 hover:bg-gray-100 rounded-md p-1.5 transition-colors"
                             aria-label="Version history"
                           >
                             <History className="h-4 w-4" />
@@ -241,7 +241,7 @@ const LibraryPage = ({ apiService, user, deepLink }) => {
                           {canWrite && (
                             <button
                               onClick={() => { versionTargetIdRef.current = file.id; versionInputRef.current?.click(); }}
-                              className="text-gray-400 hover:text-gray-600"
+                              className="text-gray-400 hover:bg-gray-100 rounded-md p-1.5 transition-colors"
                               aria-label="Upload new version"
                             >
                               <Plus className="h-4 w-4" />
@@ -250,7 +250,7 @@ const LibraryPage = ({ apiService, user, deepLink }) => {
                           {canManage && (
                             <button
                               onClick={() => handleDelete(file)}
-                              className="text-red-400 hover:text-red-600"
+                              className="text-red-400 hover:bg-gray-100 rounded-md p-1.5 transition-colors"
                               aria-label="Delete"
                             >
                               <Trash2 className="h-4 w-4" />
@@ -273,37 +273,48 @@ const LibraryPage = ({ apiService, user, deepLink }) => {
       </div>
 
       {showNewFolder && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-sm">
-            <h3 className="text-lg font-semibold text-gray-900 mb-1">
-              {selectedSpace ? `New subfolder under "${selectedSpace.name}"` : 'New root folder'}
-            </h3>
-            <p className="text-sm text-gray-500 mb-4">
-              {selectedSpace
-                ? 'Creates a folder nested under the currently selected folder.'
-                : 'Creates a new top-level folder, visible in the tree.'}
-            </p>
-            <input
-              type="text"
-              autoFocus
-              value={newFolderName}
-              onChange={(e) => setNewFolderName(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') handleCreateFolder(); }}
-              placeholder="Folder name"
-              className="w-full border rounded-lg px-3 py-2 mb-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            {error && <div className="text-red-600 text-sm mb-2">{error}</div>}
-            <div className="flex justify-end space-x-2">
+        <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+              <h3 className="text-base font-semibold text-gray-900">
+                {selectedSpace ? `New subfolder under "${selectedSpace.name}"` : 'New root folder'}
+              </h3>
               <button
                 onClick={() => { setShowNewFolder(false); setNewFolderName(''); }}
-                className="px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-100"
+                className="text-gray-400 hover:bg-gray-100 rounded-md p-1.5 transition-colors"
+                aria-label="Close"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="px-6 py-5 space-y-4">
+              <p className="text-sm text-gray-500">
+                {selectedSpace
+                  ? 'Creates a folder nested under the currently selected folder.'
+                  : 'Creates a new top-level folder, visible in the tree.'}
+              </p>
+              <input
+                type="text"
+                autoFocus
+                value={newFolderName}
+                onChange={(e) => setNewFolderName(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleCreateFolder(); }}
+                placeholder="Folder name"
+                className="w-full border border-gray-300 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+              />
+              {error && <div className="text-red-600 text-sm">{error}</div>}
+            </div>
+            <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3">
+              <button
+                onClick={() => { setShowNewFolder(false); setNewFolderName(''); }}
+                className="inline-flex items-center gap-2 bg-white text-gray-700 border border-gray-300 px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-gray-50 transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleCreateFolder}
                 disabled={creatingFolder || !newFolderName.trim()}
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors disabled:opacity-50"
               >
                 {creatingFolder ? 'Creating...' : 'Create'}
               </button>

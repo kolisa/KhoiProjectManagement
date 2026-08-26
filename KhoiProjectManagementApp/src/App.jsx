@@ -1,6 +1,6 @@
 // src/App.js - Complete Project Management Frontend
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Calendar, Users, CheckCircle, Clock, AlertCircle, Trash2, Edit3, User, Bell, FileText, Tag, Download, Upload, Flag, Shield, UserCheck, Eye, LogOut, Menu, X, Mail, Lock, ChevronDown } from 'lucide-react';
+import { Plus, Search, Calendar, Users, CheckCircle, Clock, AlertCircle, Trash2, Edit3, User, Bell, FileText, Tag, Download, Upload, Flag, Shield, UserCheck, Eye, LogOut, Menu, X, Mail, Lock, ChevronDown, LayoutDashboard, Folder, CheckSquare, BookOpen, Archive, Lightbulb, DollarSign, BarChart2, Settings as SettingsIcon } from 'lucide-react';
 import ApiService, { NetworkError } from './services/ApiService';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { hasPermission } from './utils/permissions';
@@ -18,34 +18,85 @@ import ResetPasswordForm from './components/Auth/ResetPasswordForm';
 import OfflineBanner from './components/Common/OfflineBanner';
 import khoiLogo from './assets/khoi-logo.png';
 
+// Grouped sidebar/drawer nav config - single source of truth for both the desktop sidebar and the
+// mobile drawer (previously two separate flat arrays of tab names duplicated between them).
+const NAV_GROUPS = [
+    {
+        label: 'Overview',
+        items: [
+            { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+            { key: 'reminders', label: 'Reminders', icon: Bell },
+        ],
+    },
+    {
+        label: 'Work',
+        items: [
+            { key: 'projects', label: 'Projects', icon: Folder },
+            { key: 'tasks', label: 'Tasks', icon: CheckSquare },
+            { key: 'team', label: 'Team', icon: Users },
+        ],
+    },
+    {
+        label: 'Knowledge',
+        items: [
+            { key: 'vault', label: 'Vault', icon: Lock },
+            { key: 'wiki', label: 'Wiki', icon: BookOpen },
+            { key: 'library', label: 'Library', icon: Archive },
+        ],
+    },
+    {
+        label: 'Business',
+        items: [
+            { key: 'ideas', label: 'Ideas', icon: Lightbulb },
+            { key: 'finance', label: 'Finance', icon: DollarSign },
+            { key: 'reports', label: 'Reports', icon: BarChart2 },
+        ],
+    },
+];
+const SETTINGS_ITEM = { key: 'settings', label: 'Settings', icon: SettingsIcon };
+
 // Utility Components
+const STATUS_DOT_COLORS = {
+    'todo': 'bg-gray-400',
+    'in-progress': 'bg-blue-500',
+    'completed': 'bg-green-500',
+};
+
 const StatusBadge = ({ status }) => {
     const statusConfig = {
-        'todo': { color: 'bg-gray-100 text-gray-800', icon: Clock },
-        'in-progress': { color: 'bg-blue-100 text-blue-800', icon: AlertCircle },
-        'completed': { color: 'bg-green-100 text-green-800', icon: CheckCircle }
+        'todo': { color: 'bg-gray-50 text-gray-700', icon: Clock },
+        'in-progress': { color: 'bg-blue-50 text-blue-700', icon: AlertCircle },
+        'completed': { color: 'bg-green-50 text-green-700', icon: CheckCircle }
     };
 
     const config = statusConfig[status] || statusConfig['todo'];
     const Icon = config.icon;
 
     return (
-        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${config.color}`}>
-            <Icon className="w-3 h-3 mr-1" />
+        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${config.color}`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${STATUS_DOT_COLORS[status] || STATUS_DOT_COLORS['todo']}`} />
+            <Icon className="w-3 h-3" />
             {status.replace('-', ' ')}
         </span>
     );
 };
 
+const PRIORITY_DOT_COLORS = {
+    'low': 'bg-gray-400',
+    'medium': 'bg-amber-500',
+    'high': 'bg-red-500',
+};
+
 const PriorityBadge = ({ priority }) => {
     const priorityColors = {
-        'low': 'bg-gray-100 text-gray-800',
-        'medium': 'bg-yellow-100 text-yellow-800',
-        'high': 'bg-red-100 text-red-800'
+        'low': 'bg-gray-50 text-gray-700',
+        'medium': 'bg-amber-50 text-amber-700',
+        'high': 'bg-red-50 text-red-700'
     };
 
     return (
-        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${priorityColors[priority]}`}>
+        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${priorityColors[priority]}`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${PRIORITY_DOT_COLORS[priority]}`} />
             {priority}
         </span>
     );
@@ -53,9 +104,9 @@ const PriorityBadge = ({ priority }) => {
 
 const RoleBadge = ({ role }) => {
     const roleColors = {
-        'admin': 'bg-purple-100 text-purple-800',
-        'manager': 'bg-blue-100 text-blue-800',
-        'member': 'bg-green-100 text-green-800'
+        'admin': 'bg-purple-50 text-purple-700',
+        'manager': 'bg-blue-50 text-blue-700',
+        'member': 'bg-green-50 text-green-700'
     };
 
     const roleIcons = {
@@ -67,7 +118,7 @@ const RoleBadge = ({ role }) => {
     const Icon = roleIcons[role];
 
     return (
-        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${roleColors[role]}`}>
+        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${roleColors[role]}`}>
             <Icon className="w-3 h-3 mr-1" />
             {role}
         </span>
@@ -78,9 +129,9 @@ const TagsList = ({ tags }) => {
     if (!tags || tags.length === 0) return null;
 
     return (
-        <div className="flex flex-wrap gap-1">
+        <div className="flex flex-wrap gap-1.5">
             {tags.map((tag, index) => (
-                <span key={index} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                <span key={index} className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-gray-100 text-gray-700">
                     <Tag className="w-3 h-3 mr-1" />
                     {tag}
                 </span>
@@ -141,21 +192,57 @@ const LoginForm = ({ onForgotPassword }) => {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 via-blue-50 to-gray-100 py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
-            <div className="absolute -top-24 -left-24 h-96 w-96 rounded-full bg-blue-200/40 blur-3xl" />
-            <div className="absolute -bottom-24 -right-24 h-96 w-96 rounded-full bg-blue-300/30 blur-3xl" />
+        <div className="min-h-screen flex">
+            {/* Brand panel */}
+            <div className="hidden lg:flex lg:w-[44%] relative overflow-hidden flex-col justify-between bg-gradient-to-br from-blue-900 via-blue-700 to-blue-600 px-14 py-14">
+                <div className="absolute -top-32 -right-32 h-[420px] w-[420px] rounded-full bg-blue-300/20 blur-3xl" />
+                <div className="absolute -bottom-40 -left-24 h-[480px] w-[480px] rounded-full bg-blue-400/20 blur-3xl" />
 
-            <div className="max-w-md w-full space-y-8 relative">
-                <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-100 px-8 py-10">
-                    <div className="flex flex-col items-center">
-                        <img src={khoiLogo} alt="Khoi" className="h-12 w-auto mb-4" />
-                        <h2 className="text-2xl font-bold text-gray-900 text-center">
-                            Sign in to Khoi Pro
-                        </h2>
-                        <p className="mt-2 text-sm text-gray-600 text-center">
-                            Enter your credentials to access the project management system
-                        </p>
+                <div className="relative flex items-center gap-3">
+                    <img src={khoiLogo} alt="Khoi" className="h-8 w-auto brightness-0 invert" />
+                    <span className="text-white text-lg font-bold tracking-tight">Khoi Pro</span>
+                </div>
+
+                <div className="relative max-w-md">
+                    <h1 className="text-white text-3xl font-extrabold leading-tight tracking-tight mb-4">
+                        Where the whole company keeps its work in one place.
+                    </h1>
+                    <p className="text-blue-100/80 text-base leading-relaxed">
+                        Projects, tasks, wiki, vault and finance &mdash; unified under one roof.
+                    </p>
+
+                    <div className="flex flex-col gap-3.5 mt-9">
+                        {[
+                            'Space-based permissions, inherited automatically',
+                            'A secrets vault with a full audit trail',
+                            'Timesheets, invoicing and reminders built in',
+                        ].map((feature) => (
+                            <div key={feature} className="flex items-center gap-3">
+                                <div className="h-6 w-6 rounded-md bg-white/15 flex items-center justify-center flex-shrink-0">
+                                    <CheckCircle className="h-3.5 w-3.5 text-white" />
+                                </div>
+                                <span className="text-blue-50/90 text-sm">{feature}</span>
+                            </div>
+                        ))}
                     </div>
+                </div>
+
+                <p className="relative text-blue-200/50 text-xs">&copy; 2026 Khoi. All rights reserved.</p>
+            </div>
+
+            {/* Form panel */}
+            <div className="flex-1 flex items-center justify-center bg-gray-50 px-4 sm:px-6 lg:px-8 py-12">
+                <div className="max-w-sm w-full">
+                    <div className="lg:hidden flex flex-col items-center mb-8">
+                        <img src={khoiLogo} alt="Khoi" className="h-10 w-auto mb-3" />
+                    </div>
+
+                    <h2 className="text-2xl font-bold text-gray-900 tracking-tight">
+                        Sign in to Khoi Pro
+                    </h2>
+                    <p className="mt-1.5 text-sm text-gray-500">
+                        Enter your credentials to access the project management system
+                    </p>
 
                     <form className="mt-8 space-y-5" onSubmit={handleSubmit}>
                         <div className="relative">
@@ -185,7 +272,7 @@ const LoginForm = ({ onForgotPassword }) => {
                             <button
                                 type="button"
                                 onClick={onForgotPassword}
-                                className="text-sm font-medium text-blue-600 hover:text-blue-700"
+                                className="text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors"
                             >
                                 Forgot password?
                             </button>
@@ -200,7 +287,7 @@ const LoginForm = ({ onForgotPassword }) => {
                         <button
                             type="submit"
                             disabled={loading}
-                            className="w-full flex justify-center py-2.5 px-4 rounded-lg text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 transition-colors shadow-sm"
+                            className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 transition-colors shadow-sm"
                         >
                             {loading ? 'Signing in...' : 'Sign in'}
                         </button>
@@ -685,18 +772,77 @@ const ProjectManagementSystem = () => {
         }
     };
 
+    const isTabActive = (key) => activeTab === key;
+
+    const navButtonClass = (key) =>
+        `w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${isTabActive(key)
+            ? 'bg-blue-50 text-blue-700 font-semibold'
+            : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+        }`;
+
+    const renderNavGroups = (onNavigate) => (
+        <>
+            {NAV_GROUPS.map((group) => (
+                <div key={group.label} className="mb-1">
+                    <p className="px-5 pt-4 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-gray-400">
+                        {group.label}
+                    </p>
+                    <div className="px-3 space-y-0.5">
+                        {group.items.map(({ key, label, icon: Icon }) => (
+                            <button key={key} onClick={() => onNavigate(key)} className={navButtonClass(key)}>
+                                <Icon className="h-[18px] w-[18px] flex-shrink-0" />
+                                {label}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            ))}
+        </>
+    );
+
     return (
-        <div className="min-h-screen bg-gray-50">
-            {/* Header */}
-            <header className="bg-white/95 backdrop-blur-sm shadow-sm border-b border-gray-200 sticky top-0 z-40">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex justify-between items-center py-3.5">
-                        <div className="flex items-center">
-                            <img src={khoiLogo} alt="Khoi" className="h-8 w-auto mr-3" />
-                            <h1 className="text-xl font-bold text-gray-900 tracking-tight">Khoi Pro</h1>
+        <div className="min-h-screen flex bg-gray-50">
+            {/* Desktop sidebar */}
+            <aside className="hidden md:flex w-64 flex-shrink-0 flex-col bg-white border-r border-gray-200 h-screen sticky top-0 overflow-y-auto">
+                <div className="flex items-center gap-2 h-16 px-5 border-b border-gray-100 flex-shrink-0">
+                    <img src={khoiLogo} alt="Khoi" className="h-7 w-auto" />
+                    <span className="text-base font-bold text-gray-900 tracking-tight">Khoi Pro</span>
+                </div>
+
+                <nav className="flex-1 py-3">
+                    {renderNavGroups(setActiveTab)}
+                </nav>
+
+                <div className="border-t border-gray-100 py-3 flex-shrink-0">
+                    <div className="px-3">
+                        <button onClick={() => setActiveTab(SETTINGS_ITEM.key)} className={navButtonClass(SETTINGS_ITEM.key)}>
+                            <SettingsIcon className="h-[18px] w-[18px] flex-shrink-0" />
+                            {SETTINGS_ITEM.label}
+                        </button>
+                    </div>
+                    <div className="flex items-center gap-2.5 px-5 pt-3">
+                        <div className="h-8 w-8 bg-blue-600 rounded-full flex items-center justify-center text-white text-xs font-semibold flex-shrink-0">
+                            {(user?.name || '?').split(' ').filter(Boolean).map(n => n[0]).slice(0, 2).join('').toUpperCase()}
+                        </div>
+                        <div className="min-w-0">
+                            <p className="text-sm font-medium text-gray-900 truncate leading-tight">{user?.name}</p>
+                            <p className="text-xs text-gray-400 truncate capitalize">{user?.role}</p>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            {/* Main column */}
+            <div className="flex-1 flex flex-col min-w-0">
+                {/* Top bar */}
+                <header className="bg-white border-b border-gray-200 sticky top-0 z-40 flex-shrink-0">
+                    <div className="flex justify-between items-center h-16 px-4 sm:px-6">
+                        <div className="flex items-center md:hidden">
+                            <img src={khoiLogo} alt="Khoi" className="h-7 w-auto mr-2" />
+                            <span className="text-lg font-bold text-gray-900 tracking-tight">Khoi Pro</span>
                         </div>
 
-                        <div className="hidden md:flex items-center space-x-3">
+                        <div className="hidden md:block flex-1 max-w-md">
                             <div className="relative">
                                 <Search className="h-4 w-4 absolute left-3.5 top-1/2 transform -translate-y-1/2 text-gray-400" />
                                 <input
@@ -704,10 +850,12 @@ const ProjectManagementSystem = () => {
                                     placeholder="Search projects, tasks..."
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
-                                    className="w-64 pl-10 pr-4 py-2 bg-gray-50 border border-transparent rounded-lg text-sm placeholder-gray-400 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                                    className="w-full max-w-xs pl-10 pr-4 py-2 bg-gray-50 border border-transparent rounded-lg text-sm placeholder-gray-400 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
                                 />
                             </div>
+                        </div>
 
+                        <div className="hidden md:flex items-center space-x-3">
                             {/* Notifications */}
                             <div className="relative">
                                 <button
@@ -796,69 +944,51 @@ const ProjectManagementSystem = () => {
                             </button>
                         </div>
                     </div>
-                </div>
-            </header>
+                </header>
 
-            {/* Mobile Navigation */}
-            {mobileMenuOpen && (
-                <div className="md:hidden bg-white border-b">
-                    <div className="px-4 py-2 space-y-1">
-                        {['dashboard', 'reminders', 'projects', 'tasks', 'team', 'vault', 'wiki', 'library', 'ideas', 'finance', 'reports', 'settings'].map((tab) => (
-                            <button
-                                key={tab}
-                                onClick={() => {
-                                    setActiveTab(tab);
-                                    setMobileMenuOpen(false);
-                                }}
-                                className={`block w-full text-left px-3 py-2 rounded-md text-sm font-medium capitalize ${activeTab === tab
-                                        ? 'bg-blue-100 text-blue-700'
-                                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                                    }`}
-                            >
-                                {tab}
-                            </button>
-                        ))}
-                        <button
-                            onClick={logout}
-                            className="block w-full text-left px-3 py-2 rounded-md text-sm font-medium text-red-600 hover:text-red-900 hover:bg-red-50"
-                        >
-                            Logout
-                        </button>
+                {/* Mobile Navigation Drawer */}
+                {mobileMenuOpen && (
+                    <div className="md:hidden fixed inset-0 z-40 flex">
+                        <div
+                            className="fixed inset-0 bg-black/40"
+                            onClick={() => setMobileMenuOpen(false)}
+                        />
+                        <div className="relative w-72 max-w-[80%] h-full bg-white shadow-xl overflow-y-auto animate-slide-up">
+                            <div className="flex items-center gap-2 h-16 px-5 border-b border-gray-100">
+                                <img src={khoiLogo} alt="Khoi" className="h-7 w-auto" />
+                                <span className="text-base font-bold text-gray-900 tracking-tight">Khoi Pro</span>
+                            </div>
+                            <nav className="py-3">
+                                {renderNavGroups((key) => { setActiveTab(key); setMobileMenuOpen(false); })}
+                                <div className="border-t border-gray-100 mt-2 pt-3 px-3 space-y-0.5">
+                                    <button
+                                        onClick={() => { setActiveTab(SETTINGS_ITEM.key); setMobileMenuOpen(false); }}
+                                        className={navButtonClass(SETTINGS_ITEM.key)}
+                                    >
+                                        <SettingsIcon className="h-[18px] w-[18px] flex-shrink-0" />
+                                        {SETTINGS_ITEM.label}
+                                    </button>
+                                    <button
+                                        onClick={logout}
+                                        className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
+                                    >
+                                        <LogOut className="h-[18px] w-[18px] flex-shrink-0" />
+                                        Logout
+                                    </button>
+                                </div>
+                            </nav>
+                        </div>
                     </div>
-                </div>
-            )}
+                )}
 
-            {/* Desktop Navigation */}
-            <nav className="bg-white border-b border-gray-200 hidden md:block sticky top-[57px] z-30">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 overflow-x-auto">
-                    <div className="flex space-x-1">
-                        {['dashboard', 'reminders', 'projects', 'tasks', 'team', 'vault', 'wiki', 'library', 'ideas', 'finance', 'reports', 'settings'].map((tab) => (
-                            <button
-                                key={tab}
-                                onClick={() => setActiveTab(tab)}
-                                className={`relative py-3.5 px-3 font-medium text-sm capitalize whitespace-nowrap transition-colors ${activeTab === tab
-                                        ? 'text-blue-600'
-                                        : 'text-gray-500 hover:text-gray-800'
-                                    }`}
-                            >
-                                {tab}
-                                {activeTab === tab && (
-                                    <span className="absolute left-2 right-2 -bottom-px h-0.5 bg-blue-600 rounded-full" />
-                                )}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-            </nav>
-
-            {/* Main Content */}
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                {/* Main Content */}
+                <main className="flex-1 overflow-y-auto p-6 sm:p-8">
                 {/* Dashboard Tab */}
                 {activeTab === 'dashboard' && (
                     <div className="space-y-6">
                         <div>
-                            <h2 className="text-3xl font-bold text-gray-900">Dashboard</h2>
-                            <p className="text-gray-600">Overview of all projects and tasks</p>
+                            <h2 className="text-3xl font-bold text-gray-900 tracking-tight">Dashboard</h2>
+                            <p className="text-gray-500">Overview of all projects and tasks</p>
                         </div>
 
                         {loading.dashboard && <LoadingSpinner text="Loading dashboard..." />}
@@ -875,9 +1005,11 @@ const ProjectManagementSystem = () => {
                             // the full-width sections below) - a deliberate scope boundary, not an oversight.
                             const STAT_CARDS = {
                                 total_projects: (
-                                    <div className="bg-white p-6 rounded-lg shadow">
+                                    <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm">
                                         <div className="flex items-center">
-                                            <CheckCircle className="h-8 w-8 text-blue-600 mr-3" />
+                                            <div className="bg-blue-50 rounded-lg p-3 mr-3 flex-shrink-0">
+                                                <CheckCircle className="h-6 w-6 text-blue-600" />
+                                            </div>
                                             <div>
                                                 <p className="text-sm font-medium text-gray-500">Total Projects</p>
                                                 <p className="text-2xl font-bold text-gray-900">{dashboardStats.totalProjects}</p>
@@ -886,9 +1018,11 @@ const ProjectManagementSystem = () => {
                                     </div>
                                 ),
                                 active_projects: (
-                                    <div className="bg-white p-6 rounded-lg shadow">
+                                    <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm">
                                         <div className="flex items-center">
-                                            <Clock className="h-8 w-8 text-green-600 mr-3" />
+                                            <div className="bg-green-50 rounded-lg p-3 mr-3 flex-shrink-0">
+                                                <Clock className="h-6 w-6 text-green-600" />
+                                            </div>
                                             <div>
                                                 <p className="text-sm font-medium text-gray-500">Active Projects</p>
                                                 <p className="text-2xl font-bold text-gray-900">{dashboardStats.activeProjects}</p>
@@ -897,9 +1031,11 @@ const ProjectManagementSystem = () => {
                                     </div>
                                 ),
                                 total_tasks: (
-                                    <div className="bg-white p-6 rounded-lg shadow">
+                                    <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm">
                                         <div className="flex items-center">
-                                            <AlertCircle className="h-8 w-8 text-yellow-600 mr-3" />
+                                            <div className="bg-amber-50 rounded-lg p-3 mr-3 flex-shrink-0">
+                                                <AlertCircle className="h-6 w-6 text-amber-600" />
+                                            </div>
                                             <div>
                                                 <p className="text-sm font-medium text-gray-500">Total Tasks</p>
                                                 <p className="text-2xl font-bold text-gray-900">{dashboardStats.totalTasks}</p>
@@ -908,20 +1044,24 @@ const ProjectManagementSystem = () => {
                                     </div>
                                 ),
                                 overdue_tasks: (
-                                    <div className="bg-white p-6 rounded-lg shadow">
+                                    <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm">
                                         <div className="flex items-center">
-                                            <Flag className="h-8 w-8 text-red-600 mr-3" />
+                                            <div className="bg-red-50 rounded-lg p-3 mr-3 flex-shrink-0">
+                                                <Flag className="h-6 w-6 text-red-600" />
+                                            </div>
                                             <div>
                                                 <p className="text-sm font-medium text-gray-500">Overdue Tasks</p>
-                                                <p className="text-2xl font-bold text-red-900">{dashboardStats.overdueTasks}</p>
+                                                <p className="text-2xl font-bold text-gray-900">{dashboardStats.overdueTasks}</p>
                                             </div>
                                         </div>
                                     </div>
                                 ),
                                 completion_rate: (
-                                    <div className="bg-white p-6 rounded-lg shadow">
+                                    <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm">
                                         <div className="flex items-center">
-                                            <Users className="h-8 w-8 text-purple-600 mr-3" />
+                                            <div className="bg-purple-50 rounded-lg p-3 mr-3 flex-shrink-0">
+                                                <Users className="h-6 w-6 text-purple-600" />
+                                            </div>
                                             <div>
                                                 <p className="text-sm font-medium text-gray-500">Completion Rate</p>
                                                 <p className="text-2xl font-bold text-gray-900">{Math.round(dashboardStats.completionRate)}%</p>
@@ -964,11 +1104,11 @@ const ProjectManagementSystem = () => {
                                     )}
 
                                     {sectionOrder.filter((k) => k === 'recent_tasks' && isVisible(k)).map(() => (
-                                        <div key="recent_tasks" className="bg-white rounded-lg shadow">
-                                            <div className="px-6 py-4 border-b border-gray-200">
-                                                <h3 className="text-lg font-medium text-gray-900">Recent Tasks</h3>
+                                        <div key="recent_tasks" className="bg-white rounded-xl border border-gray-100 shadow-sm">
+                                            <div className="px-6 py-4 border-b border-gray-100">
+                                                <h3 className="text-base font-semibold text-gray-900">Recent Tasks</h3>
                                             </div>
-                                            <div className="divide-y divide-gray-200">
+                                            <div className="divide-y divide-gray-100">
                                                 {tasks.length === 0 ? (
                                                     <div className="px-6 py-8 text-center text-gray-500">
                                                         No tasks found
@@ -1001,11 +1141,11 @@ const ProjectManagementSystem = () => {
                                     ))}
 
                                     {sectionOrder.filter((k) => k === 'recent_mentions' && isVisible(k)).map(() => (
-                                        <div key="recent_mentions" className="bg-white rounded-lg shadow">
-                                            <div className="px-6 py-4 border-b border-gray-200">
-                                                <h3 className="text-lg font-medium text-gray-900">Recent Mentions</h3>
+                                        <div key="recent_mentions" className="bg-white rounded-xl border border-gray-100 shadow-sm">
+                                            <div className="px-6 py-4 border-b border-gray-100">
+                                                <h3 className="text-base font-semibold text-gray-900">Recent Mentions</h3>
                                             </div>
-                                            <div className="divide-y divide-gray-200">
+                                            <div className="divide-y divide-gray-100">
                                                 {recentMentions.length === 0 ? (
                                                     <div className="px-6 py-8 text-center text-gray-500">No mentions yet</div>
                                                 ) : (
@@ -1020,11 +1160,11 @@ const ProjectManagementSystem = () => {
                                     ))}
 
                                     {sectionOrder.filter((k) => k === 'pending_timesheets' && isVisible(k)).map(() => (
-                                        <div key="pending_timesheets" className="bg-white rounded-lg shadow">
-                                            <div className="px-6 py-4 border-b border-gray-200">
-                                                <h3 className="text-lg font-medium text-gray-900">Pending Timesheets</h3>
+                                        <div key="pending_timesheets" className="bg-white rounded-xl border border-gray-100 shadow-sm">
+                                            <div className="px-6 py-4 border-b border-gray-100">
+                                                <h3 className="text-base font-semibold text-gray-900">Pending Timesheets</h3>
                                             </div>
-                                            <div className="divide-y divide-gray-200">
+                                            <div className="divide-y divide-gray-100">
                                                 {pendingTimesheets.length === 0 ? (
                                                     <div className="px-6 py-8 text-center text-gray-500">Nothing pending</div>
                                                 ) : (
@@ -1049,8 +1189,8 @@ const ProjectManagementSystem = () => {
                     <div className="space-y-6">
                         <div className="flex justify-between items-center">
                             <div>
-                                <h2 className="text-3xl font-bold text-gray-900">Projects</h2>
-                                <p className="text-gray-600">Manage your projects</p>
+                                <h2 className="text-3xl font-bold text-gray-900 tracking-tight">Projects</h2>
+                                <p className="text-gray-500">Manage your projects</p>
                             </div>
                             {hasPermission(user?.permissions, 'projects.create') && (
                                 <button
@@ -1059,9 +1199,9 @@ const ProjectManagementSystem = () => {
                                         setNewProject(emptyProjectForm);
                                         setShowAddProject(true);
                                     }}
-                                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center"
+                                    className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors"
                                 >
-                                    <Plus className="h-5 w-5 mr-2" />
+                                    <Plus className="h-5 w-5" />
                                     New Project
                                 </button>
                             )}
@@ -1081,7 +1221,7 @@ const ProjectManagementSystem = () => {
                                     </div>
                                 ) : (
                                     projects.map((project) => (
-                                        <div key={project.id} className="bg-white rounded-lg shadow p-6">
+                                        <div key={project.id} className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
                                             <div className="flex justify-between items-start mb-4">
                                                 <h3 className="text-lg font-semibold text-gray-900">{project.name}</h3>
                                                 <div className="flex space-x-2">
@@ -1103,8 +1243,8 @@ const ProjectManagementSystem = () => {
                                                     )}
                                                 </div>
                                             </div>
-                                            <p className="text-gray-600 mb-4">{project.description}</p>
-                                            <div className="space-y-2">
+                                            <p className="text-gray-500 mb-4">{project.description}</p>
+                                            <div className="space-y-3">
                                                 <div className="flex justify-between items-center">
                                                     <PriorityBadge priority={project.priority} />
                                                     <span className="text-sm text-gray-500">
@@ -1118,10 +1258,23 @@ const ProjectManagementSystem = () => {
                                                 {project.tags && project.tags.length > 0 && (
                                                     <TagsList tags={project.tags} />
                                                 )}
-                                                {project.taskCount !== undefined && (
-                                                    <div className="flex items-center text-sm text-gray-500">
-                                                        <FileText className="h-4 w-4 mr-1" />
-                                                        {project.completedTaskCount || 0}/{project.taskCount || 0} tasks completed
+                                                {project.taskCount !== undefined && project.taskCount > 0 && (
+                                                    <div>
+                                                        <div className="flex items-center justify-between text-sm text-gray-500 mb-1.5">
+                                                            <span className="flex items-center">
+                                                                <FileText className="h-4 w-4 mr-1" />
+                                                                {project.completedTaskCount || 0}/{project.taskCount} tasks completed
+                                                            </span>
+                                                            <span className="font-medium text-gray-700">
+                                                                {Math.round(((project.completedTaskCount || 0) / project.taskCount) * 100)}%
+                                                            </span>
+                                                        </div>
+                                                        <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                                                            <div
+                                                                className="h-full bg-blue-600 rounded-full"
+                                                                style={{ width: `${Math.round(((project.completedTaskCount || 0) / project.taskCount) * 100)}%` }}
+                                                            />
+                                                        </div>
                                                     </div>
                                                 )}
                                             </div>
@@ -1138,14 +1291,14 @@ const ProjectManagementSystem = () => {
                     <div className="space-y-6">
                         <div className="flex justify-between items-center">
                             <div>
-                                <h2 className="text-3xl font-bold text-gray-900">Tasks</h2>
-                                <p className="text-gray-600">Manage all tasks</p>
+                                <h2 className="text-3xl font-bold text-gray-900 tracking-tight">Tasks</h2>
+                                <p className="text-gray-500">Manage all tasks</p>
                             </div>
                             <button
                                 onClick={() => setShowAddTask(true)}
-                                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center"
+                                className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors"
                             >
-                                <Plus className="h-5 w-5 mr-2" />
+                                <Plus className="h-5 w-5" />
                                 New Task
                             </button>
                         </div>
@@ -1154,7 +1307,7 @@ const ProjectManagementSystem = () => {
                             <select
                                 value={filterStatus}
                                 onChange={(e) => setFilterStatus(e.target.value)}
-                                className="border border-gray-300 rounded-lg px-3 py-2"
+                                className="border border-gray-300 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
                             >
                                 <option value="all">All Status</option>
                                 <option value="todo">To Do</option>
@@ -1171,21 +1324,21 @@ const ProjectManagementSystem = () => {
                         )}
 
                         {!loading.tasks && !errors.tasks && (
-                            <div className="bg-white rounded-lg shadow overflow-hidden">
+                            <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
                                 <div className="overflow-x-auto">
-                                    <table className="min-w-full divide-y divide-gray-200">
-                                        <thead className="bg-gray-50">
+                                    <table className="min-w-full divide-y divide-gray-100">
+                                        <thead className="bg-gray-50/80">
                                             <tr>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Task</th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Project</th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Assigned To</th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Priority</th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Due Date</th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                                <th className="px-6 py-3 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Task</th>
+                                                <th className="px-6 py-3 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Project</th>
+                                                <th className="px-6 py-3 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Assigned To</th>
+                                                <th className="px-6 py-3 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Status</th>
+                                                <th className="px-6 py-3 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Priority</th>
+                                                <th className="px-6 py-3 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Due Date</th>
+                                                <th className="px-6 py-3 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
                                             </tr>
                                         </thead>
-                                        <tbody className="bg-white divide-y divide-gray-200">
+                                        <tbody className="bg-white divide-y divide-gray-100">
                                             {tasks.length === 0 ? (
                                                 <tr>
                                                     <td colSpan="7" className="px-6 py-8 text-center text-gray-500">
@@ -1194,7 +1347,7 @@ const ProjectManagementSystem = () => {
                                                 </tr>
                                             ) : (
                                                 tasks.map((task) => (
-                                                    <tr key={task.id} className={task.isOverdue ? 'bg-red-50' : ''}>
+                                                    <tr key={task.id} className={`hover:bg-gray-50/60 transition-colors ${task.isOverdue ? 'bg-red-50/60' : ''}`}>
                                                         <td className="px-6 py-4">
                                                             <div className="flex items-center">
                                                                 <div className="text-sm font-medium text-gray-900 flex items-center">
@@ -1219,7 +1372,7 @@ const ProjectManagementSystem = () => {
                                                             <select
                                                                 value={task.status}
                                                                 onChange={(e) => updateTaskStatus(task.id, e.target.value)}
-                                                                className="text-sm border border-gray-300 rounded px-2 py-1"
+                                                                className="text-sm border border-gray-300 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                                             >
                                                                 <option value="todo">To Do</option>
                                                                 <option value="in-progress">In Progress</option>
@@ -1263,15 +1416,15 @@ const ProjectManagementSystem = () => {
                     <div className="space-y-6">
                         <div className="flex justify-between items-center">
                             <div>
-                                <h2 className="text-3xl font-bold text-gray-900">Team</h2>
-                                <p className="text-gray-600">Manage team members</p>
+                                <h2 className="text-3xl font-bold text-gray-900 tracking-tight">Team</h2>
+                                <p className="text-gray-500">Manage team members</p>
                             </div>
                             {hasPermission(user?.permissions, 'users.create') && (
                                 <button
                                     onClick={() => setShowAddMember(true)}
-                                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center"
+                                    className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors"
                                 >
-                                    <Plus className="h-5 w-5 mr-2" />
+                                    <Plus className="h-5 w-5" />
                                     Add Member
                                 </button>
                             )}
@@ -1291,23 +1444,32 @@ const ProjectManagementSystem = () => {
                                     </div>
                                 ) : (
                                     teamMembers.map((member) => (
-                                        <div key={member.id} className="bg-white rounded-lg shadow p-6">
+                                        <div key={member.id} className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
                                             <div className="flex items-center mb-4">
-                                                <div className="h-12 w-12 bg-blue-100 rounded-full flex items-center justify-center">
-                                                    <User className="h-6 w-6 text-blue-600" />
+                                                <div className="h-12 w-12 bg-blue-600 rounded-full flex items-center justify-center text-white text-sm font-semibold flex-shrink-0">
+                                                    {(member.name || '?').split(' ').filter(Boolean).map(n => n[0]).slice(0, 2).join('').toUpperCase()}
                                                 </div>
                                                 <div className="ml-4">
                                                     <h3 className="text-lg font-semibold text-gray-900">{member.name}</h3>
-                                                    <p className="text-gray-600">{member.position}</p>
+                                                    <p className="text-gray-500">{member.position}</p>
                                                 </div>
                                             </div>
-                                            <div className="space-y-2">
+                                            <div className="space-y-3">
                                                 <RoleBadge role={member.role} />
                                                 <p className="text-sm text-gray-500">{member.email}</p>
-                                                <div className="text-sm text-gray-600">
-                                                    <p>Tasks assigned: {tasks.filter(t => t.assignedToId === member.id).length}</p>
-                                                    <p>Tasks completed: {tasks.filter(t => t.assignedToId === member.id && t.status === 'completed').length}</p>
-                                                    <p className="text-red-600">Overdue tasks: {tasks.filter(t => t.assignedToId === member.id && t.isOverdue).length}</p>
+                                                <div className="grid grid-cols-3 gap-2 pt-3 border-t border-gray-100 text-center">
+                                                    <div>
+                                                        <p className="text-lg font-bold text-gray-900">{tasks.filter(t => t.assignedToId === member.id).length}</p>
+                                                        <p className="text-[11px] text-gray-400 uppercase tracking-wide">Assigned</p>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-lg font-bold text-green-600">{tasks.filter(t => t.assignedToId === member.id && t.status === 'completed').length}</p>
+                                                        <p className="text-[11px] text-gray-400 uppercase tracking-wide">Completed</p>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-lg font-bold text-red-600">{tasks.filter(t => t.assignedToId === member.id && t.isOverdue).length}</p>
+                                                        <p className="text-[11px] text-gray-400 uppercase tracking-wide">Overdue</p>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -1360,81 +1522,87 @@ const ProjectManagementSystem = () => {
                 {activeTab === 'reports' && (
                     <div className="space-y-6">
                         <div>
-                            <h2 className="text-3xl font-bold text-gray-900">Reports</h2>
-                            <p className="text-gray-600">Generate and download reports</p>
+                            <h2 className="text-3xl font-bold text-gray-900 tracking-tight">Reports</h2>
+                            <p className="text-gray-500">Generate and download reports</p>
                         </div>
 
                         {hasPermission(user?.permissions, 'reports.view') ? (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                <div className="bg-white rounded-lg shadow p-6">
+                                <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
                                     <div className="flex items-center mb-4">
-                                        <FileText className="h-8 w-8 text-blue-600 mr-3" />
+                                        <div className="bg-blue-50 rounded-lg p-3 mr-3 flex-shrink-0">
+                                            <FileText className="h-6 w-6 text-blue-600" />
+                                        </div>
                                         <h3 className="text-lg font-semibold text-gray-900">Project Summary</h3>
                                     </div>
-                                    <p className="text-gray-600 mb-4">Overview of all projects, their status, and completion rates.</p>
+                                    <p className="text-gray-500 mb-4">Overview of all projects, their status, and completion rates.</p>
                                     <button
                                         onClick={() => generateReport('project-summary')}
                                         disabled={loading.reports}
-                                        className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 flex items-center justify-center disabled:opacity-50"
+                                        className="w-full inline-flex items-center justify-center gap-2 bg-blue-600 text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors disabled:opacity-50"
                                     >
                                         {loading.reports ? (
                                             <>
-                                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                                                 Generating...
                                             </>
                                         ) : (
                                             <>
-                                                <Download className="h-4 w-4 mr-2" />
+                                                <Download className="h-4 w-4" />
                                                 Generate Report
                                             </>
                                         )}
                                     </button>
                                 </div>
 
-                                <div className="bg-white rounded-lg shadow p-6">
+                                <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
                                     <div className="flex items-center mb-4">
-                                        <Users className="h-8 w-8 text-green-600 mr-3" />
+                                        <div className="bg-green-50 rounded-lg p-3 mr-3 flex-shrink-0">
+                                            <Users className="h-6 w-6 text-green-600" />
+                                        </div>
                                         <h3 className="text-lg font-semibold text-gray-900">Team Performance</h3>
                                     </div>
-                                    <p className="text-gray-600 mb-4">Individual team member performance and task completion statistics.</p>
+                                    <p className="text-gray-500 mb-4">Individual team member performance and task completion statistics.</p>
                                     <button
                                         onClick={() => generateReport('team-performance')}
                                         disabled={loading.reports}
-                                        className="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 flex items-center justify-center disabled:opacity-50"
+                                        className="w-full inline-flex items-center justify-center gap-2 bg-green-600 text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-green-700 shadow-sm transition-colors disabled:opacity-50"
                                     >
                                         {loading.reports ? (
                                             <>
-                                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                                                 Generating...
                                             </>
                                         ) : (
                                             <>
-                                                <Download className="h-4 w-4 mr-2" />
+                                                <Download className="h-4 w-4" />
                                                 Generate Report
                                             </>
                                         )}
                                     </button>
                                 </div>
 
-                                <div className="bg-white rounded-lg shadow p-6">
+                                <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
                                     <div className="flex items-center mb-4">
-                                        <Flag className="h-8 w-8 text-red-600 mr-3" />
+                                        <div className="bg-red-50 rounded-lg p-3 mr-3 flex-shrink-0">
+                                            <Flag className="h-6 w-6 text-red-600" />
+                                        </div>
                                         <h3 className="text-lg font-semibold text-gray-900">Overdue Tasks</h3>
                                     </div>
-                                    <p className="text-gray-600 mb-4">List of all overdue tasks with assignees and due dates.</p>
+                                    <p className="text-gray-500 mb-4">List of all overdue tasks with assignees and due dates.</p>
                                     <button
                                         onClick={() => generateReport('overdue-tasks')}
                                         disabled={loading.reports}
-                                        className="w-full bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 flex items-center justify-center disabled:opacity-50"
+                                        className="w-full inline-flex items-center justify-center gap-2 bg-red-600 text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-red-700 shadow-sm transition-colors disabled:opacity-50"
                                     >
                                         {loading.reports ? (
                                             <>
-                                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                                                 Generating...
                                             </>
                                         ) : (
                                             <>
-                                                <Download className="h-4 w-4 mr-2" />
+                                                <Download className="h-4 w-4" />
                                                 Generate Report
                                             </>
                                         )}
@@ -1442,91 +1610,99 @@ const ProjectManagementSystem = () => {
                                 </div>
                             </div>
                         ) : (
-                            <div className="bg-gray-100 rounded-lg p-8 text-center">
+                            <div className="bg-gray-50 rounded-xl border border-gray-100 p-8 text-center">
                                 <Shield className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                                <p className="text-gray-600">You don't have permission to access reports.</p>
+                                <p className="text-gray-500">You don't have permission to access reports.</p>
                             </div>
                         )}
                     </div>
                 )}
-            </main>
+                </main>
+            </div>
 
             {/* Modals */}
             {/* Add Project Modal */}
             {showAddProject && (
-                <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center p-4 z-50">
-                    <div className="bg-white rounded-lg max-w-md w-full p-6 max-h-screen overflow-y-auto">
-                        <h3 className="text-lg font-semibold mb-4">{editingProjectId !== null ? 'Edit Project' : 'Add New Project'}</h3>
-                        <form onSubmit={handleAddProject} className="space-y-4">
-                            <input
-                                type="text"
-                                placeholder="Project Name"
-                                value={newProject.name}
-                                onChange={(e) => setNewProject({ ...newProject, name: e.target.value })}
-                                className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                                required
-                            />
-                            <textarea
-                                placeholder="Description"
-                                value={newProject.description}
-                                onChange={(e) => setNewProject({ ...newProject, description: e.target.value })}
-                                className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                                rows="3"
-                            />
-                            <select
-                                value={newProject.priority}
-                                onChange={(e) => setNewProject({ ...newProject, priority: e.target.value })}
-                                className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                            >
-                                <option value="low">Low Priority</option>
-                                <option value="medium">Medium Priority</option>
-                                <option value="high">High Priority</option>
-                            </select>
-                            {editingProjectId !== null && (
+                <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                    <div className="bg-white rounded-2xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+                        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
+                            <h3 className="text-base font-semibold text-gray-900">{editingProjectId !== null ? 'Edit Project' : 'Add New Project'}</h3>
+                            <button type="button" onClick={closeProjectModal} className="text-gray-400 hover:text-gray-600 rounded-lg p-1">
+                                <X className="h-5 w-5" />
+                            </button>
+                        </div>
+                        <form onSubmit={handleAddProject}>
+                            <div className="px-6 py-5 space-y-4">
+                                <input
+                                    type="text"
+                                    placeholder="Project Name"
+                                    value={newProject.name}
+                                    onChange={(e) => setNewProject({ ...newProject, name: e.target.value })}
+                                    className="w-full border border-gray-300 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                                    required
+                                />
+                                <textarea
+                                    placeholder="Description"
+                                    value={newProject.description}
+                                    onChange={(e) => setNewProject({ ...newProject, description: e.target.value })}
+                                    className="w-full border border-gray-300 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                                    rows="3"
+                                />
                                 <select
-                                    value={newProject.status}
-                                    onChange={(e) => setNewProject({ ...newProject, status: e.target.value })}
-                                    className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                                    value={newProject.priority}
+                                    onChange={(e) => setNewProject({ ...newProject, priority: e.target.value })}
+                                    className="w-full border border-gray-300 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
                                 >
-                                    <option value="active">Active</option>
-                                    <option value="inactive">Inactive</option>
-                                    <option value="completed">Completed</option>
+                                    <option value="low">Low Priority</option>
+                                    <option value="medium">Medium Priority</option>
+                                    <option value="high">High Priority</option>
                                 </select>
-                            )}
-                            <input
-                                type="date"
-                                value={newProject.startDate}
-                                onChange={(e) => setNewProject({ ...newProject, startDate: e.target.value })}
-                                className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                                required
-                            />
-                            <input
-                                type="date"
-                                value={newProject.endDate}
-                                onChange={(e) => setNewProject({ ...newProject, endDate: e.target.value })}
-                                className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                                required
-                            />
-                            <input
-                                type="text"
-                                placeholder="Tags (comma separated)"
-                                value={newProject.tags}
-                                onChange={(e) => setNewProject({ ...newProject, tags: e.target.value })}
-                                className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                            />
-                            <div className="flex space-x-3">
-                                <button
-                                    type="submit"
-                                    className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700"
-                                >
-                                    {editingProjectId !== null ? 'Save Changes' : 'Add Project'}
-                                </button>
+                                {editingProjectId !== null && (
+                                    <select
+                                        value={newProject.status}
+                                        onChange={(e) => setNewProject({ ...newProject, status: e.target.value })}
+                                        className="w-full border border-gray-300 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                                    >
+                                        <option value="active">Active</option>
+                                        <option value="inactive">Inactive</option>
+                                        <option value="completed">Completed</option>
+                                    </select>
+                                )}
+                                <input
+                                    type="date"
+                                    value={newProject.startDate}
+                                    onChange={(e) => setNewProject({ ...newProject, startDate: e.target.value })}
+                                    className="w-full border border-gray-300 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                                    required
+                                />
+                                <input
+                                    type="date"
+                                    value={newProject.endDate}
+                                    onChange={(e) => setNewProject({ ...newProject, endDate: e.target.value })}
+                                    className="w-full border border-gray-300 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                                    required
+                                />
+                                <input
+                                    type="text"
+                                    placeholder="Tags (comma separated)"
+                                    value={newProject.tags}
+                                    onChange={(e) => setNewProject({ ...newProject, tags: e.target.value })}
+                                    className="w-full border border-gray-300 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                                />
+                            </div>
+                            <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3">
                                 <button
                                     type="button"
                                     onClick={closeProjectModal}
-                                    className="flex-1 bg-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-400"
+                                    className="inline-flex items-center gap-2 bg-white text-gray-700 border border-gray-300 px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-gray-50 transition-colors"
                                 >
                                     Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors"
+                                >
+                                    {editingProjectId !== null ? 'Save Changes' : 'Add Project'}
                                 </button>
                             </div>
                         </form>
@@ -1536,82 +1712,89 @@ const ProjectManagementSystem = () => {
 
             {/* Add Task Modal */}
             {showAddTask && (
-                <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center p-4 z-50">
-                    <div className="bg-white rounded-lg max-w-md w-full p-6 max-h-screen overflow-y-auto">
-                        <h3 className="text-lg font-semibold mb-4">Add New Task</h3>
-                        <form onSubmit={handleAddTask} className="space-y-4">
-                            <select
-                                value={newTask.projectId}
-                                onChange={(e) => setNewTask({ ...newTask, projectId: e.target.value })}
-                                className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                                required
-                            >
-                                <option value="">Select Project</option>
-                                {projects.map(project => (
-                                    <option key={project.id} value={project.id}>{project.name}</option>
-                                ))}
-                            </select>
-                            <input
-                                type="text"
-                                placeholder="Task Title"
-                                value={newTask.title}
-                                onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
-                                className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                                required
-                            />
-                            <textarea
-                                placeholder="Description"
-                                value={newTask.description}
-                                onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
-                                className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                                rows="3"
-                            />
-                            <select
-                                value={newTask.priority}
-                                onChange={(e) => setNewTask({ ...newTask, priority: e.target.value })}
-                                className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                            >
-                                <option value="low">Low Priority</option>
-                                <option value="medium">Medium Priority</option>
-                                <option value="high">High Priority</option>
-                            </select>
-                            <select
-                                value={newTask.assignedToId}
-                                onChange={(e) => setNewTask({ ...newTask, assignedToId: e.target.value })}
-                                className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                            >
-                                <option value="">Assign To</option>
-                                {teamMembers.map(member => (
-                                    <option key={member.id} value={member.id}>{member.name}</option>
-                                ))}
-                            </select>
-                            <input
-                                type="date"
-                                value={newTask.dueDate}
-                                onChange={(e) => setNewTask({ ...newTask, dueDate: e.target.value })}
-                                className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                                required
-                            />
-                            <input
-                                type="text"
-                                placeholder="Tags (comma separated)"
-                                value={newTask.tags}
-                                onChange={(e) => setNewTask({ ...newTask, tags: e.target.value })}
-                                className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                            />
-                            <div className="flex space-x-3">
-                                <button
-                                    type="submit"
-                                    className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700"
+                <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                    <div className="bg-white rounded-2xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+                        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
+                            <h3 className="text-base font-semibold text-gray-900">Add New Task</h3>
+                            <button type="button" onClick={() => setShowAddTask(false)} className="text-gray-400 hover:text-gray-600 rounded-lg p-1">
+                                <X className="h-5 w-5" />
+                            </button>
+                        </div>
+                        <form onSubmit={handleAddTask}>
+                            <div className="px-6 py-5 space-y-4">
+                                <select
+                                    value={newTask.projectId}
+                                    onChange={(e) => setNewTask({ ...newTask, projectId: e.target.value })}
+                                    className="w-full border border-gray-300 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                                    required
                                 >
-                                    Add Task
-                                </button>
+                                    <option value="">Select Project</option>
+                                    {projects.map(project => (
+                                        <option key={project.id} value={project.id}>{project.name}</option>
+                                    ))}
+                                </select>
+                                <input
+                                    type="text"
+                                    placeholder="Task Title"
+                                    value={newTask.title}
+                                    onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
+                                    className="w-full border border-gray-300 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                                    required
+                                />
+                                <textarea
+                                    placeholder="Description"
+                                    value={newTask.description}
+                                    onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
+                                    className="w-full border border-gray-300 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                                    rows="3"
+                                />
+                                <select
+                                    value={newTask.priority}
+                                    onChange={(e) => setNewTask({ ...newTask, priority: e.target.value })}
+                                    className="w-full border border-gray-300 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                                >
+                                    <option value="low">Low Priority</option>
+                                    <option value="medium">Medium Priority</option>
+                                    <option value="high">High Priority</option>
+                                </select>
+                                <select
+                                    value={newTask.assignedToId}
+                                    onChange={(e) => setNewTask({ ...newTask, assignedToId: e.target.value })}
+                                    className="w-full border border-gray-300 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                                >
+                                    <option value="">Assign To</option>
+                                    {teamMembers.map(member => (
+                                        <option key={member.id} value={member.id}>{member.name}</option>
+                                    ))}
+                                </select>
+                                <input
+                                    type="date"
+                                    value={newTask.dueDate}
+                                    onChange={(e) => setNewTask({ ...newTask, dueDate: e.target.value })}
+                                    className="w-full border border-gray-300 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                                    required
+                                />
+                                <input
+                                    type="text"
+                                    placeholder="Tags (comma separated)"
+                                    value={newTask.tags}
+                                    onChange={(e) => setNewTask({ ...newTask, tags: e.target.value })}
+                                    className="w-full border border-gray-300 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                                />
+                            </div>
+                            <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3">
                                 <button
                                     type="button"
                                     onClick={() => setShowAddTask(false)}
-                                    className="flex-1 bg-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-400"
+                                    className="inline-flex items-center gap-2 bg-white text-gray-700 border border-gray-300 px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-gray-50 transition-colors"
                                 >
                                     Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors"
+                                >
+                                    Add Task
                                 </button>
                             </div>
                         </form>
@@ -1621,64 +1804,71 @@ const ProjectManagementSystem = () => {
 
             {/* Add Member Modal */}
             {showAddMember && (
-                <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center p-4 z-50">
-                    <div className="bg-white rounded-lg max-w-md w-full p-6">
-                        <h3 className="text-lg font-semibold mb-4">Add Team Member</h3>
-                        <form onSubmit={handleAddMember} className="space-y-4">
-                            <input
-                                type="text"
-                                placeholder="Full Name"
-                                value={newMember.name}
-                                onChange={(e) => setNewMember({ ...newMember, name: e.target.value })}
-                                className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                                required
-                            />
-                            <select
-                                value={newMember.role}
-                                onChange={(e) => setNewMember({ ...newMember, role: e.target.value })}
-                                className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                            >
-                                <option value="member">Member</option>
-                                <option value="manager">Manager</option>
-                                {hasPermission(user?.permissions, 'users.manage_roles') && <option value="admin">Admin</option>}
-                            </select>
-                            <input
-                                type="text"
-                                placeholder="Position"
-                                value={newMember.position}
-                                onChange={(e) => setNewMember({ ...newMember, position: e.target.value })}
-                                className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                                required
-                            />
-                            <input
-                                type="email"
-                                placeholder="Email"
-                                value={newMember.email}
-                                onChange={(e) => setNewMember({ ...newMember, email: e.target.value })}
-                                className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                                required
-                            />
-                            <input
-                                type="password"
-                                placeholder="Password"
-                                value={newMember.password}
-                                onChange={(e) => setNewMember({ ...newMember, password: e.target.value })}
-                                className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                                required
-                            />
-                            <div className="flex space-x-3">
-                                <button
-                                    type="submit"
-                                    className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700"
+                <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                    <div className="bg-white rounded-2xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+                        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
+                            <h3 className="text-base font-semibold text-gray-900">Add Team Member</h3>
+                            <button type="button" onClick={() => setShowAddMember(false)} className="text-gray-400 hover:text-gray-600 rounded-lg p-1">
+                                <X className="h-5 w-5" />
+                            </button>
+                        </div>
+                        <form onSubmit={handleAddMember}>
+                            <div className="px-6 py-5 space-y-4">
+                                <input
+                                    type="text"
+                                    placeholder="Full Name"
+                                    value={newMember.name}
+                                    onChange={(e) => setNewMember({ ...newMember, name: e.target.value })}
+                                    className="w-full border border-gray-300 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                                    required
+                                />
+                                <select
+                                    value={newMember.role}
+                                    onChange={(e) => setNewMember({ ...newMember, role: e.target.value })}
+                                    className="w-full border border-gray-300 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
                                 >
-                                    Add Member
-                                </button>
+                                    <option value="member">Member</option>
+                                    <option value="manager">Manager</option>
+                                    {hasPermission(user?.permissions, 'users.manage_roles') && <option value="admin">Admin</option>}
+                                </select>
+                                <input
+                                    type="text"
+                                    placeholder="Position"
+                                    value={newMember.position}
+                                    onChange={(e) => setNewMember({ ...newMember, position: e.target.value })}
+                                    className="w-full border border-gray-300 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                                    required
+                                />
+                                <input
+                                    type="email"
+                                    placeholder="Email"
+                                    value={newMember.email}
+                                    onChange={(e) => setNewMember({ ...newMember, email: e.target.value })}
+                                    className="w-full border border-gray-300 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                                    required
+                                />
+                                <input
+                                    type="password"
+                                    placeholder="Password"
+                                    value={newMember.password}
+                                    onChange={(e) => setNewMember({ ...newMember, password: e.target.value })}
+                                    className="w-full border border-gray-300 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                                    required
+                                />
+                            </div>
+                            <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3">
                                 <button
                                     type="button"
                                     onClick={() => setShowAddMember(false)}
-                                    className="flex-1 bg-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-400"
+                                    className="inline-flex items-center gap-2 bg-white text-gray-700 border border-gray-300 px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-gray-50 transition-colors"
                                 >
                                     Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors"
+                                >
+                                    Add Member
                                 </button>
                             </div>
                         </form>

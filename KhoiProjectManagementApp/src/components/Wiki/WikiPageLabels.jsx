@@ -39,17 +39,17 @@ const WikiPageLabels = ({ apiService, pageId, labels, canWrite, onChanged }) => 
     <div className="flex items-center flex-wrap gap-1.5 mb-3">
       <TagIcon className="h-3.5 w-3.5 text-gray-400" />
       {labels.map((l) => (
-        <span key={l} className="inline-flex items-center text-xs bg-gray-100 text-gray-700 pl-2 pr-1 py-0.5 rounded-full">
+        <span key={l} className="inline-flex items-center rounded-md text-xs font-medium bg-gray-100 text-gray-700 pl-2 pr-1 py-0.5">
           {l}
           {canWrite && (
-            <button onClick={() => handleRemove(l)} disabled={saving} className="ml-1 text-gray-400 hover:text-red-600" aria-label={`Remove label ${l}`}>
+            <button onClick={() => handleRemove(l)} disabled={saving} className="ml-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md p-0.5 transition-colors" aria-label={`Remove label ${l}`}>
               <X className="h-3 w-3" />
             </button>
           )}
         </span>
       ))}
       {canWrite && !adding && (
-        <button onClick={() => setAdding(true)} className="text-xs text-gray-400 hover:text-blue-600 flex items-center">
+        <button onClick={() => setAdding(true)} className="text-xs font-medium text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-md px-1.5 py-0.5 flex items-center transition-colors">
           <Plus className="h-3 w-3 mr-0.5" />
           Add label
         </button>
@@ -63,7 +63,7 @@ const WikiPageLabels = ({ apiService, pageId, labels, canWrite, onChanged }) => 
           onKeyDown={(e) => { if (e.key === 'Enter') handleAdd(); if (e.key === 'Escape') { setAdding(false); setNewLabel(''); } }}
           onBlur={handleAdd}
           placeholder="label name"
-          className="text-xs border rounded px-1.5 py-0.5 w-24"
+          className="text-xs border border-gray-300 rounded-md px-2 py-1 w-24 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
         />
       )}
     </div>

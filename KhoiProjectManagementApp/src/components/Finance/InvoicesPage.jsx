@@ -6,6 +6,23 @@ import InvoiceDetail from './InvoiceDetail';
 
 const emptyLineItem = () => ({ description: '', quantity: 1, unitPrice: 0 });
 
+const InvoiceStatusBadge = ({ status }) => (
+  <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
+    status === 'Paid' ? 'bg-green-50 text-green-700' :
+    status === 'Sent' ? 'bg-amber-50 text-amber-700' :
+    status === 'Overdue' ? 'bg-red-50 text-red-700' :
+    'bg-gray-50 text-gray-700'
+  }`}>
+    <span className={`w-1.5 h-1.5 rounded-full ${
+      status === 'Paid' ? 'bg-green-500' :
+      status === 'Sent' ? 'bg-amber-500' :
+      status === 'Overdue' ? 'bg-red-500' :
+      'bg-gray-400'
+    }`} />
+    {status}
+  </span>
+);
+
 const InvoiceFormModal = ({ title, templates, onSave, onClose }) => {
   const [invoiceNumber, setInvoiceNumber] = useState('');
   const [clientName, setClientName] = useState('');
@@ -40,80 +57,82 @@ const InvoiceFormModal = ({ title, templates, onSave, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+    <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-2xl shadow-xl overflow-hidden w-full max-w-lg max-h-[90vh] flex flex-col">
+        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+          <h3 className="text-base font-semibold text-gray-900">{title}</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600" aria-label="Close">
             <X className="h-4 w-4" />
           </button>
         </div>
 
-        {error && <div className="text-red-600 text-sm mb-3">{error}</div>}
+        <div className="px-6 py-5 space-y-4 overflow-y-auto">
+          {error && <div className="text-red-600 text-sm">{error}</div>}
 
-        {templates && templates.length > 0 && (
-          <div className="mb-3">
-            <label className="block text-sm text-gray-600 mb-1">Start from a template (optional)</label>
-            <select
-              value={templateId}
-              onChange={(e) => setTemplateId(e.target.value)}
-              className="w-full border rounded-lg px-3 py-2"
-            >
-              <option value="">None - blank invoice</option>
-              {templates.map((t) => (
-                <option key={t.id} value={t.id}>{t.name} ({t.originalFileName})</option>
-              ))}
-            </select>
-          </div>
-        )}
-
-        <div className="grid grid-cols-2 gap-3 mb-3">
-          <input placeholder="Invoice number" value={invoiceNumber} onChange={(e) => setInvoiceNumber(e.target.value)} className="border rounded-lg px-3 py-2" />
-          <input placeholder="Client name" value={clientName} onChange={(e) => setClientName(e.target.value)} className="border rounded-lg px-3 py-2" />
-          <input type="date" value={issueDate} onChange={(e) => setIssueDate(e.target.value)} className="border rounded-lg px-3 py-2" />
-          <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} className="border rounded-lg px-3 py-2" />
-        </div>
-
-        <div className="mb-3">
-          <label className="block text-sm text-gray-600 mb-1">Line items</label>
-          {lineItems.map((li, i) => (
-            <div key={i} className="flex space-x-2 mb-2">
-              <input
-                placeholder="Description"
-                value={li.description}
-                onChange={(e) => updateLineItem(i, 'description', e.target.value)}
-                className="flex-1 border rounded-lg px-2 py-1 text-sm"
-              />
-              <input
-                type="number"
-                placeholder="Qty"
-                value={li.quantity}
-                onChange={(e) => updateLineItem(i, 'quantity', e.target.value)}
-                className="w-16 border rounded-lg px-2 py-1 text-sm"
-              />
-              <input
-                type="number"
-                placeholder="Unit price"
-                value={li.unitPrice}
-                onChange={(e) => updateLineItem(i, 'unitPrice', e.target.value)}
-                className="w-24 border rounded-lg px-2 py-1 text-sm"
-              />
+          {templates && templates.length > 0 && (
+            <div>
+              <label className="block text-sm text-gray-600 mb-1">Start from a template (optional)</label>
+              <select
+                value={templateId}
+                onChange={(e) => setTemplateId(e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+              >
+                <option value="">None - blank invoice</option>
+                {templates.map((t) => (
+                  <option key={t.id} value={t.id}>{t.name} ({t.originalFileName})</option>
+                ))}
+              </select>
             </div>
-          ))}
-          <button
-            onClick={() => setLineItems((prev) => [...prev, emptyLineItem()])}
-            className="text-sm text-blue-600 hover:text-blue-800"
-          >
-            + Add line item
-          </button>
+          )}
+
+          <div className="grid grid-cols-2 gap-3">
+            <input placeholder="Invoice number" value={invoiceNumber} onChange={(e) => setInvoiceNumber(e.target.value)} className="border border-gray-300 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow" />
+            <input placeholder="Client name" value={clientName} onChange={(e) => setClientName(e.target.value)} className="border border-gray-300 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow" />
+            <input type="date" value={issueDate} onChange={(e) => setIssueDate(e.target.value)} className="border border-gray-300 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow" />
+            <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} className="border border-gray-300 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow" />
+          </div>
+
+          <div>
+            <label className="block text-sm text-gray-600 mb-1">Line items</label>
+            {lineItems.map((li, i) => (
+              <div key={i} className="flex space-x-2 mb-2">
+                <input
+                  placeholder="Description"
+                  value={li.description}
+                  onChange={(e) => updateLineItem(i, 'description', e.target.value)}
+                  className="flex-1 border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                />
+                <input
+                  type="number"
+                  placeholder="Qty"
+                  value={li.quantity}
+                  onChange={(e) => updateLineItem(i, 'quantity', e.target.value)}
+                  className="w-16 border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                />
+                <input
+                  type="number"
+                  placeholder="Unit price"
+                  value={li.unitPrice}
+                  onChange={(e) => updateLineItem(i, 'unitPrice', e.target.value)}
+                  className="w-24 border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                />
+              </div>
+            ))}
+            <button
+              onClick={() => setLineItems((prev) => [...prev, emptyLineItem()])}
+              className="text-sm text-blue-600 hover:text-blue-800"
+            >
+              + Add line item
+            </button>
+          </div>
         </div>
 
-        <div className="flex justify-end space-x-2">
-          <button onClick={onClose} className="px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-100">Cancel</button>
+        <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3">
+          <button onClick={onClose} className="inline-flex items-center gap-2 bg-white text-gray-700 border border-gray-300 px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-gray-50 transition-colors">Cancel</button>
           <button
             onClick={handleSave}
             disabled={saving || !invoiceNumber.trim() || !clientName.trim()}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+            className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors disabled:opacity-50"
           >
             {saving ? 'Saving...' : 'Create'}
           </button>
@@ -168,7 +187,7 @@ const InvoicesPage = ({ apiService, user }) => {
 
   if (!canView) {
     return (
-      <div className="bg-white rounded-lg shadow p-8 text-center text-gray-400">
+      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-8 text-center text-gray-400">
         You don't have access to Finance.
       </div>
     );
@@ -187,9 +206,9 @@ const InvoicesPage = ({ apiService, user }) => {
         {canManage && (
           <button
             onClick={() => setShowForm(true)}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center"
+            className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors"
           >
-            <Plus className="h-5 w-5 mr-2" />
+            <Plus className="h-5 w-5" />
             New Invoice
           </button>
         )}
@@ -205,18 +224,21 @@ const InvoicesPage = ({ apiService, user }) => {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white rounded-lg shadow divide-y">
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm divide-y divide-gray-100">
           {invoices === null && <div className="p-6 text-gray-400">Loading...</div>}
           {invoices?.length === 0 && <div className="p-6 text-center text-gray-400">No invoices yet.</div>}
           {invoices?.map((inv) => (
             <div
               key={inv.id}
               onClick={() => setSelectedId(inv.id)}
-              className={`p-4 cursor-pointer hover:bg-gray-50 flex justify-between items-center ${selectedId === inv.id ? 'bg-blue-50' : ''}`}
+              className={`p-4 cursor-pointer hover:bg-gray-50/60 transition-colors flex justify-between items-center ${selectedId === inv.id ? 'bg-blue-50' : ''}`}
             >
               <div>
                 <div className="font-medium text-gray-900">{inv.invoiceNumber}</div>
-                <div className="text-sm text-gray-500">{inv.clientName} &middot; {inv.status}</div>
+                <div className="text-sm text-gray-500 flex items-center gap-1.5 mt-0.5">
+                  <span>{inv.clientName}</span>
+                  <InvoiceStatusBadge status={inv.status} />
+                </div>
               </div>
               <div className="text-sm font-semibold text-gray-900">{inv.total?.toFixed(2)}</div>
             </div>
@@ -233,7 +255,7 @@ const InvoicesPage = ({ apiService, user }) => {
               onChanged={refreshSelected}
             />
           ) : (
-            <div className="bg-white rounded-lg shadow p-8 text-center text-gray-400">
+            <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-8 text-center text-gray-400">
               Select an invoice to view details.
             </div>
           )}

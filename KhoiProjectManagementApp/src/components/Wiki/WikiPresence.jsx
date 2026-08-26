@@ -24,7 +24,7 @@ const WikiPresence = ({ viewers, editLock, currentUserId }) => {
             <div
               key={v.userId}
               title={v.userId === currentUserId ? `${v.userName} (you)` : v.userName}
-              className="h-6 w-6 rounded-full bg-blue-100 text-blue-700 text-[10px] font-semibold flex items-center justify-center border-2 border-white"
+              className="h-6 w-6 rounded-full bg-blue-50 text-blue-700 text-[10px] font-semibold flex items-center justify-center border-2 border-white shadow-sm"
             >
               {initials(v.userName)}
             </div>
@@ -37,8 +37,8 @@ const WikiPresence = ({ viewers, editLock, currentUserId }) => {
         </span>
       )}
       {editLock && editLock.userId !== currentUserId && (
-        <span className="flex items-center text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5">
-          <Lock className="h-3 w-3 mr-1" />
+        <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2.5 py-1">
+          <Lock className="h-3 w-3" />
           {editLock.userName} is editing
         </span>
       )}

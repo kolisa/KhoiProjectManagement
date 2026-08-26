@@ -1,6 +1,7 @@
 // src/components/Settings/NotificationPreferences.js
 import React, { useState, useEffect } from 'react';
 import { Bell, Mail } from 'lucide-react';
+import Toggle from '../Common/Toggle';
 
 const NotificationPreferences = ({ apiService }) => {
   const [preferences, setPreferences] = useState(null);
@@ -52,7 +53,7 @@ const NotificationPreferences = ({ apiService }) => {
         <p className="text-gray-600">Choose which events email you. In-app notifications always happen either way.</p>
       </div>
 
-      <div className="bg-white rounded-lg shadow divide-y max-w-2xl">
+      <div className="bg-white rounded-xl border border-gray-100 shadow-sm divide-y divide-gray-100 max-w-2xl">
         {preferences.map((pref) => (
           <div key={pref.notificationType} className="p-4 flex items-center justify-between">
             <div className="flex items-start">
@@ -62,16 +63,13 @@ const NotificationPreferences = ({ apiService }) => {
                 <div className="text-sm text-gray-500">{pref.description}</div>
               </div>
             </div>
-            <label className="relative inline-flex items-center cursor-pointer flex-shrink-0 ml-4">
-              <input
-                type="checkbox"
-                className="sr-only peer"
+            <div className="ml-4">
+              <Toggle
                 checked={pref.emailEnabled}
                 disabled={saving}
-                onChange={(e) => handleToggle(pref.notificationType, e.target.checked)}
+                onChange={(checked) => handleToggle(pref.notificationType, checked)}
               />
-              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-            </label>
+            </div>
           </div>
         ))}
       </div>

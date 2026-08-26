@@ -10,16 +10,16 @@ const BulkReminderActions = ({ count, onComplete, onDelete, onReschedule, onPrio
   if (count === 0) return null;
 
   return (
-    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex flex-wrap items-center gap-2">
+    <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 flex flex-wrap items-center gap-2">
       <span className="text-sm font-medium text-blue-900 mr-2">{count} selected</span>
 
-      <button onClick={onComplete} className="flex items-center text-sm bg-white border rounded-lg px-3 py-1.5 hover:bg-gray-50">
+      <button onClick={onComplete} className="inline-flex items-center gap-1.5 text-sm font-medium bg-white border border-gray-300 rounded-lg px-3 py-1.5 hover:bg-gray-50 transition-colors">
         <CheckCircle className="h-4 w-4 mr-1.5 text-green-600" />
         Complete
       </button>
 
       <div className="relative">
-        <button onClick={() => setShowReschedule(!showReschedule)} className="flex items-center text-sm bg-white border rounded-lg px-3 py-1.5 hover:bg-gray-50">
+        <button onClick={() => setShowReschedule(!showReschedule)} className="inline-flex items-center gap-1.5 text-sm font-medium bg-white border border-gray-300 rounded-lg px-3 py-1.5 hover:bg-gray-50 transition-colors">
           <Clock className="h-4 w-4 mr-1.5 text-gray-600" />
           Reschedule
         </button>
@@ -44,7 +44,7 @@ const BulkReminderActions = ({ count, onComplete, onDelete, onReschedule, onPrio
       <select
         onChange={(e) => { if (e.target.value) { onPriority(e.target.value); e.target.value = ''; } }}
         defaultValue=""
-        className="text-sm bg-white border rounded-lg px-3 py-1.5"
+        className="text-sm bg-white border border-gray-300 rounded-lg px-3 py-1.5 hover:bg-gray-50 transition-colors"
         aria-label="Change priority for selected reminders"
       >
         <option value="" disabled>
@@ -66,7 +66,7 @@ const BulkReminderActions = ({ count, onComplete, onDelete, onReschedule, onPrio
           </button>
         </div>
       ) : (
-        <button onClick={() => setConfirmingDelete(true)} className="flex items-center text-sm bg-white border rounded-lg px-3 py-1.5 hover:bg-red-50 text-red-600">
+        <button onClick={() => setConfirmingDelete(true)} className="inline-flex items-center gap-1.5 text-sm font-medium bg-white border border-gray-300 rounded-lg px-3 py-1.5 hover:bg-red-50 transition-colors text-red-600">
           <Trash2 className="h-4 w-4 mr-1.5" />
           Delete
         </button>

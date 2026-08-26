@@ -28,8 +28,8 @@ const SpaceTreeNode = ({ apiService, space, selectedSpaceId, onSelect, depth }) 
   return (
     <div>
       <div
-        className={`flex items-center py-1.5 px-2 rounded cursor-pointer text-sm ${
-          selectedSpaceId === space.id ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100 text-gray-700'
+        className={`flex items-center py-1.5 px-2 rounded-md cursor-pointer text-sm transition-colors ${
+          selectedSpaceId === space.id ? 'bg-blue-50 text-blue-700 font-semibold' : 'hover:bg-gray-100 text-gray-700'
         }`}
         style={{ paddingLeft: `${depth * 16 + 8}px` }}
       >

@@ -33,12 +33,12 @@ const WikiVersionHistory = ({ apiService, pageId }) => {
 
   return (
     <div className="space-y-3">
-      <div className="divide-y border rounded-lg">
+      <div className="divide-y divide-gray-100 bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
         {versions.map((v) => (
           <div
             key={v.versionNumber}
             onClick={() => handleViewVersion(v.versionNumber)}
-            className="p-3 hover:bg-gray-50 cursor-pointer flex justify-between items-center text-sm"
+            className="p-3 hover:bg-gray-50/60 transition-colors cursor-pointer flex justify-between items-center text-sm"
           >
             <div>
               <span className="font-medium">v{v.versionNumber}</span> by {v.editedByName}
@@ -50,7 +50,7 @@ const WikiVersionHistory = ({ apiService, pageId }) => {
       </div>
 
       {selectedVersion && (
-        <div className="border rounded-lg p-4 bg-gray-50">
+        <div className="rounded-xl border border-gray-100 shadow-sm p-4 bg-gray-50">
           <div className="text-sm text-gray-500 mb-2">
             Version {selectedVersion.versionNumber} — {new Date(selectedVersion.editedAt).toLocaleString()}
           </div>

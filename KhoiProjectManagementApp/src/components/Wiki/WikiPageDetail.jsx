@@ -150,7 +150,7 @@ const WikiPageDetail = ({ apiService, pageId, myEffectiveLevel, currentUserId, o
   }
 
   return (
-    <div className="bg-white rounded-lg shadow p-6">
+    <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
       <div className="flex justify-between items-start mb-4">
         <h3 className="text-xl font-semibold text-gray-900">{page.title}</h3>
         <div className="flex space-x-2">
@@ -159,7 +159,7 @@ const WikiPageDetail = ({ apiService, pageId, myEffectiveLevel, currentUserId, o
             label={page.title}
           />
           {canWrite && (
-            <button onClick={() => onAddSubPage(pageId)} className="text-gray-400 hover:text-gray-600" aria-label="Add sub-page">
+            <button onClick={() => onAddSubPage(pageId)} className="text-gray-400 hover:text-gray-600 transition-colors" aria-label="Add sub-page">
               <Plus className="h-4 w-4" />
             </button>
           )}
@@ -167,7 +167,7 @@ const WikiPageDetail = ({ apiService, pageId, myEffectiveLevel, currentUserId, o
             <button
               onClick={handleEditClick}
               disabled={lockedByOther}
-              className={lockedByOther ? 'text-gray-200 cursor-not-allowed' : 'text-gray-400 hover:text-gray-600'}
+              className={lockedByOther ? 'text-gray-200 cursor-not-allowed' : 'text-gray-400 hover:text-gray-600 transition-colors'}
               aria-label="Edit"
               title={lockedByOther ? `${editLock.userName} is editing this page` : 'Edit'}
             >
@@ -175,7 +175,7 @@ const WikiPageDetail = ({ apiService, pageId, myEffectiveLevel, currentUserId, o
             </button>
           )}
           {canManage && (
-            <button onClick={handleDelete} className="text-red-400 hover:text-red-600" aria-label="Delete">
+            <button onClick={handleDelete} className="text-red-400 hover:text-red-600 transition-colors" aria-label="Delete">
               <Trash2 className="h-4 w-4" />
             </button>
           )}
@@ -209,7 +209,7 @@ const WikiPageDetail = ({ apiService, pageId, myEffectiveLevel, currentUserId, o
 
       <button
         onClick={() => setShowHistory(!showHistory)}
-        className="mt-4 flex items-center text-sm text-gray-500 hover:text-gray-700"
+        className="mt-4 flex items-center text-sm text-gray-500 hover:text-gray-700 transition-colors"
       >
         <Clock className="h-4 w-4 mr-1" />
         {showHistory ? 'Hide version history' : 'Show version history'}
@@ -220,7 +220,7 @@ const WikiPageDetail = ({ apiService, pageId, myEffectiveLevel, currentUserId, o
         </div>
       )}
 
-      <div className="mt-6 border-t pt-4">
+      <div className="mt-6 border-t border-gray-100 pt-4">
         <WikiComments
           apiService={apiService}
           pageId={pageId}

@@ -5,9 +5,9 @@ import PriorityBadge from '../Common/PriorityBadge';
 import StatusBadge from '../Common/StatusBadge';
 
 const STATUS_COLORS = {
-  Pending: 'bg-blue-100 text-blue-800',
-  Snoozed: 'bg-purple-100 text-purple-800',
-  Completed: 'bg-green-100 text-green-800',
+  Pending: 'bg-blue-50 text-blue-700',
+  Snoozed: 'bg-purple-50 text-purple-700',
+  Completed: 'bg-green-50 text-green-700',
 };
 
 const formatDue = (iso) => {
@@ -24,7 +24,7 @@ const SnoozeMenu = ({ onSnooze, onClose }) => {
   const [customValue, setCustomValue] = useState('');
 
   return (
-    <div className="absolute right-0 mt-1 bg-white border rounded-lg shadow-lg z-10 w-48 py-1" role="menu">
+    <div className="absolute right-0 mt-1 bg-white border border-gray-100 rounded-xl shadow-lg z-10 w-48 py-1" role="menu">
       {options.map((o) => (
         <button
           key={o.label}
@@ -62,7 +62,7 @@ const ReminderList = ({ reminders, selectedId, selectedIds, onSelect, onToggleSe
   const allSelected = reminders.length > 0 && reminders.every((r) => selectedIds.includes(r.id));
 
   return (
-    <div className="bg-white rounded-lg shadow overflow-hidden">
+    <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
       {/* Desktop table */}
       <table className="w-full text-sm hidden md:table">
         <thead className="bg-gray-50 border-b text-left text-xs text-gray-500 uppercase">
@@ -83,7 +83,7 @@ const ReminderList = ({ reminders, selectedId, selectedIds, onSelect, onToggleSe
             <tr
               key={r.id}
               onClick={() => onSelect(r.id)}
-              className={`cursor-pointer hover:bg-gray-50 ${selectedId === r.id ? 'bg-blue-50' : ''} ${r.isOverdue ? 'bg-red-50/40' : ''}`}
+              className={`cursor-pointer hover:bg-gray-50/60 transition-colors ${selectedId === r.id ? 'bg-blue-50' : ''} ${r.isOverdue ? 'bg-red-50/40' : ''}`}
             >
               <td className="px-3 py-2" onClick={(e) => e.stopPropagation()}>
                 <input
@@ -109,7 +109,7 @@ const ReminderList = ({ reminders, selectedId, selectedIds, onSelect, onToggleSe
                   {r.status !== 'Completed' ? (
                     <button
                       onClick={() => onComplete(r.id)}
-                      className="text-green-600 hover:text-green-800 p-1"
+                      className="text-green-600 hover:text-green-800 hover:bg-gray-100 p-1 rounded-md transition-colors"
                       aria-label={`Mark ${r.title} complete`}
                       title="Complete"
                     >
@@ -118,7 +118,7 @@ const ReminderList = ({ reminders, selectedId, selectedIds, onSelect, onToggleSe
                   ) : (
                     <button
                       onClick={() => onReopen(r.id)}
-                      className="text-gray-500 hover:text-gray-700 p-1"
+                      className="text-gray-500 hover:text-gray-700 hover:bg-gray-100 p-1 rounded-md transition-colors"
                       aria-label={`Reopen ${r.title}`}
                       title="Reopen"
                     >
@@ -128,7 +128,7 @@ const ReminderList = ({ reminders, selectedId, selectedIds, onSelect, onToggleSe
                   {r.status !== 'Completed' && (
                     <button
                       onClick={() => setSnoozeMenuId(snoozeMenuId === r.id ? null : r.id)}
-                      className="text-gray-400 hover:text-gray-600 p-1"
+                      className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 p-1 rounded-md transition-colors"
                       aria-label={`More actions for ${r.title}`}
                       aria-haspopup="menu"
                     >
@@ -146,12 +146,12 @@ const ReminderList = ({ reminders, selectedId, selectedIds, onSelect, onToggleSe
       </table>
 
       {/* Mobile cards */}
-      <div className="md:hidden divide-y">
+      <div className="md:hidden divide-y divide-gray-100">
         {reminders.map((r) => (
           <div
             key={r.id}
             onClick={() => onSelect(r.id)}
-            className={`p-4 cursor-pointer ${selectedId === r.id ? 'bg-blue-50' : ''} ${r.isOverdue ? 'bg-red-50/40' : ''}`}
+            className={`p-4 cursor-pointer hover:bg-gray-50/60 transition-colors ${selectedId === r.id ? 'bg-blue-50' : ''} ${r.isOverdue ? 'bg-red-50/40' : ''}`}
           >
             <div className="flex items-start justify-between">
               <div className="flex items-start space-x-2 min-w-0">
@@ -171,11 +171,11 @@ const ReminderList = ({ reminders, selectedId, selectedIds, onSelect, onToggleSe
                 </div>
               </div>
               {r.status !== 'Completed' ? (
-                <button onClick={(e) => { e.stopPropagation(); onComplete(r.id); }} className="text-green-600 p-1" aria-label={`Mark ${r.title} complete`}>
+                <button onClick={(e) => { e.stopPropagation(); onComplete(r.id); }} className="text-green-600 hover:bg-gray-100 p-1 rounded-md transition-colors" aria-label={`Mark ${r.title} complete`}>
                   <CheckCircle className="h-5 w-5" />
                 </button>
               ) : (
-                <button onClick={(e) => { e.stopPropagation(); onReopen(r.id); }} className="text-gray-500 p-1" aria-label={`Reopen ${r.title}`}>
+                <button onClick={(e) => { e.stopPropagation(); onReopen(r.id); }} className="text-gray-500 hover:bg-gray-100 p-1 rounded-md transition-colors" aria-label={`Reopen ${r.title}`}>
                   <RotateCcw className="h-5 w-5" />
                 </button>
               )}

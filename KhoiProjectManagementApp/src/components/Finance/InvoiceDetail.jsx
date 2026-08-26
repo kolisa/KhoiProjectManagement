@@ -3,6 +3,23 @@ import React, { useState, useRef } from 'react';
 import { Upload, Download, X } from 'lucide-react';
 import { hasPermission } from '../../utils/permissions';
 
+const InvoiceStatusBadge = ({ status }) => (
+  <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
+    status === 'Paid' ? 'bg-green-50 text-green-700' :
+    status === 'Sent' ? 'bg-amber-50 text-amber-700' :
+    status === 'Overdue' ? 'bg-red-50 text-red-700' :
+    'bg-gray-50 text-gray-700'
+  }`}>
+    <span className={`w-1.5 h-1.5 rounded-full ${
+      status === 'Paid' ? 'bg-green-500' :
+      status === 'Sent' ? 'bg-amber-500' :
+      status === 'Overdue' ? 'bg-red-500' :
+      'bg-gray-400'
+    }`} />
+    {status}
+  </span>
+);
+
 const InvoiceDetail = ({ apiService, user, invoice, onClose, onChanged }) => {
   const [error, setError] = useState(null);
   const [uploading, setUploading] = useState(false);
@@ -52,10 +69,10 @@ const InvoiceDetail = ({ apiService, user, invoice, onClose, onChanged }) => {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow p-6">
+    <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
       <div className="flex justify-between items-start mb-4">
         <div>
-          <h3 className="text-lg font-semibold text-gray-900">{invoice.invoiceNumber}</h3>
+          <h3 className="text-base font-semibold text-gray-900">{invoice.invoiceNumber}</h3>
           <p className="text-sm text-gray-500">{invoice.clientName}</p>
         </div>
         <button onClick={onClose} className="text-gray-400 hover:text-gray-600" aria-label="Close">
@@ -68,7 +85,9 @@ const InvoiceDetail = ({ apiService, user, invoice, onClose, onChanged }) => {
       <dl className="space-y-2 text-sm mb-4">
         <div>
           <dt className="text-gray-500">Status</dt>
-          <dd className="text-gray-900">{invoice.status}</dd>
+          <dd className="text-gray-900 mt-1">
+            <InvoiceStatusBadge status={invoice.status} />
+          </dd>
         </div>
         <div>
           <dt className="text-gray-500">Line items</dt>
@@ -126,20 +145,20 @@ const InvoiceDetail = ({ apiService, user, invoice, onClose, onChanged }) => {
             type="text"
             value={templateName}
             onChange={(e) => setTemplateName(e.target.value)}
-            className="w-full border rounded-lg px-3 py-2 mb-2 text-sm"
+            className="w-full border border-gray-300 rounded-lg px-3.5 py-2.5 mb-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
             placeholder="Template name"
           />
-          <div className="flex justify-end space-x-2">
+          <div className="flex justify-end gap-3">
             <button
               onClick={() => setShowTemplatePrompt(false)}
-              className="px-3 py-1.5 text-sm rounded-lg text-gray-600 hover:bg-gray-100"
+              className="inline-flex items-center gap-2 bg-white text-gray-700 border border-gray-300 px-3 py-1.5 rounded-lg text-sm font-semibold hover:bg-gray-50 transition-colors"
             >
               No thanks
             </button>
             <button
               onClick={handleSaveTemplate}
               disabled={!templateName.trim()}
-              className="px-3 py-1.5 text-sm rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
+              className="inline-flex items-center gap-2 bg-blue-600 text-white px-3 py-1.5 rounded-lg text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors disabled:opacity-50"
             >
               Save as template
             </button>
