@@ -624,6 +624,14 @@ const ProjectManagementSystem = () => {
         }
     }, [activeTab]);
 
+    // Loaded once up front (not gated behind visiting the Team tab) - teamMembers backs the task
+    // assignee dropdown and the project team picker too, both reachable from any tab, so those must
+    // not render empty just because nobody has opened Team yet this session.
+    useEffect(() => {
+        loadTeamMembers();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
     useEffect(() => {
         if (activeTab === 'tasks') {
             loadTasks();
@@ -2180,6 +2188,32 @@ const ProjectManagementSystem = () => {
                                     onChange={(e) => setNewProject({ ...newProject, tags: e.target.value })}
                                     className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
                                 />
+                                <div>
+                                    <label className="block text-sm text-gray-600 mb-1.5">Team members</label>
+                                    <div className="border border-gray-200 rounded-[10px] max-h-40 overflow-y-auto divide-y divide-gray-100">
+                                        {teamMembers.length === 0 ? (
+                                            <p className="px-3.5 py-2.5 text-sm text-gray-400">No team members yet.</p>
+                                        ) : (
+                                            teamMembers.map((member) => (
+                                                <label key={member.id} className="flex items-center gap-2.5 px-3.5 py-2 text-sm cursor-pointer hover:bg-gray-50/60 transition-colors">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={newProject.teamMemberIds.includes(member.id)}
+                                                        onChange={(e) => setNewProject((prev) => ({
+                                                            ...prev,
+                                                            teamMemberIds: e.target.checked
+                                                                ? [...prev.teamMemberIds, member.id]
+                                                                : prev.teamMemberIds.filter((id) => id !== member.id),
+                                                        }))}
+                                                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                                    />
+                                                    <span className="text-gray-900">{member.name}</span>
+                                                    <span className="text-gray-400 text-xs">{member.position}</span>
+                                                </label>
+                                            ))
+                                        )}
+                                    </div>
+                                </div>
                             </div>
                             <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3">
                                 <button
