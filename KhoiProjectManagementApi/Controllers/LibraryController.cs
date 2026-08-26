@@ -68,6 +68,26 @@ namespace KhoiProjectManagementApi.Controllers
             }
         }
 
+        // Same content/permission check as /download - the only difference is omitting fileDownloadName,
+        // which is what makes ASP.NET Core send it without a Content-Disposition: attachment header, so
+        // the browser renders it inline (PDFs/images) instead of always forcing a save-as prompt.
+        [HttpGet("files/{id}/view")]
+        public async Task<IActionResult> ViewFile(int id)
+        {
+            try
+            {
+                var result = await _libraryService.DownloadCurrentAsync(id, User);
+                if (result == null)
+                    return NotFound();
+
+                return File(result.Value.Content, result.Value.ContentType);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
+            }
+        }
+
         [HttpPost("files")]
         public async Task<IActionResult> UploadFile([FromForm] int spaceId, IFormFile file)
         {

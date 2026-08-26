@@ -743,6 +743,10 @@ class ApiService {
     return await this.downloadBlob(`/library/files/${id}/download`, fileName);
   }
 
+  async viewLibraryFile(id) {
+    return await this.viewBlob(`/library/files/${id}/view`);
+  }
+
   async downloadLibraryFileVersion(id, versionNumber, fileName) {
     return await this.downloadBlob(`/library/files/${id}/versions/${versionNumber}/download`, fileName);
   }
@@ -797,6 +801,40 @@ class ApiService {
     link.click();
     link.remove();
     window.URL.revokeObjectURL(blobUrl);
+  }
+
+  // Same auth-header fetch as downloadBlob, but opens the result in a new tab instead of forcing a
+  // save-as - the backend's /view endpoint (unlike /download) sends no Content-Disposition, so a
+  // viewable type (PDF, image) renders inline there. The tab is opened synchronously, before the
+  // await, because popup blockers only allow window.open() as a direct response to the click that
+  // triggered it - opening it after the fetch resolves would get silently blocked.
+  async viewBlob(endpoint) {
+    const tab = window.open('', '_blank');
+    try {
+      const url = `${API_BASE_URL}${endpoint}`;
+      const response = await this.authorizedFetch(url, {
+        headers: {
+          ...(this.token && { Authorization: `Bearer ${this.token}` }),
+        },
+      }, UPLOAD_TIMEOUT_MS);
+
+      if (!response.ok) {
+        throw await this.buildResponseError(response);
+      }
+
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      if (tab) {
+        tab.location.href = blobUrl;
+      } else {
+        // Popup was blocked despite the synchronous open (rare, but some browsers still refuse it) -
+        // fall back to navigating the current tab so the file isn't just silently unreachable.
+        window.location.href = blobUrl;
+      }
+    } catch (err) {
+      tab?.close();
+      throw err;
+    }
   }
 
   // Global search (header search bar) - across Projects/Tasks/People, same org-wide visibility as

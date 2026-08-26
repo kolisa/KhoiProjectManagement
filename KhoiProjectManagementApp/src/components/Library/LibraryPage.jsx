@@ -1,6 +1,6 @@
 // src/components/Library/LibraryPage.js
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Upload, FolderOpen, FolderPlus, Download, Trash2, History, Plus, X, Users } from 'lucide-react';
+import { Upload, FolderOpen, FolderPlus, Download, Trash2, History, Plus, X, Users, Eye } from 'lucide-react';
 import SpaceTree from '../Spaces/SpaceTree';
 import LibraryVersionHistory from './LibraryVersionHistory';
 import ManageAccessModal from '../Spaces/ManageAccessModal';
@@ -21,6 +21,14 @@ const LibraryPage = ({ apiService, user, teamMembers = [], deepLink }) => {
   const [uploading, setUploading] = useState(false);
   const [treeKey, setTreeKey] = useState(0);
   const [showNewFolder, setShowNewFolder] = useState(false);
+  // Explicit target for the folder about to be created, set only when the modal is opened - NOT
+  // derived from selectedSpace at submit time. SpaceTree auto-selects the first root folder the
+  // moment it loads, so a submit-time `selectedSpace?.id ?? null` silently turns every "New root
+  // folder" click into "new subfolder under whatever's currently selected" once any root folder
+  // exists, making a second root folder unreachable through the UI. Two separate entry points below
+  // (the tree-header "+" always passes null; "New subfolder" passes selectedSpace.id) remove the
+  // ambiguity instead of trying to infer intent from selection state.
+  const [newFolderParentId, setNewFolderParentId] = useState(null);
   const [newFolderName, setNewFolderName] = useState('');
   const [creatingFolder, setCreatingFolder] = useState(false);
   const [showManageAccess, setShowManageAccess] = useState(false);
@@ -106,6 +114,14 @@ const LibraryPage = ({ apiService, user, teamMembers = [], deepLink }) => {
     }
   };
 
+  const handleView = async (file) => {
+    try {
+      await apiService.viewLibraryFile(file.id);
+    } catch (err) {
+      reportApiError(toast, err, 'Could not open this file.');
+    }
+  };
+
   const handleDownload = async (file) => {
     try {
       await apiService.downloadLibraryFile(file.id, file.fileName);
@@ -130,9 +146,13 @@ const LibraryPage = ({ apiService, user, teamMembers = [], deepLink }) => {
 
   // Creating a root folder needs spaces.manage (matches SpacesController.CreateSpace's rule for a
   // parentless Space); creating a subfolder just needs Manage on the currently selected folder.
-  const canCreateFolder = selectedSpace
-    ? hasSpaceLevel(selectedSpace.myEffectiveLevel, 'Manage')
-    : hasPermission(user?.permissions, 'spaces.manage');
+  const canCreateRootFolder = hasPermission(user?.permissions, 'spaces.manage');
+
+  const openNewFolder = (parentId) => {
+    setNewFolderParentId(parentId);
+    setError(null);
+    setShowNewFolder(true);
+  };
 
   const handleCreateFolder = async () => {
     if (!newFolderName.trim()) return;
@@ -141,7 +161,7 @@ const LibraryPage = ({ apiService, user, teamMembers = [], deepLink }) => {
       await apiService.createSpace({
         name: newFolderName.trim(),
         description: '',
-        parentSpaceId: selectedSpace?.id ?? null,
+        parentSpaceId: newFolderParentId,
         spaceType: 'Generic',
         inheritPermissions: true,
       });
@@ -182,12 +202,12 @@ const LibraryPage = ({ apiService, user, teamMembers = [], deepLink }) => {
         <div className="md:col-span-1 bg-white rounded-2xl border border-gray-100 shadow-sm p-3">
           <div className="flex justify-between items-center mb-2 px-1">
             <span className="text-xs font-semibold text-gray-500 uppercase">Folders</span>
-            {canCreateFolder && (
+            {canCreateRootFolder && (
               <button
-                onClick={() => { setError(null); setShowNewFolder(true); }}
+                onClick={() => openNewFolder(null)}
                 className="text-gray-400 hover:bg-gray-100 rounded-md p-1.5 transition-colors"
-                aria-label={selectedSpace ? 'New subfolder' : 'New root folder'}
-                title={selectedSpace ? `New subfolder under "${selectedSpace.name}"` : 'New root folder'}
+                aria-label="New root folder"
+                title="New root folder"
               >
                 <FolderPlus className="h-4 w-4" />
               </button>
@@ -230,6 +250,16 @@ const LibraryPage = ({ apiService, user, teamMembers = [], deepLink }) => {
                       Manage access
                     </button>
                   )}
+                  {canManage && (
+                    <button
+                      onClick={() => openNewFolder(selectedSpace.id)}
+                      className="inline-flex items-center gap-2 bg-white text-gray-700 border border-gray-300 px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-gray-50 transition-colors"
+                      title={`New subfolder under "${selectedSpace.name}"`}
+                    >
+                      <FolderPlus className="h-4 w-4" />
+                      New subfolder
+                    </button>
+                  )}
                   {canWrite && (
                     <button
                       onClick={() => uploadInputRef.current?.click()}
@@ -268,9 +298,18 @@ const LibraryPage = ({ apiService, user, teamMembers = [], deepLink }) => {
                         </div>
                         <div className="flex items-center space-x-3">
                           <button
+                            onClick={() => handleView(file)}
+                            className="text-gray-400 hover:bg-gray-100 rounded-md p-1.5 transition-colors"
+                            aria-label="View"
+                            title="View in a new tab"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </button>
+                          <button
                             onClick={() => handleDownload(file)}
                             className="text-blue-600 hover:bg-gray-100 rounded-md p-1.5 transition-colors"
                             aria-label="Download"
+                            title="Download"
                           >
                             <Download className="h-4 w-4" />
                           </button>
@@ -278,6 +317,7 @@ const LibraryPage = ({ apiService, user, teamMembers = [], deepLink }) => {
                             onClick={() => setExpandedFileId(expandedFileId === file.id ? null : file.id)}
                             className="text-gray-400 hover:bg-gray-100 rounded-md p-1.5 transition-colors"
                             aria-label="Version history"
+                            title="Version history"
                           >
                             <History className="h-4 w-4" />
                           </button>
@@ -290,6 +330,7 @@ const LibraryPage = ({ apiService, user, teamMembers = [], deepLink }) => {
                               onClick={() => { versionTargetIdRef.current = file.id; versionInputRef.current?.click(); }}
                               className="text-gray-400 hover:bg-gray-100 rounded-md p-1.5 transition-colors"
                               aria-label="Upload new version"
+                              title="Upload new version"
                             >
                               <Plus className="h-4 w-4" />
                             </button>
@@ -299,6 +340,7 @@ const LibraryPage = ({ apiService, user, teamMembers = [], deepLink }) => {
                               onClick={() => handleDelete(file)}
                               className="text-red-400 hover:bg-gray-100 rounded-md p-1.5 transition-colors"
                               aria-label="Delete"
+                              title="Delete"
                             >
                               <Trash2 className="h-4 w-4" />
                             </button>
@@ -334,7 +376,7 @@ const LibraryPage = ({ apiService, user, teamMembers = [], deepLink }) => {
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
               <h3 className="text-base font-semibold text-gray-900">
-                {selectedSpace ? `New subfolder under "${selectedSpace.name}"` : 'New root folder'}
+                {newFolderParentId ? `New subfolder under "${selectedSpace?.name}"` : 'New root folder'}
               </h3>
               <button
                 onClick={() => { setShowNewFolder(false); setNewFolderName(''); }}
@@ -346,7 +388,7 @@ const LibraryPage = ({ apiService, user, teamMembers = [], deepLink }) => {
             </div>
             <div className="px-6 py-5 space-y-4">
               <p className="text-sm text-gray-500">
-                {selectedSpace
+                {newFolderParentId
                   ? 'Creates a folder nested under the currently selected folder.'
                   : 'Creates a new top-level folder, visible in the tree.'}
               </p>

@@ -18,6 +18,14 @@ const WikiPage = ({ apiService, user, teamMembers = [], deepLink }) => {
   const [treeKey, setTreeKey] = useState(0);
   const [showManageAccess, setShowManageAccess] = useState(false);
   const [showNewSpace, setShowNewSpace] = useState(false);
+  // Explicit target for the space about to be created, set only when the modal is opened - NOT
+  // derived from selectedSpace at submit time. SpaceTree auto-selects the first root space the
+  // moment it loads, so a submit-time `selectedSpace?.id ?? null` silently turns every "New wiki
+  // space" click into "new space nested under whatever's currently selected" once any root space
+  // exists, making a second root space unreachable through the UI. Two separate entry points below
+  // (the tree-header "+" always passes null; "New subcategory" passes selectedSpace.id) remove the
+  // ambiguity instead of trying to infer intent from selection state.
+  const [newSpaceParentId, setNewSpaceParentId] = useState(null);
   const [newSpaceName, setNewSpaceName] = useState('');
   const [creatingSpace, setCreatingSpace] = useState(false);
   const [spaceError, setSpaceError] = useState(null);
@@ -149,9 +157,13 @@ const WikiPage = ({ apiService, user, teamMembers = [], deepLink }) => {
   // Creating a root Wiki space needs spaces.manage (matches SpacesController.CreateSpace's rule for
   // a parentless Space); creating a nested one just needs Manage on the currently selected space -
   // same rule Library's "New folder" / Vault's "New category" already use for the same Space model.
-  const canCreateSpace = selectedSpace
-    ? hasSpaceLevel(selectedSpace.myEffectiveLevel, 'Manage')
-    : hasPermission(user?.permissions, 'spaces.manage');
+  const canCreateRootSpace = hasPermission(user?.permissions, 'spaces.manage');
+
+  const openNewSpace = (parentId) => {
+    setNewSpaceParentId(parentId);
+    setSpaceError(null);
+    setShowNewSpace(true);
+  };
 
   const handleCreateSpace = async () => {
     if (!newSpaceName.trim()) return;
@@ -161,7 +173,7 @@ const WikiPage = ({ apiService, user, teamMembers = [], deepLink }) => {
       await apiService.createSpace({
         name: newSpaceName.trim(),
         description: '',
-        parentSpaceId: selectedSpace?.id ?? null,
+        parentSpaceId: newSpaceParentId,
         spaceType: 'Generic',
         inheritPermissions: true,
       });
@@ -281,12 +293,12 @@ const WikiPage = ({ apiService, user, teamMembers = [], deepLink }) => {
         <div className="md:col-span-1 bg-white rounded-2xl border border-gray-100 shadow-sm p-3">
           <div className="flex justify-between items-center mb-2 px-1">
             <span className="text-xs font-semibold text-gray-500 uppercase">Spaces</span>
-            {canCreateSpace && (
+            {canCreateRootSpace && (
               <button
-                onClick={() => { setSpaceError(null); setShowNewSpace(true); }}
+                onClick={() => openNewSpace(null)}
                 className="text-gray-400 hover:bg-gray-100 rounded-md p-1.5 transition-colors"
-                aria-label={selectedSpace ? 'New nested space' : 'New wiki space'}
-                title={selectedSpace ? `New space nested under "${selectedSpace.name}"` : 'New wiki space'}
+                aria-label="New wiki space"
+                title="New root wiki space"
               >
                 <FolderPlus className="h-4 w-4" />
               </button>
@@ -348,6 +360,16 @@ const WikiPage = ({ apiService, user, teamMembers = [], deepLink }) => {
                     >
                       <Users className="h-4 w-4" />
                       Manage access
+                    </button>
+                  )}
+                  {canManage && (
+                    <button
+                      onClick={() => openNewSpace(selectedSpace.id)}
+                      className="inline-flex items-center gap-2 bg-white text-gray-700 border border-gray-300 px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-gray-50 transition-colors"
+                      title={`New space nested under "${selectedSpace.name}"`}
+                    >
+                      <FolderPlus className="h-4 w-4" />
+                      New subspace
                     </button>
                   )}
                   {canWrite && (
@@ -452,7 +474,7 @@ const WikiPage = ({ apiService, user, teamMembers = [], deepLink }) => {
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
               <h3 className="text-base font-semibold text-gray-900">
-                {selectedSpace ? `New space under "${selectedSpace.name}"` : 'New wiki space'}
+                {newSpaceParentId ? `New space under "${selectedSpace?.name}"` : 'New wiki space'}
               </h3>
               <button
                 onClick={() => { setShowNewSpace(false); setNewSpaceName(''); }}
@@ -464,7 +486,7 @@ const WikiPage = ({ apiService, user, teamMembers = [], deepLink }) => {
             </div>
             <div className="px-6 py-5 space-y-4">
               <p className="text-sm text-gray-500">
-                {selectedSpace
+                {newSpaceParentId
                   ? 'Creates a space nested under the currently selected space.'
                   : 'Creates a new top-level wiki space, visible in the tree.'}
               </p>

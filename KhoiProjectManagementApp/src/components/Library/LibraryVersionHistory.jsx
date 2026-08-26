@@ -47,6 +47,7 @@ const LibraryVersionHistory = ({ apiService, file }) => {
             onClick={() => handleDownloadVersion(v.versionNumber)}
             className="text-blue-600 hover:bg-gray-100 rounded-md p-1.5 transition-colors"
             aria-label="Download this version"
+            title={`Download v${v.versionNumber}`}
           >
             <Download className="h-4 w-4" />
           </button>

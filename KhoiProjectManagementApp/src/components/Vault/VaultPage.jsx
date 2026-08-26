@@ -23,6 +23,15 @@ const VaultPage = ({ apiService, user, teamMembers = [] }) => {
   const [granteeCount, setGranteeCount] = useState(null);
   const [treeKey, setTreeKey] = useState(0);
   const [showNewCategory, setShowNewCategory] = useState(false);
+  // Set explicitly by whichever button opened the modal (null = root) - NOT derived from
+  // selectedSpace at submit time. SpaceTree auto-selects the first root category the moment one
+  // exists (see its own "never rest on an empty placeholder" comment), so after creating the very
+  // first category it was always selected already - every subsequent click on a selection-relative
+  // "New category" button silently created a *subcategory* of it instead of a second root category,
+  // with no way back out. Two separate, explicit entry points fixes it: this one for "new root
+  // category" (always root, wherever it's clicked from) and a second one inside the selected
+  // category's own header for "new subcategory here" (see canManage button below).
+  const [newCategoryParentId, setNewCategoryParentId] = useState(null);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [creatingCategory, setCreatingCategory] = useState(false);
   const [categoryError, setCategoryError] = useState(null);
@@ -75,9 +84,13 @@ const VaultPage = ({ apiService, user, teamMembers = [] }) => {
   // Creating a root category needs spaces.manage (matches SpacesController.CreateSpace's rule for a
   // parentless Space); creating a subcategory just needs Manage on the currently selected category -
   // same rule Library's "New folder" already uses, since categories/folders are both just Spaces.
-  const canCreateCategory = selectedSpace
-    ? hasSpaceLevel(selectedSpace.myEffectiveLevel, 'Manage')
-    : hasPermission(user?.permissions, 'spaces.manage');
+  const canCreateRootCategory = hasPermission(user?.permissions, 'spaces.manage');
+
+  const openNewCategory = (parentId) => {
+    setNewCategoryParentId(parentId);
+    setCategoryError(null);
+    setShowNewCategory(true);
+  };
 
   const handleCreateCategory = async () => {
     if (!newCategoryName.trim()) return;
@@ -87,7 +100,7 @@ const VaultPage = ({ apiService, user, teamMembers = [] }) => {
       await apiService.createSpace({
         name: newCategoryName.trim(),
         description: '',
-        parentSpaceId: selectedSpace?.id ?? null,
+        parentSpaceId: newCategoryParentId,
         spaceType: 'Generic',
         inheritPermissions: true,
       });
@@ -128,12 +141,12 @@ const VaultPage = ({ apiService, user, teamMembers = [] }) => {
         <div className="md:col-span-1 bg-white rounded-2xl border border-gray-100 shadow-sm p-3">
           <div className="flex justify-between items-center mb-2 px-1">
             <span className="text-xs font-semibold text-gray-500 uppercase">Categories</span>
-            {canCreateCategory && (
+            {canCreateRootCategory && (
               <button
-                onClick={() => { setCategoryError(null); setShowNewCategory(true); }}
+                onClick={() => openNewCategory(null)}
                 className="text-gray-400 hover:bg-gray-100 rounded-md p-1.5 transition-colors"
-                aria-label={selectedSpace ? 'New subcategory' : 'New category'}
-                title={selectedSpace ? `New subcategory under "${selectedSpace.name}"` : 'New category'}
+                aria-label="New category"
+                title="New root category"
               >
                 <FolderPlus className="h-4 w-4" />
               </button>
@@ -168,6 +181,16 @@ const VaultPage = ({ apiService, user, teamMembers = [] }) => {
                       title="Delete this category (must be empty)"
                     >
                       <Trash2 className="h-4 w-4" />
+                    </button>
+                  )}
+                  {canManage && (
+                    <button
+                      onClick={() => openNewCategory(selectedSpace.id)}
+                      className="inline-flex items-center gap-2 bg-white text-gray-700 border border-gray-300 px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-gray-50 transition-colors"
+                      title={`New subcategory under "${selectedSpace.name}"`}
+                    >
+                      <FolderPlus className="h-4 w-4" />
+                      New subcategory
                     </button>
                   )}
                   {canManage && (
@@ -274,7 +297,7 @@ const VaultPage = ({ apiService, user, teamMembers = [] }) => {
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
               <h3 className="text-base font-semibold text-gray-900">
-                {selectedSpace ? `New subcategory under "${selectedSpace.name}"` : 'New category'}
+                {newCategoryParentId ? `New subcategory under "${selectedSpace?.name}"` : 'New category'}
               </h3>
               <button
                 onClick={() => { setShowNewCategory(false); setNewCategoryName(''); }}
@@ -286,7 +309,7 @@ const VaultPage = ({ apiService, user, teamMembers = [] }) => {
             </div>
             <div className="px-6 py-5 space-y-4">
               <p className="text-sm text-gray-500">
-                {selectedSpace
+                {newCategoryParentId
                   ? 'Creates a category nested under the currently selected category.'
                   : 'Creates a new top-level category, visible in the tree.'}
               </p>
