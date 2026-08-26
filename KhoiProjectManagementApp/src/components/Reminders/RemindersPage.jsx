@@ -229,6 +229,16 @@ const RemindersPage = ({ apiService, user }) => {
       reportApiError(toast, err, 'Could not update priority for the selected reminders.');
     }
   };
+  const handleBulkAssign = async (assignedToId) => {
+    try {
+      await apiService.bulkAssignReminders(selectedIds, assignedToId);
+      clearSelection();
+      await refreshAll();
+      toast.success('Reminders reassigned.');
+    } catch (err) {
+      reportApiError(toast, err, 'Could not reassign the selected reminders.');
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -281,6 +291,8 @@ const RemindersPage = ({ apiService, user }) => {
           onDelete={handleBulkDelete}
           onReschedule={handleBulkReschedule}
           onPriority={handleBulkPriority}
+          onAssign={canManage ? handleBulkAssign : null}
+          users={users}
           onClear={clearSelection}
         />
       )}

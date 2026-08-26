@@ -1,6 +1,6 @@
 // src/components/Finance/InvoiceDetail.js
 import React, { useState, useRef } from 'react';
-import { Upload, Download, X } from 'lucide-react';
+import { Upload, Download, X, Trash2 } from 'lucide-react';
 import { hasPermission } from '../../utils/permissions';
 import { useToast } from '../../contexts/ToastContext';
 import { reportApiError } from '../../utils/apiError';
@@ -17,7 +17,7 @@ const InvoiceStatusBadge = ({ status }) => (
   </span>
 );
 
-const InvoiceDetail = ({ apiService, user, invoice, onClose, onChanged }) => {
+const InvoiceDetail = ({ apiService, user, invoice, onClose, onChanged, onDeleted }) => {
   const toast = useToast();
   const [uploading, setUploading] = useState(false);
   const [showTemplatePrompt, setShowTemplatePrompt] = useState(false);
@@ -77,6 +77,17 @@ const InvoiceDetail = ({ apiService, user, invoice, onClose, onChanged }) => {
     }
   };
 
+  const handleDelete = async () => {
+    if (!window.confirm(`Delete invoice ${invoice.invoiceNumber}? This cannot be undone.`)) return;
+    try {
+      await apiService.deleteInvoice(invoice.id);
+      toast.success('Invoice deleted.');
+      onDeleted();
+    } catch (err) {
+      reportApiError(toast, err, 'Could not delete this invoice.');
+    }
+  };
+
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
       <div className="flex justify-between items-start mb-4">
@@ -84,9 +95,16 @@ const InvoiceDetail = ({ apiService, user, invoice, onClose, onChanged }) => {
           <h3 className="font-mono text-base font-semibold text-gray-900">{invoice.invoiceNumber}</h3>
           <p className="text-sm text-gray-500">{invoice.clientName}</p>
         </div>
-        <button onClick={onClose} className="text-gray-400 hover:text-gray-600" aria-label="Close">
-          <X className="h-4 w-4" />
-        </button>
+        <div className="flex items-center gap-1">
+          {canManage && (
+            <button onClick={handleDelete} className="text-gray-400 hover:text-red-600 p-1" aria-label="Delete invoice">
+              <Trash2 className="h-4 w-4" />
+            </button>
+          )}
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 p-1" aria-label="Close">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
       </div>
 
       <dl className="space-y-2 text-sm mb-4">

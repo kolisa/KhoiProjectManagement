@@ -1,8 +1,9 @@
 // src/components/Library/LibraryPage.js
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Upload, FolderOpen, FolderPlus, Download, Trash2, History, Plus, X } from 'lucide-react';
+import { Upload, FolderOpen, FolderPlus, Download, Trash2, History, Plus, X, Users } from 'lucide-react';
 import SpaceTree from '../Spaces/SpaceTree';
 import LibraryVersionHistory from './LibraryVersionHistory';
+import ManageAccessModal from '../Spaces/ManageAccessModal';
 import { hasSpaceLevel } from '../../utils/spaceLevel';
 import { hasPermission } from '../../utils/permissions';
 import { formatFileSize } from '../../utils/formatFileSize';
@@ -10,7 +11,7 @@ import ShareButton from '../Common/ShareButton';
 import { useToast } from '../../contexts/ToastContext';
 import { reportApiError } from '../../utils/apiError';
 
-const LibraryPage = ({ apiService, user, deepLink }) => {
+const LibraryPage = ({ apiService, user, teamMembers = [], deepLink }) => {
   const toast = useToast();
   const [selectedSpace, setSelectedSpace] = useState(null);
   const [files, setFiles] = useState([]);
@@ -22,6 +23,7 @@ const LibraryPage = ({ apiService, user, deepLink }) => {
   const [showNewFolder, setShowNewFolder] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
   const [creatingFolder, setCreatingFolder] = useState(false);
+  const [showManageAccess, setShowManageAccess] = useState(false);
   const uploadInputRef = useRef(null);
   const versionInputRef = useRef(null);
   const versionTargetIdRef = useRef(null);
@@ -154,6 +156,18 @@ const LibraryPage = ({ apiService, user, deepLink }) => {
     }
   };
 
+  const handleDeleteFolder = async () => {
+    if (!window.confirm(`Delete "${selectedSpace.name}"? This only works if it's empty.`)) return;
+    try {
+      await apiService.deleteSpace(selectedSpace.id);
+      setSelectedSpace(null);
+      setTreeKey((k) => k + 1);
+      toast.success('Folder deleted.');
+    } catch (err) {
+      reportApiError(toast, err, 'Could not delete this folder.');
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -196,8 +210,27 @@ const LibraryPage = ({ apiService, user, deepLink }) => {
                   <h3 className="text-xl font-semibold text-gray-900">{selectedSpace.name}</h3>
                   <p className="text-sm text-gray-500">{files.length} file{files.length !== 1 ? 's' : ''}</p>
                 </div>
-                {canWrite && (
-                  <>
+                <div className="flex items-center gap-2">
+                  {canManage && (
+                    <button
+                      onClick={handleDeleteFolder}
+                      className="text-gray-400 hover:bg-gray-100 hover:text-red-600 rounded-md p-2 transition-colors"
+                      aria-label="Delete folder"
+                      title="Delete this folder (must be empty)"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  )}
+                  {canManage && (
+                    <button
+                      onClick={() => setShowManageAccess(true)}
+                      className="inline-flex items-center gap-2 bg-white text-gray-700 border border-gray-300 px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-gray-50 transition-colors"
+                    >
+                      <Users className="h-4 w-4" />
+                      Manage access
+                    </button>
+                  )}
+                  {canWrite && (
                     <button
                       onClick={() => uploadInputRef.current?.click()}
                       disabled={uploading}
@@ -206,6 +239,10 @@ const LibraryPage = ({ apiService, user, deepLink }) => {
                       <Upload className="h-5 w-5" />
                       {uploading ? 'Uploading...' : 'Upload File'}
                     </button>
+                  )}
+                </div>
+                {canWrite && (
+                  <>
                     <input ref={uploadInputRef} type="file" className="hidden" onChange={handleUploadNew} />
                     <input ref={versionInputRef} type="file" className="hidden" onChange={handleUploadVersion} />
                   </>
@@ -281,6 +318,16 @@ const LibraryPage = ({ apiService, user, deepLink }) => {
           )}
         </div>
       </div>
+
+      {showManageAccess && selectedSpace && (
+        <ManageAccessModal
+          apiService={apiService}
+          space={selectedSpace}
+          teamMembers={teamMembers}
+          currentUser={user}
+          onClose={() => setShowManageAccess(false)}
+        />
+      )}
 
       {showNewFolder && (
         <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">

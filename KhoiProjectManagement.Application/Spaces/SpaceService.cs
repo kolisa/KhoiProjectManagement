@@ -15,6 +15,8 @@ namespace KhoiProjectManagement.Application
         private readonly IRepository<SpacePermission> _spacePermissionRepo;
         private readonly IRepository<User> _userRepo;
         private readonly IRepository<VaultEntry> _vaultEntryRepo;
+        private readonly IRepository<WikiPage> _wikiPageRepo;
+        private readonly IRepository<LibraryFile> _libraryFileRepo;
         private readonly IRepository<UserRole> _userRoleRepo;
         private readonly IUnitOfWork _unitOfWork;
         private readonly ISpacePermissionResolver _resolver;
@@ -25,6 +27,8 @@ namespace KhoiProjectManagement.Application
             IRepository<SpacePermission> spacePermissionRepo,
             IRepository<User> userRepo,
             IRepository<VaultEntry> vaultEntryRepo,
+            IRepository<WikiPage> wikiPageRepo,
+            IRepository<LibraryFile> libraryFileRepo,
             IRepository<UserRole> userRoleRepo,
             IUnitOfWork unitOfWork,
             ISpacePermissionResolver resolver)
@@ -34,6 +38,8 @@ namespace KhoiProjectManagement.Application
             _spacePermissionRepo = spacePermissionRepo;
             _userRepo = userRepo;
             _vaultEntryRepo = vaultEntryRepo;
+            _wikiPageRepo = wikiPageRepo;
+            _libraryFileRepo = libraryFileRepo;
             _userRoleRepo = userRoleRepo;
             _unitOfWork = unitOfWork;
             _resolver = resolver;
@@ -205,9 +211,11 @@ namespace KhoiProjectManagement.Application
 
             var hasChildren = await _spaceRepo.Query().AnyAsync(s => s.ParentSpaceId == id);
             var hasVaultEntries = await _vaultEntryRepo.Query().AnyAsync(v => v.SpaceId == id);
-            if (hasChildren || hasVaultEntries)
+            var hasWikiPages = await _wikiPageRepo.Query().AnyAsync(w => w.SpaceId == id);
+            var hasLibraryFiles = await _libraryFileRepo.Query().AnyAsync(f => f.SpaceId == id);
+            if (hasChildren || hasVaultEntries || hasWikiPages || hasLibraryFiles)
             {
-                throw new InvalidOperationException("Cannot delete a Space that still has child Spaces or entries - move or remove them first.");
+                throw new InvalidOperationException("Cannot delete a Space that still has child Spaces, entries, pages, or files - move or remove them first.");
             }
 
             space.IsActive = false;

@@ -1,18 +1,26 @@
 // src/components/Wiki/WikiPage.js
 import React, { useState, useEffect, useRef } from 'react';
-import { Plus, BookOpen, FileText, ChevronRight, Search, X, GripVertical } from 'lucide-react';
+import { Plus, BookOpen, FileText, ChevronRight, Search, X, GripVertical, FolderPlus, Users, Trash2 } from 'lucide-react';
 import SpaceTree from '../Spaces/SpaceTree';
 import WikiPageDetail from './WikiPageDetail';
 import WikiPageEditor from './WikiPageEditor';
+import ManageAccessModal from '../Spaces/ManageAccessModal';
 import { hasSpaceLevel } from '../../utils/spaceLevel';
+import { hasPermission } from '../../utils/permissions';
 import { useToast } from '../../contexts/ToastContext';
 import { reportApiError } from '../../utils/apiError';
 
 const SEARCH_DEBOUNCE_MS = 350;
 
-const WikiPage = ({ apiService, user, deepLink }) => {
+const WikiPage = ({ apiService, user, teamMembers = [], deepLink }) => {
   const toast = useToast();
   const [selectedSpace, setSelectedSpace] = useState(null);
+  const [treeKey, setTreeKey] = useState(0);
+  const [showManageAccess, setShowManageAccess] = useState(false);
+  const [showNewSpace, setShowNewSpace] = useState(false);
+  const [newSpaceName, setNewSpaceName] = useState('');
+  const [creatingSpace, setCreatingSpace] = useState(false);
+  const [spaceError, setSpaceError] = useState(null);
   // breadcrumb: array of { id, title } - null parentPageId means Space root
   const [breadcrumb, setBreadcrumb] = useState([]);
   const [pages, setPages] = useState([]);
@@ -136,6 +144,49 @@ const WikiPage = ({ apiService, user, deepLink }) => {
   };
 
   const canWrite = selectedSpace && hasSpaceLevel(selectedSpace.myEffectiveLevel, 'Write');
+  const canManage = selectedSpace && hasSpaceLevel(selectedSpace.myEffectiveLevel, 'Manage');
+
+  // Creating a root Wiki space needs spaces.manage (matches SpacesController.CreateSpace's rule for
+  // a parentless Space); creating a nested one just needs Manage on the currently selected space -
+  // same rule Library's "New folder" / Vault's "New category" already use for the same Space model.
+  const canCreateSpace = selectedSpace
+    ? hasSpaceLevel(selectedSpace.myEffectiveLevel, 'Manage')
+    : hasPermission(user?.permissions, 'spaces.manage');
+
+  const handleCreateSpace = async () => {
+    if (!newSpaceName.trim()) return;
+    setCreatingSpace(true);
+    setSpaceError(null);
+    try {
+      await apiService.createSpace({
+        name: newSpaceName.trim(),
+        description: '',
+        parentSpaceId: selectedSpace?.id ?? null,
+        spaceType: 'Generic',
+        inheritPermissions: true,
+      });
+      setShowNewSpace(false);
+      setNewSpaceName('');
+      setTreeKey((k) => k + 1);
+      toast.success('Wiki space created.');
+    } catch (err) {
+      setSpaceError(err.message);
+    } finally {
+      setCreatingSpace(false);
+    }
+  };
+
+  const handleDeleteSpace = async () => {
+    if (!window.confirm(`Delete "${selectedSpace.name}"? This only works if it's empty.`)) return;
+    try {
+      await apiService.deleteSpace(selectedSpace.id);
+      setSelectedSpace(null);
+      setTreeKey((k) => k + 1);
+      toast.success('Wiki space deleted.');
+    } catch (err) {
+      reportApiError(toast, err, 'Could not delete this space.');
+    }
+  };
 
   // Drag-and-drop reorders within the currently-visible sibling list; "Move to" re-parents up the
   // visible ancestry (root or any breadcrumb ancestor). Moving to an arbitrary branch not currently in
@@ -228,7 +279,20 @@ const WikiPage = ({ apiService, user, deepLink }) => {
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <div className="md:col-span-1 bg-white rounded-2xl border border-gray-100 shadow-sm p-3">
-          <SpaceTree apiService={apiService} selectedSpaceId={selectedSpace?.id} onSelect={handleSelectSpace} />
+          <div className="flex justify-between items-center mb-2 px-1">
+            <span className="text-xs font-semibold text-gray-500 uppercase">Spaces</span>
+            {canCreateSpace && (
+              <button
+                onClick={() => { setSpaceError(null); setShowNewSpace(true); }}
+                className="text-gray-400 hover:bg-gray-100 rounded-md p-1.5 transition-colors"
+                aria-label={selectedSpace ? 'New nested space' : 'New wiki space'}
+                title={selectedSpace ? `New space nested under "${selectedSpace.name}"` : 'New wiki space'}
+              >
+                <FolderPlus className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+          <SpaceTree key={treeKey} apiService={apiService} selectedSpaceId={selectedSpace?.id} onSelect={handleSelectSpace} />
         </div>
 
         <div className="md:col-span-3 space-y-4">
@@ -266,15 +330,36 @@ const WikiPage = ({ apiService, user, deepLink }) => {
                   </div>
                   <p className="text-xs text-gray-400 mt-0.5">{pages.length} page{pages.length !== 1 ? 's' : ''}</p>
                 </div>
-                {canWrite && (
-                  <button
-                    onClick={() => setCreatingUnderParentId(currentParentPageId)}
-                    className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors"
-                  >
-                    <Plus className="h-4 w-4" />
-                    New Page
-                  </button>
-                )}
+                <div className="flex items-center gap-2">
+                  {canManage && (
+                    <button
+                      onClick={handleDeleteSpace}
+                      className="text-gray-400 hover:bg-gray-100 hover:text-red-600 rounded-md p-2 transition-colors"
+                      aria-label="Delete space"
+                      title="Delete this space (must be empty)"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  )}
+                  {canManage && (
+                    <button
+                      onClick={() => setShowManageAccess(true)}
+                      className="inline-flex items-center gap-2 bg-white text-gray-700 border border-gray-300 px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-gray-50 transition-colors"
+                    >
+                      <Users className="h-4 w-4" />
+                      Manage access
+                    </button>
+                  )}
+                  {canWrite && (
+                    <button
+                      onClick={() => setCreatingUnderParentId(currentParentPageId)}
+                      className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors"
+                    >
+                      <Plus className="h-4 w-4" />
+                      New Page
+                    </button>
+                  )}
+                </div>
               </div>
 
               {error && <div className="text-red-600 text-sm">{error}</div>}
@@ -351,6 +436,67 @@ const WikiPage = ({ apiService, user, deepLink }) => {
           )}
         </div>
       </div>
+
+      {showManageAccess && selectedSpace && (
+        <ManageAccessModal
+          apiService={apiService}
+          space={selectedSpace}
+          teamMembers={teamMembers}
+          currentUser={user}
+          onClose={() => setShowManageAccess(false)}
+        />
+      )}
+
+      {showNewSpace && (
+        <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+              <h3 className="text-base font-semibold text-gray-900">
+                {selectedSpace ? `New space under "${selectedSpace.name}"` : 'New wiki space'}
+              </h3>
+              <button
+                onClick={() => { setShowNewSpace(false); setNewSpaceName(''); }}
+                className="text-gray-400 hover:bg-gray-100 rounded-md p-1.5 transition-colors"
+                aria-label="Close"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="px-6 py-5 space-y-4">
+              <p className="text-sm text-gray-500">
+                {selectedSpace
+                  ? 'Creates a space nested under the currently selected space.'
+                  : 'Creates a new top-level wiki space, visible in the tree.'}
+              </p>
+              <input
+                type="text"
+                autoFocus
+                value={newSpaceName}
+                onChange={(e) => setNewSpaceName(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleCreateSpace(); }}
+                placeholder="Space name"
+                className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+              />
+              {spaceError && <div className="text-red-600 text-sm">{spaceError}</div>}
+            </div>
+            <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3">
+              <button
+                onClick={() => { setShowNewSpace(false); setNewSpaceName(''); }}
+                className="inline-flex items-center gap-2 bg-white text-gray-700 border border-gray-300 px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateSpace}
+                disabled={creatingSpace || !newSpaceName.trim()}
+                className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors disabled:opacity-50"
+              >
+                {creatingSpace ? 'Creating...' : 'Create'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -4,6 +4,7 @@ import { DollarSign, Plus, FileStack, X } from 'lucide-react';
 import { hasPermission } from '../../utils/permissions';
 import InvoiceDetail from './InvoiceDetail';
 import { useToast } from '../../contexts/ToastContext';
+import { reportApiError } from '../../utils/apiError';
 import { formatCurrency } from '../../utils/currency';
 import { validateInvoice, hasErrors } from '../../utils/validation';
 
@@ -154,6 +155,7 @@ const InvoicesPage = ({ apiService, user }) => {
   const [error, setError] = useState(null);
   const [selectedId, setSelectedId] = useState(null);
   const [showForm, setShowForm] = useState(false);
+  const [showTemplates, setShowTemplates] = useState(false);
 
   const canView = hasPermission(user?.permissions, 'finance.view');
   const canManage = hasPermission(user?.permissions, 'finance.manage');
@@ -193,6 +195,17 @@ const InvoicesPage = ({ apiService, user }) => {
 
   const refreshSelected = async () => {
     await load();
+  };
+
+  const handleDeleteTemplate = async (template) => {
+    if (!window.confirm(`Delete template "${template.name}"?`)) return;
+    try {
+      await apiService.deleteInvoiceTemplate(template.id);
+      await load();
+      toast.success('Template deleted.');
+    } catch (err) {
+      reportApiError(toast, err, 'Could not delete this template.');
+    }
   };
 
   if (!canView) {
@@ -282,9 +295,28 @@ const InvoicesPage = ({ apiService, user }) => {
       })()}
 
       {templates.length > 0 && (
-        <div className="text-sm text-gray-500 flex items-center">
-          <FileStack className="h-4 w-4 mr-1" />
-          {templates.length} saved template{templates.length !== 1 ? 's' : ''} available when creating a new invoice
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm">
+          <button
+            onClick={() => setShowTemplates((v) => !v)}
+            className="w-full text-sm text-gray-500 flex items-center px-4 py-3 hover:bg-gray-50/60 transition-colors"
+          >
+            <FileStack className="h-4 w-4 mr-1.5" />
+            {templates.length} saved template{templates.length !== 1 ? 's' : ''} available when creating a new invoice
+          </button>
+          {showTemplates && (
+            <div className="divide-y divide-gray-100 border-t border-gray-100">
+              {templates.map((t) => (
+                <div key={t.id} className="px-4 py-2.5 flex items-center justify-between text-sm">
+                  <span className="text-gray-900">{t.name}{t.clientName && <span className="text-gray-400"> · {t.clientName}</span>}</span>
+                  {canManage && (
+                    <button onClick={() => handleDeleteTemplate(t)} className="text-red-400 hover:text-red-600 p-1" aria-label={`Delete template ${t.name}`}>
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -318,6 +350,7 @@ const InvoicesPage = ({ apiService, user }) => {
               invoice={selectedInvoice}
               onClose={() => setSelectedId(null)}
               onChanged={refreshSelected}
+              onDeleted={() => { setSelectedId(null); load(); }}
             />
           ) : (
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center text-gray-400">

@@ -1,8 +1,8 @@
 // src/components/Reminders/BulkReminderActions.js
 import React, { useState } from 'react';
-import { CheckCircle, Trash2, Clock, Flag, X } from 'lucide-react';
+import { CheckCircle, Trash2, Clock, X } from 'lucide-react';
 
-const BulkReminderActions = ({ count, onComplete, onDelete, onReschedule, onPriority, onClear }) => {
+const BulkReminderActions = ({ count, onComplete, onDelete, onReschedule, onPriority, onAssign, users, onClear }) => {
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [showReschedule, setShowReschedule] = useState(false);
   const [rescheduleValue, setRescheduleValue] = useState('');
@@ -47,13 +47,25 @@ const BulkReminderActions = ({ count, onComplete, onDelete, onReschedule, onPrio
         className="text-sm bg-white border border-gray-300 rounded-lg px-3 py-1.5 hover:bg-gray-50 transition-colors"
         aria-label="Change priority for selected reminders"
       >
-        <option value="" disabled>
-          <Flag className="h-4 w-4" /> Change priority...
-        </option>
+        <option value="" disabled>Change priority...</option>
         <option value="low">Set Low</option>
         <option value="medium">Set Medium</option>
         <option value="high">Set High</option>
       </select>
+
+      {onAssign && (
+        <select
+          onChange={(e) => { if (e.target.value) { onAssign(Number(e.target.value)); e.target.value = ''; } }}
+          defaultValue=""
+          className="text-sm bg-white border border-gray-300 rounded-lg px-3 py-1.5 hover:bg-gray-50 transition-colors"
+          aria-label="Reassign selected reminders"
+        >
+          <option value="" disabled>Assign to...</option>
+          {users?.map((u) => (
+            <option key={u.id} value={u.id}>{u.name}</option>
+          ))}
+        </select>
+      )}
 
       {confirmingDelete ? (
         <div className="flex items-center space-x-2 bg-red-50 border border-red-200 rounded-lg px-2 py-1">

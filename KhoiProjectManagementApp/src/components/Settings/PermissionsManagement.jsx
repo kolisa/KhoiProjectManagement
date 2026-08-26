@@ -2,7 +2,7 @@
 // Admin UI for RolesController's role->permission mapping (backend already existed - this was the
 // missing frontend). Gated by users.manage_roles, same permission the API endpoints require.
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, Plus, X } from 'lucide-react';
+import { ShieldCheck, Plus, X, Pencil } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import { reportApiError } from '../../utils/apiError';
 import { validateRole, hasErrors } from '../../utils/validation';
@@ -82,6 +82,10 @@ const PermissionsManagement = ({ apiService }) => {
   const [saving, setSaving] = useState(false);
   const [showNewRole, setShowNewRole] = useState(false);
   const [dirty, setDirty] = useState(false);
+  const [editingRole, setEditingRole] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [savingRoleInfo, setSavingRoleInfo] = useState(false);
 
   const load = async () => {
     try {
@@ -104,6 +108,7 @@ const PermissionsManagement = ({ apiService }) => {
   }, []);
 
   useEffect(() => {
+    setEditingRole(false);
     if (!selectedRoleId) return;
     const loadRolePermissions = async () => {
       setLoadingRolePerms(true);
@@ -143,6 +148,31 @@ const PermissionsManagement = ({ apiService }) => {
       reportApiError(toast, err, 'Could not save permissions.');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleStartEditRole = () => {
+    setEditName(selectedRole.name);
+    setEditDescription(selectedRole.description || '');
+    setEditingRole(true);
+  };
+
+  const handleSaveRoleInfo = async () => {
+    const validationErrors = validateRole({ name: editName, description: editDescription });
+    if (hasErrors(validationErrors)) {
+      toast.error(Object.values(validationErrors)[0]);
+      return;
+    }
+    setSavingRoleInfo(true);
+    try {
+      await apiService.updateRole(selectedRoleId, { name: editName, description: editDescription });
+      setEditingRole(false);
+      await load();
+      toast.success('Role updated.');
+    } catch (err) {
+      reportApiError(toast, err, 'Could not update this role.');
+    } finally {
+      setSavingRoleInfo(false);
     }
   };
 
@@ -208,21 +238,58 @@ const PermissionsManagement = ({ apiService }) => {
             <div className="text-gray-400 text-sm">Loading permissions...</div>
           ) : (
             <>
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <div className="font-semibold text-gray-900">{selectedRole.name}</div>
-                  {selectedRole.isSystemRole && (
-                    <div className="text-xs text-gray-400">Built-in role - permissions can be changed, name cannot.</div>
-                  )}
+              {editingRole ? (
+                <div className="mb-4 space-y-2 border border-gray-200 rounded-[10px] p-3">
+                  <input
+                    type="text"
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    placeholder="Role name"
+                    className="w-full border border-gray-300 rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                  <input
+                    type="text"
+                    value={editDescription}
+                    onChange={(e) => setEditDescription(e.target.value)}
+                    placeholder="Description (optional)"
+                    className="w-full border border-gray-300 rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                  <div className="flex justify-end gap-2">
+                    <button onClick={() => setEditingRole(false)} className="text-xs font-semibold text-gray-600 hover:text-gray-800 px-2.5 py-1.5">Cancel</button>
+                    <button
+                      onClick={handleSaveRoleInfo}
+                      disabled={savingRoleInfo}
+                      className="text-xs font-semibold bg-blue-600 text-white px-2.5 py-1.5 rounded-md hover:bg-blue-700 disabled:opacity-50"
+                    >
+                      {savingRoleInfo ? 'Saving...' : 'Save'}
+                    </button>
+                  </div>
                 </div>
-                <button
-                  onClick={handleSave}
-                  disabled={saving || !dirty}
-                  className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors disabled:opacity-50"
-                >
-                  {saving ? 'Saving...' : 'Save changes'}
-                </button>
-              </div>
+              ) : (
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <div>
+                      <div className="font-semibold text-gray-900">{selectedRole.name}</div>
+                      {selectedRole.description && <div className="text-xs text-gray-500">{selectedRole.description}</div>}
+                      {selectedRole.isSystemRole && (
+                        <div className="text-xs text-gray-400">Built-in role - permissions can be changed, name cannot.</div>
+                      )}
+                    </div>
+                    {!selectedRole.isSystemRole && (
+                      <button onClick={handleStartEditRole} className="text-gray-400 hover:text-gray-600 p-1" aria-label="Edit role">
+                        <Pencil className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </div>
+                  <button
+                    onClick={handleSave}
+                    disabled={saving || !dirty}
+                    className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors disabled:opacity-50"
+                  >
+                    {saving ? 'Saving...' : 'Save changes'}
+                  </button>
+                </div>
+              )}
 
               <div className="space-y-5 max-h-[28rem] overflow-y-auto pr-1">
                 {groupedPermissions.map(([resource, perms]) => (

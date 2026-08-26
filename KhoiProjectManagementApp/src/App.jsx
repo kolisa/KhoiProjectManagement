@@ -1967,17 +1967,17 @@ const ProjectManagementSystem = () => {
 
                 {/* Vault Tab */}
                 {activeTab === 'vault' && (
-                    <VaultPage apiService={apiService} />
+                    <VaultPage apiService={apiService} user={user} teamMembers={teamMembers} />
                 )}
 
                 {/* Wiki Tab */}
                 {activeTab === 'wiki' && (
-                    <WikiPage apiService={apiService} user={user} deepLink={deepLink?.tab === 'wiki' ? deepLink : null} />
+                    <WikiPage apiService={apiService} user={user} teamMembers={teamMembers} deepLink={deepLink?.tab === 'wiki' ? deepLink : null} />
                 )}
 
                 {/* Library Tab */}
                 {activeTab === 'library' && (
-                    <LibraryPage apiService={apiService} user={user} deepLink={deepLink?.tab === 'library' ? deepLink : null} />
+                    <LibraryPage apiService={apiService} user={user} teamMembers={teamMembers} deepLink={deepLink?.tab === 'library' ? deepLink : null} />
                 )}
 
                 {/* Ideas Tab */}

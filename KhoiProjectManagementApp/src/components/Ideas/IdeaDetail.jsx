@@ -1,6 +1,6 @@
 // src/components/Ideas/IdeaDetail.js
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Upload, Download, Trash2, MessageSquare, FileImage, ArrowRightCircle } from 'lucide-react';
+import { X, Upload, Download, Trash2, MessageSquare, FileImage, ArrowRightCircle, Pencil } from 'lucide-react';
 import { hasPermission } from '../../utils/permissions';
 import { formatFileSize } from '../../utils/formatFileSize';
 import IdeaAttachmentAnnotations from './IdeaAttachmentAnnotations';
@@ -19,9 +19,16 @@ const IdeaDetail = ({ apiService, user, ideaId, onClose, onChanged }) => {
   const [error, setError] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [converting, setConverting] = useState(false);
+  const [editingIdea, setEditingIdea] = useState(false);
+  const [editTitle, setEditTitle] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [savingIdea, setSavingIdea] = useState(false);
   const fileInputRef = useRef(null);
 
   const canManage = hasPermission(user?.permissions, 'ideas.manage');
+  // Matches IdeaService.UpdateIdeaAsync's own rule exactly: only the original submitter can edit,
+  // and only while it's still in Submitted status - once review has started, the record is fixed.
+  const canEdit = idea && idea.submittedBy === user?.id && idea.status === 'Submitted';
 
   const load = async () => {
     try {
@@ -130,14 +137,80 @@ const IdeaDetail = ({ apiService, user, ideaId, onClose, onChanged }) => {
     }
   };
 
+  const handleStartEdit = () => {
+    setEditTitle(idea.title);
+    setEditDescription(idea.description);
+    setEditingIdea(true);
+  };
+
+  const handleSaveIdea = async () => {
+    if (!editTitle.trim() || !editDescription.trim()) {
+      toast.error('Title and description are required.');
+      return;
+    }
+    setSavingIdea(true);
+    try {
+      await apiService.updateIdea(ideaId, { title: editTitle, description: editDescription });
+      setEditingIdea(false);
+      await load();
+      onChanged();
+      toast.success('Idea updated.');
+    } catch (err) {
+      reportApiError(toast, err, 'Could not update this idea.');
+    } finally {
+      setSavingIdea(false);
+    }
+  };
+
   if (error && !idea) return <div className="p-4 text-red-600">Error: {error}</div>;
   if (!idea) return <div className="p-4 text-gray-400">Loading...</div>;
+
+  if (editingIdea) {
+    return (
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4">
+        <h3 className="text-base font-semibold text-gray-900">Edit idea</h3>
+        <input
+          type="text"
+          value={editTitle}
+          onChange={(e) => setEditTitle(e.target.value)}
+          className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+          placeholder="Title"
+        />
+        <textarea
+          value={editDescription}
+          onChange={(e) => setEditDescription(e.target.value)}
+          rows={5}
+          className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+          placeholder="Description"
+        />
+        <div className="flex justify-end gap-3">
+          <button onClick={() => setEditingIdea(false)} className="inline-flex items-center gap-2 bg-white text-gray-700 border border-gray-300 px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-gray-50 transition-colors">
+            Cancel
+          </button>
+          <button
+            onClick={handleSaveIdea}
+            disabled={savingIdea}
+            className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors disabled:opacity-50"
+          >
+            {savingIdea ? 'Saving...' : 'Save'}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
       <div className="flex justify-between items-start mb-2">
         <div>
-          <h3 className="text-xl font-semibold text-gray-900">{idea.title}</h3>
+          <h3 className="text-xl font-semibold text-gray-900 flex items-center gap-1.5">
+            {idea.title}
+            {canEdit && (
+              <button onClick={handleStartEdit} className="text-gray-400 hover:text-gray-600 p-0.5" aria-label="Edit idea">
+                <Pencil className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </h3>
           <p className="text-xs text-gray-500">
             Submitted by {idea.submitterName} on {new Date(idea.createdAt).toLocaleDateString()}
           </p>
