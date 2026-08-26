@@ -20,6 +20,7 @@ import RemindersPage from './components/Reminders/RemindersPage';
 import ForgotPasswordForm from './components/Auth/ForgotPasswordForm';
 import ResetPasswordForm from './components/Auth/ResetPasswordForm';
 import OfflineBanner from './components/Common/OfflineBanner';
+import UpdateAvailableBanner from './components/Common/UpdateAvailableBanner';
 import khoiLogo from './assets/khoi-logo.png';
 
 // Grouped sidebar/drawer nav config - single source of truth for both the desktop sidebar and the
@@ -1418,6 +1419,7 @@ const ProjectManagementSystem = () => {
                                         </div>
                                     )}
 
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
                                     {sectionOrder.filter((k) => k === 'recent_tasks' && isVisible(k)).map(() => (
                                         <div key="recent_tasks" className="bg-white rounded-2xl border border-gray-100 shadow-sm">
                                             <div className="px-6 py-4 border-b border-gray-100">
@@ -1580,6 +1582,7 @@ const ProjectManagementSystem = () => {
                                             )}
                                         </div>
                                     ))}
+                                    </div>
                                 </>
                             );
                         })()}
@@ -2420,6 +2423,7 @@ const App = () => {
         <ToastProvider>
             <AuthProvider>
                 <div className="App">
+                    <UpdateAvailableBanner />
                     <OfflineBanner />
                     <AuthGuard />
                 </div>

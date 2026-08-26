@@ -1,8 +1,29 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import { writeFileSync } from 'fs';
+import { join } from 'path';
+
+// One id per `vite build` run, embedded into the bundle (via define, below) and also written out as
+// its own static build/version.json - see src/utils/useUpdateAvailable.js. The running app polls
+// version.json and compares it to the id baked into its own bundle; a mismatch means a newer build has
+// been deployed since this tab loaded, which is the one thing a bundled id can't tell you about itself.
+const buildId = String(Date.now());
+
+// Writes build/version.json alongside the rest of the build output - `apply: 'build'` so this never
+// runs (and never needs a version.json fallback) under `vite dev`, where there is no build output.
+const writeVersionFile = () => ({
+  name: 'write-version-file',
+  apply: 'build',
+  writeBundle(options) {
+    writeFileSync(join(options.dir, 'version.json'), JSON.stringify({ buildId }));
+  },
+});
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), writeVersionFile()],
+  define: {
+    __APP_BUILD_ID__: JSON.stringify(buildId),
+  },
   server: {
     port: 3000,
   },

@@ -5,6 +5,12 @@ import react from '@vitejs/plugin-react';
 // never pick up Vitest-only config - kept minimal and mirrors vite.config.js's own plugin setup.
 export default defineConfig({
   plugins: [react()],
+  // Mirrors vite.config.js's define for __APP_BUILD_ID__ (src/utils/useUpdateAvailable.js) - a fixed
+  // value here since there's no real build happening under test, just something for the identifier to
+  // resolve to instead of throwing ReferenceError.
+  define: {
+    __APP_BUILD_ID__: JSON.stringify('test'),
+  },
   test: {
     // e2e/*.spec.js use @playwright/test, not Vitest - Vitest's default include glob would otherwise
     // also pick them up and fail to collect them (Playwright's test.describe() errors outside its own runner).
@@ -29,6 +35,8 @@ export default defineConfig({
         'src/components/Auth/ForgotPasswordForm.jsx',
         'src/components/Auth/ResetPasswordForm.jsx',
         'src/components/Common/OfflineBanner.jsx',
+        'src/components/Common/UpdateAvailableBanner.jsx',
+        'src/utils/useUpdateAvailable.js',
       ],
       // A regression floor, not a target - set a few points below the actual measured baseline
       // (56.0% lines / 75.8% branches / 31.5% functions / 56.0% statements as of this pass, after
