@@ -195,7 +195,17 @@ const InvoicesPage = ({ apiService, user }) => {
             <DollarSign className="h-7 w-7 mr-2 text-gray-700" />
             Invoices
           </h2>
-          <p className="text-gray-600">Create invoices, attach source documents, and reuse layouts as templates</p>
+          <p className="text-gray-600">
+            {invoices && invoices.length > 0
+              ? (() => {
+                  const outstanding = invoices
+                    .filter((inv) => inv.status === 'Sent' || inv.status === 'Overdue')
+                    .reduce((sum, inv) => sum + inv.total, 0);
+                  const overdueCount = invoices.filter((inv) => inv.status === 'Overdue').length;
+                  return `R${outstanding.toLocaleString(undefined, { maximumFractionDigits: 0 })} outstanding · ${overdueCount} overdue`;
+                })()
+              : 'Create invoices, attach source documents, and reuse layouts as templates'}
+          </p>
         </div>
         {canManage && (
           <button
@@ -224,8 +234,16 @@ const InvoicesPage = ({ apiService, user }) => {
         const overdueCount = invoices.filter((inv) => inv.status === 'Overdue').length;
         const fmt = (n) => `R${n.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 
+        const paidWithDates = invoices.filter((inv) => inv.status === 'Paid' && inv.paidAt);
+        const avgDaysToPay = paidWithDates.length > 0
+          ? Math.round(
+              paidWithDates.reduce((sum, inv) => sum + (new Date(inv.paidAt) - new Date(inv.issueDate)) / 86400000, 0) /
+                paidWithDates.length
+            )
+          : null;
+
         return (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="bg-white p-5 rounded-[14px] border border-gray-100 shadow-sm">
               <p className="text-sm font-medium text-gray-500">Paid this month</p>
               <p className="text-2xl font-bold text-gray-900">{fmt(paidThisMonth)}</p>
@@ -238,6 +256,10 @@ const InvoicesPage = ({ apiService, user }) => {
               <p className={`text-sm font-medium ${overdueCount > 0 ? 'text-red-600' : 'text-gray-500'}`}>Overdue</p>
               <p className="text-2xl font-bold text-gray-900">{fmt(overdue)}</p>
               {overdueCount > 0 && <p className="text-xs text-red-600 mt-1">{overdueCount} invoice{overdueCount !== 1 ? 's' : ''}</p>}
+            </div>
+            <div className="bg-white p-5 rounded-[14px] border border-gray-100 shadow-sm">
+              <p className="text-sm font-medium text-gray-500">Avg. days to pay</p>
+              <p className="text-2xl font-bold text-gray-900">{avgDaysToPay ?? '—'}</p>
             </div>
           </div>
         );

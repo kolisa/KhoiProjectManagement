@@ -8,6 +8,7 @@ namespace KhoiProjectManagement.Application
         public string Status { get; set; } = string.Empty;
         public DateTime IssueDate { get; set; }
         public DateTime DueDate { get; set; }
+        public DateTime? PaidAt { get; set; }
         public string? Notes { get; set; }
         public string CreatorName { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }

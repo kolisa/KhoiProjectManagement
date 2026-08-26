@@ -135,6 +135,12 @@ namespace KhoiProjectManagement.Application
 
             var oldStatus = invoice.Status;
             invoice.Status = status;
+
+            if (oldStatus != "Paid" && status == "Paid")
+                invoice.PaidAt = DateTime.UtcNow;
+            else if (status != "Paid")
+                invoice.PaidAt = null;
+
             await _unitOfWork.SaveChangesAsync();
 
             if (oldStatus != "Paid" && status == "Paid")
@@ -337,6 +343,7 @@ namespace KhoiProjectManagement.Application
             Status = invoice.Status,
             IssueDate = invoice.IssueDate,
             DueDate = invoice.DueDate,
+            PaidAt = invoice.PaidAt,
             Notes = invoice.Notes,
             CreatorName = invoice.Creator?.Name ?? "Unknown",
             CreatedAt = invoice.CreatedAt,

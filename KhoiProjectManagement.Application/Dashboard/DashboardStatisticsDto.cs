@@ -14,6 +14,7 @@ namespace KhoiProjectManagement.Application
         public int CompletedTasks { get; set; }
         public int InProgressTasks { get; set; }
         public int TodoTasks { get; set; }
+        public int BlockedTasks { get; set; }
         public int OverdueTasks { get; set; }
         public double CompletionRate { get; set; }
 

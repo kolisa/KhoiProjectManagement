@@ -334,6 +334,7 @@ const ProjectManagementSystem = () => {
         completedTasks: 0,
         inProgressTasks: 0,
         todoTasks: 0,
+        blockedTasks: 0,
         overdueTasks: 0,
         completionRate: 0,
         activeProjectsDelta: null,
@@ -541,6 +542,7 @@ const ProjectManagementSystem = () => {
             loadProjects();
         } else if (activeTab === 'tasks') {
             loadTasks();
+            apiService.getDashboardStats().then((stats) => stats && setDashboardStats((prev) => ({ ...prev, ...stats })));
         } else if (activeTab === 'team') {
             loadTeamMembers();
         } else if (activeTab === 'reports') {
@@ -1402,7 +1404,7 @@ const ProjectManagementSystem = () => {
                             <div>
                                 <h2 className="text-[27px] font-bold text-gray-900 tracking-tight">Projects</h2>
                                 <p className="text-gray-500">
-                                    {projects.length} project{projects.length !== 1 ? 's' : ''} &middot; {projects.filter(p => p.status === 'active').length} active
+                                    {projects.filter(p => p.status === 'active').length} active &middot; {projects.filter(p => p.status === 'active' && new Date(p.endDate) < new Date()).length} at risk
                                 </p>
                             </div>
                             {hasPermission(user?.permissions, 'projects.create') && (
@@ -1518,19 +1520,30 @@ const ProjectManagementSystem = () => {
                             </button>
                         </div>
 
-                        <div className="flex space-x-4 mb-6">
-                            <select
-                                value={filterStatus}
-                                onChange={(e) => setFilterStatus(e.target.value)}
-                                className="border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
-                            >
-                                <option value="all">All Status</option>
-                                <option value="todo">To Do</option>
-                                <option value="in-progress">In Progress</option>
-                                <option value="blocked">Blocked</option>
-                                <option value="completed">Completed</option>
-                                <option value="overdue">Overdue</option>
-                            </select>
+                        <div className="flex items-center gap-1.5 mb-6 flex-wrap">
+                            {[
+                                { key: 'all', label: 'All', count: dashboardStats.totalTasks },
+                                { key: 'todo', label: 'To do', count: dashboardStats.todoTasks },
+                                { key: 'in-progress', label: 'In progress', count: dashboardStats.inProgressTasks },
+                                { key: 'blocked', label: 'Blocked', count: dashboardStats.blockedTasks },
+                                { key: 'completed', label: 'Done', count: dashboardStats.completedTasks },
+                                { key: 'overdue', label: 'Overdue', count: dashboardStats.overdueTasks },
+                            ].map(({ key, label, count }) => (
+                                <button
+                                    key={key}
+                                    onClick={() => setFilterStatus(key)}
+                                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] text-[12.5px] font-semibold transition-colors ${
+                                        filterStatus === key
+                                            ? key === 'overdue'
+                                                ? 'bg-red-50 text-red-700'
+                                                : 'bg-blue-50 text-blue-700'
+                                            : 'text-gray-500 hover:bg-gray-100'
+                                    }`}
+                                >
+                                    {label}
+                                    {typeof count === 'number' && <span className="tabular-nums">{count}</span>}
+                                </button>
+                            ))}
                         </div>
 
                         {loading.tasks && <LoadingSpinner text="Loading tasks..." />}
@@ -1761,7 +1774,7 @@ const ProjectManagementSystem = () => {
                     <div className="space-y-6">
                         <div>
                             <h2 className="text-[27px] font-bold text-gray-900 tracking-tight">Reports</h2>
-                            <p className="text-gray-500">Generate and download reports</p>
+                            <p className="text-gray-500">Generate a snapshot or schedule it weekly</p>
                         </div>
 
                         {hasPermission(user?.permissions, 'reports.view') ? (

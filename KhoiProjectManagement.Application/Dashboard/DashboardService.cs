@@ -35,6 +35,7 @@ namespace KhoiProjectManagement.Application
             var completedTasks = tasks.Count(t => t.Status == "completed");
             var inProgressTasks = tasks.Count(t => t.Status == "in-progress");
             var todoTasks = tasks.Count(t => t.Status == "todo");
+            var blockedTasks = tasks.Count(t => t.Status == "blocked");
             var overdueTasks = tasks.Count(t => t.IsOverdue);
             var completionRate = totalTasks == 0 ? 0 : (double)completedTasks / totalTasks * 100;
 
@@ -52,6 +53,7 @@ namespace KhoiProjectManagement.Application
                 CompletedTasks = completedTasks,
                 InProgressTasks = inProgressTasks,
                 TodoTasks = todoTasks,
+                BlockedTasks = blockedTasks,
                 OverdueTasks = overdueTasks,
                 CompletionRate = completionRate,
                 ActiveProjectsDelta = baseline == null ? null : activeProjects - baseline.ActiveProjects,

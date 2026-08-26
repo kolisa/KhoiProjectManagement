@@ -15,6 +15,11 @@ namespace KhoiProjectManagement.Domain
         public DateTime DueDate { get; set; }
         public string? Notes { get; set; }
 
+        // Set when Status transitions to "Paid" (same pattern as ProjectTask.CompletedAt) - lets
+        // "average days to pay" be computed honestly from real payment timing instead of contracted
+        // due-date terms, which is a different thing.
+        public DateTime? PaidAt { get; set; }
+
         public int CreatedBy { get; set; }
         public virtual User Creator { get; set; } = null!;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
