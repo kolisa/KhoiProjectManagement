@@ -39,8 +39,8 @@ namespace KhoiProjectManagement.Application
             RuleFor(x => x.Level).Must(l => l is "Read" or "Write" or "Manage")
                 .WithMessage("Level must be one of: Read, Write, Manage");
             RuleFor(x => x)
-                .Must(x => (x.RoleId.HasValue) ^ (x.UserId.HasValue))
-                .WithMessage("Exactly one of RoleId or UserId must be set")
+                .Must(x => (x.RoleId.HasValue ? 1 : 0) + (x.UserId.HasValue ? 1 : 0) + (x.GroupId.HasValue ? 1 : 0) == 1)
+                .WithMessage("Exactly one of RoleId, UserId, or GroupId must be set")
                 .WithName("RoleId");
         }
     }

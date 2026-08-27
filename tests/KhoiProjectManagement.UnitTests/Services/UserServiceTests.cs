@@ -215,5 +215,80 @@ namespace KhoiProjectManagement.UnitTests.Services
 
             Assert.False(result);
         }
+
+        [Fact]
+        public async Task CreateUserWithTempPasswordAsync_WhenManagerIdDoesNotExist_ThrowsAndNeverAddsAUser()
+        {
+            _userRepo.Query().Returns(new List<User>().BuildMock());
+
+            var sut = CreateSut();
+            var dto = new CreateAdminUserDto { Name = "New Guy", Email = "new@khoitech.africa", Role = "member", Position = "QA", ManagerId = 999 };
+
+            await Assert.ThrowsAsync<InvalidOperationException>(() => sut.CreateUserWithTempPasswordAsync(dto));
+            _userRepo.DidNotReceive().Add(Arg.Any<User>());
+        }
+
+        [Fact]
+        public async Task UpdateUserAsync_WhenManagerIdIsSelf_ThrowsAndDoesNotSave()
+        {
+            var user = new User { Id = 1, Name = "Someone", Email = "a@khoitech.africa", Position = "QA" };
+            _userRepo.FindAsync(1).Returns(user);
+            _userRepo.Query().Returns(new List<User> { user }.BuildMock());
+
+            var sut = CreateSut();
+            var dto = new UpdateUserProfileDto { Name = "Someone", Email = "a@khoitech.africa", Position = "QA", ManagerId = 1 };
+
+            await Assert.ThrowsAsync<InvalidOperationException>(() => sut.UpdateUserAsync(1, dto));
+            await _unitOfWork.DidNotReceive().SaveChangesAsync();
+        }
+
+        [Fact]
+        public async Task UpdateUserAsync_WhenProposedManagerIsADescendant_ThrowsAndDoesNotSave()
+        {
+            // A(1) -> manager B(2) -> manager C(3). Setting A's manager to C would create a cycle
+            // since C already (indirectly) reports to A.
+            var userA = new User { Id = 1, Name = "A", Email = "a@khoitech.africa", Position = "QA" };
+            var userB = new User { Id = 2, Name = "B", Email = "b@khoitech.africa", Position = "QA", ManagerId = 1 };
+            var userC = new User { Id = 3, Name = "C", Email = "c@khoitech.africa", Position = "QA", ManagerId = 2 };
+            _userRepo.FindAsync(1).Returns(userA);
+            _userRepo.Query().Returns(new List<User> { userA, userB, userC }.BuildMock());
+
+            var sut = CreateSut();
+            var dto = new UpdateUserProfileDto { Name = "A", Email = "a@khoitech.africa", Position = "QA", ManagerId = 3 };
+
+            await Assert.ThrowsAsync<InvalidOperationException>(() => sut.UpdateUserAsync(1, dto));
+            await _unitOfWork.DidNotReceive().SaveChangesAsync();
+        }
+
+        [Fact]
+        public async Task UpdateUserAsync_WhenManagerIdIsAValidNonCyclicChoice_UpdatesIt()
+        {
+            var user = new User { Id = 1, Name = "Someone", Email = "a@khoitech.africa", Position = "QA" };
+            var manager = new User { Id = 2, Name = "Boss", Email = "b@khoitech.africa", Position = "Lead" };
+            _userRepo.FindAsync(1).Returns(user);
+            _userRepo.Query().Returns(new List<User> { user, manager }.BuildMock());
+
+            var sut = CreateSut();
+            var dto = new UpdateUserProfileDto { Name = "Someone", Email = "a@khoitech.africa", Position = "QA", ManagerId = 2 };
+            var result = await sut.UpdateUserAsync(1, dto);
+
+            Assert.True(result);
+            Assert.Equal(2, user.ManagerId);
+        }
+
+        [Fact]
+        public async Task GetAllUsersAsync_ResolvesManagerNameFromASingleLookup()
+        {
+            var manager = new User { Id = 2, Name = "Boss", Email = "b@khoitech.africa", Position = "Lead" };
+            var report = new User { Id = 1, Name = "Someone", Email = "a@khoitech.africa", Position = "QA", ManagerId = 2, IsActive = true };
+            _userRepo.Query().Returns(new List<User> { report, manager }.BuildMock());
+
+            var sut = CreateSut();
+            var result = (await sut.GetAllUsersAsync()).ToList();
+
+            var reportDto = result.Single(u => u.Id == 1);
+            Assert.Equal(2, reportDto.ManagerId);
+            Assert.Equal("Boss", reportDto.ManagerName);
+        }
     }
 }

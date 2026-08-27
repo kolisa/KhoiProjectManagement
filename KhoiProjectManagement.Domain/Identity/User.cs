@@ -30,6 +30,12 @@ namespace KhoiProjectManagement.Domain
         // this, never the birth year, to anyone other than the user themselves or a users.edit caller.
         public DateTime? DateOfBirth { get; set; }
 
+        // Self-referencing "reports to" link for the team org chart - nullable (top of the chart has
+        // no manager). Mutable after creation (unlike Space.ParentSpaceId), so UserService validates
+        // against self-reference and cycles on every write - see UserService.ValidateManagerAsync.
+        public int? ManagerId { get; set; }
+        public virtual User? Manager { get; set; }
+
         // Navigation properties
         public virtual ICollection<ProjectUser> ProjectUsers { get; set; } = new List<ProjectUser>();
         public virtual ICollection<ProjectTask> AssignedTasks { get; set; } = new List<ProjectTask>();

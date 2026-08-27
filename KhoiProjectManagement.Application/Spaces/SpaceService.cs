@@ -18,6 +18,7 @@ namespace KhoiProjectManagement.Application
         private readonly IRepository<WikiPage> _wikiPageRepo;
         private readonly IRepository<LibraryFile> _libraryFileRepo;
         private readonly IRepository<UserRole> _userRoleRepo;
+        private readonly IRepository<UserGroup> _userGroupRepo;
         private readonly IUnitOfWork _unitOfWork;
         private readonly ISpacePermissionResolver _resolver;
 
@@ -30,6 +31,7 @@ namespace KhoiProjectManagement.Application
             IRepository<WikiPage> wikiPageRepo,
             IRepository<LibraryFile> libraryFileRepo,
             IRepository<UserRole> userRoleRepo,
+            IRepository<UserGroup> userGroupRepo,
             IUnitOfWork unitOfWork,
             ISpacePermissionResolver resolver)
         {
@@ -41,6 +43,7 @@ namespace KhoiProjectManagement.Application
             _wikiPageRepo = wikiPageRepo;
             _libraryFileRepo = libraryFileRepo;
             _userRoleRepo = userRoleRepo;
+            _userGroupRepo = userGroupRepo;
             _unitOfWork = unitOfWork;
             _resolver = resolver;
         }
@@ -116,11 +119,11 @@ namespace KhoiProjectManagement.Application
                 .OrderBy(s => s.Name)
                 .ToListAsync();
 
-            var (userId, roleIds) = GetCallerIdentity(caller);
+            var (userId, roleIds, groupIds) = GetCallerIdentity(caller);
             var result = new List<SpaceDto>();
             foreach (var space in spaces)
             {
-                var level = await _resolver.ResolveEffectiveLevelAsync(space.Id, userId, roleIds);
+                var level = await _resolver.ResolveEffectiveLevelAsync(space.Id, userId, roleIds, groupIds);
                 if (level.HasValue)
                 {
                     result.Add(MapToDto(space, level.Value));
@@ -135,8 +138,8 @@ namespace KhoiProjectManagement.Application
             if (space == null)
                 return null;
 
-            var (userId, roleIds) = GetCallerIdentity(caller);
-            var level = await _resolver.ResolveEffectiveLevelAsync(space.Id, userId, roleIds);
+            var (userId, roleIds, groupIds) = GetCallerIdentity(caller);
+            var level = await _resolver.ResolveEffectiveLevelAsync(space.Id, userId, roleIds, groupIds);
             return level.HasValue ? MapToDto(space, level.Value) : null;
         }
 
@@ -229,6 +232,7 @@ namespace KhoiProjectManagement.Application
             var grants = await _spacePermissionRepo.Query()
                 .Include(sp => sp.Role)
                 .Include(sp => sp.User)
+                .Include(sp => sp.Group)
                 .Where(sp => sp.SpaceId == spaceId)
                 .ToListAsync();
 
@@ -239,6 +243,8 @@ namespace KhoiProjectManagement.Application
                 RoleName = sp.Role?.Name,
                 UserId = sp.UserId,
                 UserName = sp.User?.Name,
+                GroupId = sp.GroupId,
+                GroupName = sp.Group?.Name,
                 Level = sp.Level.ToString()
             }).ToList();
         }
@@ -254,7 +260,12 @@ namespace KhoiProjectManagement.Application
                 ? new List<int>()
                 : await _userRoleRepo.Query().Where(ur => roleIds.Contains(ur.RoleId)).Select(ur => ur.UserId).ToListAsync();
 
-            return directUserIds.Concat(roleUserIds).Distinct().Count();
+            var groupIds = grants.Where(g => g.GroupId.HasValue).Select(g => g.GroupId!.Value).ToList();
+            var groupUserIds = groupIds.Count == 0
+                ? new List<int>()
+                : await _userGroupRepo.Query().Where(ug => groupIds.Contains(ug.GroupId)).Select(ug => ug.UserId).ToListAsync();
+
+            return directUserIds.Concat(roleUserIds).Concat(groupUserIds).Distinct().Count();
         }
 
         public async Task<bool> SetSpacePermissionsAsync(int spaceId, List<SetSpacePermissionDto> grants, int createdByUserId)
@@ -265,10 +276,10 @@ namespace KhoiProjectManagement.Application
 
             foreach (var grant in grants)
             {
-                var granteeCount = (grant.RoleId.HasValue ? 1 : 0) + (grant.UserId.HasValue ? 1 : 0);
+                var granteeCount = (grant.RoleId.HasValue ? 1 : 0) + (grant.UserId.HasValue ? 1 : 0) + (grant.GroupId.HasValue ? 1 : 0);
                 if (granteeCount != 1)
                 {
-                    throw new InvalidOperationException("Each grant must target exactly one of RoleId or UserId.");
+                    throw new InvalidOperationException("Each grant must target exactly one of RoleId, UserId, or GroupId.");
                 }
                 if (!Enum.TryParse<PermissionLevel>(grant.Level, ignoreCase: true, out _))
                 {
@@ -284,6 +295,7 @@ namespace KhoiProjectManagement.Application
                 SpaceId = spaceId,
                 RoleId = g.RoleId,
                 UserId = g.UserId,
+                GroupId = g.GroupId,
                 Level = Enum.Parse<PermissionLevel>(g.Level, ignoreCase: true),
                 CreatedBy = createdByUserId
             }).ToList();
@@ -328,7 +340,7 @@ namespace KhoiProjectManagement.Application
             };
         }
 
-        private static (int UserId, List<int> RoleIds) GetCallerIdentity(ClaimsPrincipal caller)
+        private static (int UserId, List<int> RoleIds, List<int> GroupIds) GetCallerIdentity(ClaimsPrincipal caller)
         {
             var userIdClaim = caller.FindFirst(ClaimTypes.NameIdentifier)
                 ?? throw new InvalidOperationException("Caller has no NameIdentifier claim.");
@@ -340,7 +352,13 @@ namespace KhoiProjectManagement.Application
                 .Select(id => id!.Value)
                 .ToList();
 
-            return (userId, roleIds);
+            var groupIds = caller.FindAll("groupId")
+                .Select(c => int.TryParse(c.Value, out var id) ? id : (int?)null)
+                .Where(id => id.HasValue)
+                .Select(id => id!.Value)
+                .ToList();
+
+            return (userId, roleIds, groupIds);
         }
     }
 }

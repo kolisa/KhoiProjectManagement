@@ -17,5 +17,7 @@ namespace KhoiProjectManagement.Application
         public DateTime CreatedAt { get; set; }
         public DateTime? LastLoginAt { get; set; }
         public bool MustChangePassword { get; set; }
+        public int? ManagerId { get; set; }
+        public string? ManagerName { get; set; }
     }
 }

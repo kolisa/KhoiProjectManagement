@@ -34,7 +34,7 @@ namespace KhoiProjectManagement.UnitTests.Services
             _context.SpacePermissions.Add(new SpacePermission { SpaceId = 1, UserId = 42, Level = PermissionLevel.Write, CreatedBy = 1 });
             await _context.SaveChangesAsync();
 
-            var result = await CreateSut().ResolveEffectiveLevelAsync(1, userId: 42, roleIds: Array.Empty<int>());
+            var result = await CreateSut().ResolveEffectiveLevelAsync(1, userId: 42, roleIds: Array.Empty<int>(), groupIds: Array.Empty<int>());
 
             Assert.Equal(PermissionLevel.Write, result);
         }
@@ -47,7 +47,7 @@ namespace KhoiProjectManagement.UnitTests.Services
             _context.SpacePermissions.Add(new SpacePermission { SpaceId = 1, UserId = 42, Level = PermissionLevel.Read, CreatedBy = 1 });
             await _context.SaveChangesAsync();
 
-            var result = await CreateSut().ResolveEffectiveLevelAsync(2, userId: 42, roleIds: Array.Empty<int>());
+            var result = await CreateSut().ResolveEffectiveLevelAsync(2, userId: 42, roleIds: Array.Empty<int>(), groupIds: Array.Empty<int>());
 
             Assert.Equal(PermissionLevel.Read, result);
         }
@@ -60,7 +60,7 @@ namespace KhoiProjectManagement.UnitTests.Services
             _context.SpacePermissions.Add(new SpacePermission { SpaceId = 1, UserId = 42, Level = PermissionLevel.Manage, CreatedBy = 1 });
             await _context.SaveChangesAsync();
 
-            var result = await CreateSut().ResolveEffectiveLevelAsync(2, userId: 42, roleIds: Array.Empty<int>());
+            var result = await CreateSut().ResolveEffectiveLevelAsync(2, userId: 42, roleIds: Array.Empty<int>(), groupIds: Array.Empty<int>());
 
             Assert.Null(result);
         }
@@ -73,15 +73,27 @@ namespace KhoiProjectManagement.UnitTests.Services
             _context.SpacePermissions.Add(new SpacePermission { SpaceId = 1, RoleId = 7, Level = PermissionLevel.Manage, CreatedBy = 1 });
             await _context.SaveChangesAsync();
 
-            var result = await CreateSut().ResolveEffectiveLevelAsync(1, userId: 42, roleIds: new[] { 7 });
+            var result = await CreateSut().ResolveEffectiveLevelAsync(1, userId: 42, roleIds: new[] { 7 }, groupIds: Array.Empty<int>());
 
             Assert.Equal(PermissionLevel.Manage, result);
         }
 
         [Fact]
+        public async Task ResolveEffectiveLevelAsync_WhenGroupGrantMatches_ReturnsThatLevel()
+        {
+            _context.Spaces.Add(new Space { Id = 1, Name = "Shared", CreatedBy = 1 });
+            _context.SpacePermissions.Add(new SpacePermission { SpaceId = 1, GroupId = 9, Level = PermissionLevel.Write, CreatedBy = 1 });
+            await _context.SaveChangesAsync();
+
+            var result = await CreateSut().ResolveEffectiveLevelAsync(1, userId: 42, roleIds: Array.Empty<int>(), groupIds: new[] { 9 });
+
+            Assert.Equal(PermissionLevel.Write, result);
+        }
+
+        [Fact]
         public async Task ResolveEffectiveLevelAsync_WhenSpaceDoesNotExist_ReturnsNull()
         {
-            var result = await CreateSut().ResolveEffectiveLevelAsync(999, userId: 1, roleIds: Array.Empty<int>());
+            var result = await CreateSut().ResolveEffectiveLevelAsync(999, userId: 1, roleIds: Array.Empty<int>(), groupIds: Array.Empty<int>());
 
             Assert.Null(result);
         }
@@ -92,7 +104,7 @@ namespace KhoiProjectManagement.UnitTests.Services
             _context.Spaces.Add(new Space { Id = 1, Name = "Root", CreatedBy = 1, InheritPermissions = true });
             await _context.SaveChangesAsync();
 
-            var result = await CreateSut().ResolveEffectiveLevelAsync(1, userId: 1, roleIds: Array.Empty<int>());
+            var result = await CreateSut().ResolveEffectiveLevelAsync(1, userId: 1, roleIds: Array.Empty<int>(), groupIds: Array.Empty<int>());
 
             Assert.Null(result);
         }
@@ -105,7 +117,7 @@ namespace KhoiProjectManagement.UnitTests.Services
             var cache = new MemoryCache(new MemoryCacheOptions());
             var sut = new SpacePermissionResolver(_context, cache);
 
-            var beforeGrant = await sut.ResolveEffectiveLevelAsync(1, userId: 42, roleIds: Array.Empty<int>());
+            var beforeGrant = await sut.ResolveEffectiveLevelAsync(1, userId: 42, roleIds: Array.Empty<int>(), groupIds: Array.Empty<int>());
             Assert.Null(beforeGrant);
 
             // Add a grant directly in the DB without invalidating the cache - resolver should still see
@@ -113,11 +125,11 @@ namespace KhoiProjectManagement.UnitTests.Services
             _context.SpacePermissions.Add(new SpacePermission { SpaceId = 1, UserId = 42, Level = PermissionLevel.Read, CreatedBy = 1 });
             await _context.SaveChangesAsync();
 
-            var stillCached = await sut.ResolveEffectiveLevelAsync(1, userId: 42, roleIds: Array.Empty<int>());
+            var stillCached = await sut.ResolveEffectiveLevelAsync(1, userId: 42, roleIds: Array.Empty<int>(), groupIds: Array.Empty<int>());
             Assert.Null(stillCached);
 
             sut.InvalidateCache();
-            var afterInvalidate = await sut.ResolveEffectiveLevelAsync(1, userId: 42, roleIds: Array.Empty<int>());
+            var afterInvalidate = await sut.ResolveEffectiveLevelAsync(1, userId: 42, roleIds: Array.Empty<int>(), groupIds: Array.Empty<int>());
             Assert.Equal(PermissionLevel.Read, afterInvalidate);
         }
     }

@@ -3,6 +3,7 @@ using System;
 using KhoiProjectManagement.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace KhoiProjectManagement.Infrastructure.Migrations
 {
     [DbContext(typeof(ProjectManagementContext))]
-    partial class ProjectManagementContextModelSnapshot : ModelSnapshot
+    [Migration("20260826193825_AddGroups")]
+    partial class AddGroups
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1163,14 +1166,6 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
                             Description = "Create groups and manage their membership",
                             Name = "groups.manage",
                             Resource = "groups"
-                        },
-                        new
-                        {
-                            Id = 26,
-                            Action = "view",
-                            Description = "View sent-email history and application error logs",
-                            Name = "audit.view",
-                            Resource = "audit"
                         });
                 });
 
@@ -1658,11 +1653,6 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
                         },
                         new
                         {
-                            RoleId = 1,
-                            PermissionId = 26
-                        },
-                        new
-                        {
                             RoleId = 2,
                             PermissionId = 1
                         },
@@ -2040,9 +2030,6 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
                     b.Property<DateTime?>("LastLoginAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<int?>("ManagerId")
-                        .HasColumnType("integer");
-
                     b.Property<bool>("MustChangePassword")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
@@ -2067,8 +2054,6 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
                         .HasColumnType("text");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("ManagerId");
 
                     b.ToTable("Users");
 
@@ -3079,16 +3064,6 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
                     b.Navigation("Project");
 
                     b.Navigation("Timesheet");
-                });
-
-            modelBuilder.Entity("KhoiProjectManagement.Domain.User", b =>
-                {
-                    b.HasOne("KhoiProjectManagement.Domain.User", "Manager")
-                        .WithMany()
-                        .HasForeignKey("ManagerId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.Navigation("Manager");
                 });
 
             modelBuilder.Entity("KhoiProjectManagement.Domain.UserGroup", b =>

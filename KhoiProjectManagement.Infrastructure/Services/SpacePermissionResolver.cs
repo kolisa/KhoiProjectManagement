@@ -20,10 +20,11 @@ namespace KhoiProjectManagement.Infrastructure.Services
             _cache = cache;
         }
 
-        public async Task<PermissionLevel?> ResolveEffectiveLevelAsync(int spaceId, int userId, IEnumerable<int> roleIds)
+        public async Task<PermissionLevel?> ResolveEffectiveLevelAsync(int spaceId, int userId, IEnumerable<int> roleIds, IEnumerable<int> groupIds)
         {
             var snapshot = await GetSnapshotAsync();
             var roleIdSet = new HashSet<int>(roleIds);
+            var groupIdSet = new HashSet<int>(groupIds);
 
             int? current = spaceId;
             while (current.HasValue)
@@ -36,7 +37,9 @@ namespace KhoiProjectManagement.Infrastructure.Services
                 if (snapshot.GrantsBySpaceId.TryGetValue(current.Value, out var grants))
                 {
                     var matching = grants
-                        .Where(g => g.UserId == userId || (g.RoleId.HasValue && roleIdSet.Contains(g.RoleId.Value)))
+                        .Where(g => g.UserId == userId
+                            || (g.RoleId.HasValue && roleIdSet.Contains(g.RoleId.Value))
+                            || (g.GroupId.HasValue && groupIdSet.Contains(g.GroupId.Value)))
                         .ToList();
 
                     if (matching.Count > 0)
@@ -75,7 +78,7 @@ namespace KhoiProjectManagement.Infrastructure.Services
 
             var grants = await _context.SpacePermissions
                 .AsNoTracking()
-                .Select(sp => new { sp.SpaceId, sp.RoleId, sp.UserId, sp.Level })
+                .Select(sp => new { sp.SpaceId, sp.RoleId, sp.UserId, sp.GroupId, sp.Level })
                 .ToListAsync();
 
             var snapshot = new Snapshot
@@ -85,7 +88,7 @@ namespace KhoiProjectManagement.Infrastructure.Services
                     .GroupBy(g => g.SpaceId)
                     .ToDictionary(
                         group => group.Key,
-                        group => group.Select(g => (g.RoleId, g.UserId, g.Level)).ToList())
+                        group => group.Select(g => (g.RoleId, g.UserId, g.GroupId, g.Level)).ToList())
             };
 
             _cache.Set(CacheKey, snapshot, CacheDuration);
@@ -95,7 +98,7 @@ namespace KhoiProjectManagement.Infrastructure.Services
         private class Snapshot
         {
             public Dictionary<int, (int? ParentSpaceId, bool InheritPermissions)> Spaces { get; set; } = new();
-            public Dictionary<int, List<(int? RoleId, int? UserId, PermissionLevel Level)>> GrantsBySpaceId { get; set; } = new();
+            public Dictionary<int, List<(int? RoleId, int? UserId, int? GroupId, PermissionLevel Level)>> GrantsBySpaceId { get; set; } = new();
         }
     }
 }

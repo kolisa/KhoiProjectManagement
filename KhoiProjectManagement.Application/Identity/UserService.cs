@@ -30,13 +30,17 @@ namespace KhoiProjectManagement.Application
 
             var users = await query.OrderBy(u => u.Name).ToListAsync();
 
-            return users.Select(MapToDto);
+            var managerNames = await GetManagerNamesAsync(users.Where(u => u.ManagerId.HasValue).Select(u => u.ManagerId!.Value));
+            return users.Select(u => MapToDto(u, managerNames));
         }
 
         public async Task<TeamMemberDto?> GetUserByIdAsync(int id)
         {
             var user = await _userRepo.FindAsync(id);
-            return user == null ? null : MapToDto(user);
+            if (user == null) return null;
+
+            var managerNames = await GetManagerNamesAsync(user.ManagerId.HasValue ? new[] { user.ManagerId.Value } : Array.Empty<int>());
+            return MapToDto(user, managerNames);
         }
 
         public async Task<TeamMemberDto?> GetUserByEmailAsync(string email)
@@ -49,7 +53,23 @@ namespace KhoiProjectManagement.Application
             // as "wrong password" even with the right password, since the user lookup itself failed
             // before the password was ever checked.
             var user = await _userRepo.Query().FirstOrDefaultAsync(u => u.Email.ToLower() == email.ToLower());
-            return user == null ? null : MapToDto(user);
+            if (user == null) return null;
+
+            var managerNames = await GetManagerNamesAsync(user.ManagerId.HasValue ? new[] { user.ManagerId.Value } : Array.Empty<int>());
+            return MapToDto(user, managerNames);
+        }
+
+        // One extra query for the whole list rather than one per row - keyed by manager id so
+        // GetAllUsersAsync/GetUserByIdAsync/GetUserByEmailAsync can all share it.
+        private async Task<Dictionary<int, string>> GetManagerNamesAsync(IEnumerable<int> managerIds)
+        {
+            var ids = managerIds.Distinct().ToList();
+            if (ids.Count == 0) return new Dictionary<int, string>();
+
+            return await _userRepo.Query()
+                .Where(u => ids.Contains(u.Id))
+                .Select(u => new { u.Id, u.Name })
+                .ToDictionaryAsync(u => u.Id, u => u.Name);
         }
 
         public async Task<TeamMemberDto> CreateUserAsync(CreateUserDto createUserDto)
@@ -86,6 +106,8 @@ namespace KhoiProjectManagement.Application
                 throw new InvalidOperationException("User with this email already exists");
             }
 
+            await ValidateManagerAsync(createUserDto.ManagerId, excludeUserId: null);
+
             var tempPassword = TempPasswordGenerator.Generate();
 
             var user = new User
@@ -96,7 +118,8 @@ namespace KhoiProjectManagement.Application
                 Position = createUserDto.Position,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(tempPassword),
                 IsActive = true,
-                MustChangePassword = true
+                MustChangePassword = true,
+                ManagerId = createUserDto.ManagerId
             };
 
             _userRepo.Add(user);
@@ -115,7 +138,8 @@ namespace KhoiProjectManagement.Application
                 // post-creation email in this codebase (e.g. ProjectService's project-created email).
             }
 
-            return MapToDto(user);
+            var managerNames = await GetManagerNamesAsync(user.ManagerId.HasValue ? new[] { user.ManagerId.Value } : Array.Empty<int>());
+            return MapToDto(user, managerNames);
         }
 
         private async Task AssignMatchingRoleAsync(int userId, string roleName)
@@ -134,9 +158,12 @@ namespace KhoiProjectManagement.Application
             if (user == null)
                 return false;
 
+            await ValidateManagerAsync(updateUserDto.ManagerId, excludeUserId: id);
+
             user.Name = updateUserDto.Name;
             user.Email = updateUserDto.Email;
             user.Position = updateUserDto.Position;
+            user.ManagerId = updateUserDto.ManagerId;
 
             if (!string.IsNullOrEmpty(updateUserDto.Password))
             {
@@ -145,6 +172,42 @@ namespace KhoiProjectManagement.Application
 
             await _unitOfWork.SaveChangesAsync();
             return true;
+        }
+
+        // ManagerId is mutable after creation (unlike Space.ParentSpaceId, which is set once at
+        // creation and never re-parentable), so unlike Space this needs an explicit guard: reject a
+        // self-report, and reject a change that would make `excludeUserId` its own indirect manager
+        // (walking the candidate's existing chain upward). excludeUserId is null on creation, where
+        // no cycle is possible yet - a brand-new user can't already be anyone's ancestor.
+        private async Task ValidateManagerAsync(int? candidateManagerId, int? excludeUserId)
+        {
+            if (!candidateManagerId.HasValue)
+                return;
+
+            var managerExists = await _userRepo.Query().AnyAsync(u => u.Id == candidateManagerId.Value);
+            if (!managerExists)
+                throw new InvalidOperationException("The selected manager does not exist.");
+
+            if (!excludeUserId.HasValue)
+                return;
+
+            if (candidateManagerId.Value == excludeUserId.Value)
+                throw new InvalidOperationException("A user cannot report to themselves.");
+
+            var visited = new HashSet<int>();
+            int? currentId = candidateManagerId;
+            while (currentId.HasValue)
+            {
+                if (currentId.Value == excludeUserId.Value)
+                    throw new InvalidOperationException("This change would create a circular reporting chain.");
+                if (!visited.Add(currentId.Value))
+                    break; // Pre-existing bad data guard - never loop forever.
+
+                currentId = await _userRepo.Query()
+                    .Where(u => u.Id == currentId.Value)
+                    .Select(u => u.ManagerId)
+                    .FirstOrDefaultAsync();
+            }
         }
 
         public async Task<bool> AssignRolesAsync(int userId, List<int> roleIds)
@@ -237,7 +300,7 @@ namespace KhoiProjectManagement.Application
             }
         }
 
-        private static TeamMemberDto MapToDto(User user)
+        private static TeamMemberDto MapToDto(User user, Dictionary<int, string>? managerNames = null)
         {
             return new TeamMemberDto
             {
@@ -249,7 +312,11 @@ namespace KhoiProjectManagement.Application
                 IsActive = user.IsActive,
                 CreatedAt = user.CreatedAt,
                 LastLoginAt = user.LastLoginAt,
-                MustChangePassword = user.MustChangePassword
+                MustChangePassword = user.MustChangePassword,
+                ManagerId = user.ManagerId,
+                ManagerName = user.ManagerId.HasValue && managerNames != null
+                    ? managerNames.GetValueOrDefault(user.ManagerId.Value)
+                    : null
             };
         }
     }

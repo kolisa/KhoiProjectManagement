@@ -14,6 +14,7 @@ namespace KhoiProjectManagement.UnitTests.Services
     {
         private readonly IRepository<RefreshToken> _refreshTokenRepo = Substitute.For<IRepository<RefreshToken>>();
         private readonly IRepository<UserRole> _userRoleRepo = Substitute.For<IRepository<UserRole>>();
+        private readonly IRepository<UserGroup> _userGroupRepo = Substitute.For<IRepository<UserGroup>>();
         private readonly IRepository<RolePermission> _rolePermissionRepo = Substitute.For<IRepository<RolePermission>>();
         private readonly IRepository<User> _userRepo = Substitute.For<IRepository<User>>();
         private readonly IRepository<PasswordResetToken> _passwordResetTokenRepo = Substitute.For<IRepository<PasswordResetToken>>();
@@ -35,7 +36,7 @@ namespace KhoiProjectManagement.UnitTests.Services
             .Build();
 
         private AuthService CreateSut() => new(
-            _refreshTokenRepo, _userRoleRepo, _rolePermissionRepo, _userRepo, _passwordResetTokenRepo,
+            _refreshTokenRepo, _userRoleRepo, _userGroupRepo, _rolePermissionRepo, _userRepo, _passwordResetTokenRepo,
             _unitOfWork, _userService, _emailService, Config(), _logger);
 
         private static TeamMemberDto SampleUser(int id = 1, bool mustChangePassword = false) => new()
@@ -52,6 +53,7 @@ namespace KhoiProjectManagement.UnitTests.Services
         private void SetEmptyRoleAndPermissionQueries()
         {
             _userRoleRepo.Query().Returns(new List<UserRole>().BuildMock());
+            _userGroupRepo.Query().Returns(new List<UserGroup>().BuildMock());
             _rolePermissionRepo.Query().Returns(new List<RolePermission>().BuildMock());
         }
 

@@ -16,6 +16,7 @@ namespace KhoiProjectManagement.Application
     {
         private readonly IRepository<RefreshToken> _refreshTokenRepo;
         private readonly IRepository<UserRole> _userRoleRepo;
+        private readonly IRepository<UserGroup> _userGroupRepo;
         private readonly IRepository<RolePermission> _rolePermissionRepo;
         private readonly IRepository<User> _userRepo;
         private readonly IRepository<PasswordResetToken> _passwordResetTokenRepo;
@@ -28,6 +29,7 @@ namespace KhoiProjectManagement.Application
         public AuthService(
             IRepository<RefreshToken> refreshTokenRepo,
             IRepository<UserRole> userRoleRepo,
+            IRepository<UserGroup> userGroupRepo,
             IRepository<RolePermission> rolePermissionRepo,
             IRepository<User> userRepo,
             IRepository<PasswordResetToken> passwordResetTokenRepo,
@@ -39,6 +41,7 @@ namespace KhoiProjectManagement.Application
         {
             _refreshTokenRepo = refreshTokenRepo;
             _userRoleRepo = userRoleRepo;
+            _userGroupRepo = userGroupRepo;
             _rolePermissionRepo = rolePermissionRepo;
             _userRepo = userRepo;
             _passwordResetTokenRepo = passwordResetTokenRepo;
@@ -221,8 +224,8 @@ namespace KhoiProjectManagement.Application
 
         private async Task<LoginResponseDto> IssueTokensAsync(TeamMemberDto user)
         {
-            var (permissions, roleIds) = await GetPermissionsAndRoleIdsAsync(user.Id);
-            var accessToken = GenerateAccessToken(user, permissions, roleIds);
+            var (permissions, roleIds, groupIds) = await GetPermissionsAndRoleIdsAsync(user.Id);
+            var accessToken = GenerateAccessToken(user, permissions, roleIds, groupIds);
             var rawRefreshToken = GenerateRawRefreshToken();
             var refreshTokenExpiryDays = int.Parse(_configuration["Jwt:RefreshTokenExpiryDays"] ?? "7");
 
@@ -246,11 +249,16 @@ namespace KhoiProjectManagement.Application
             };
         }
 
-        private async Task<(List<string> Permissions, List<int> RoleIds)> GetPermissionsAndRoleIdsAsync(int userId)
+        private async Task<(List<string> Permissions, List<int> RoleIds, List<int> GroupIds)> GetPermissionsAndRoleIdsAsync(int userId)
         {
             var roleIds = await _userRoleRepo.Query()
                 .Where(ur => ur.UserId == userId)
                 .Select(ur => ur.RoleId)
+                .ToListAsync();
+
+            var groupIds = await _userGroupRepo.Query()
+                .Where(ug => ug.UserId == userId)
+                .Select(ug => ug.GroupId)
                 .ToListAsync();
 
             var permissions = await _rolePermissionRepo.Query()
@@ -259,10 +267,10 @@ namespace KhoiProjectManagement.Application
                 .Distinct()
                 .ToListAsync();
 
-            return (permissions, roleIds);
+            return (permissions, roleIds, groupIds);
         }
 
-        private string GenerateAccessToken(TeamMemberDto user, List<string> permissions, List<int> roleIds)
+        private string GenerateAccessToken(TeamMemberDto user, List<string> permissions, List<int> roleIds, List<int> groupIds)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
             var key = Encoding.UTF8.GetBytes(_configuration["Jwt:SecretKey"]!);
@@ -275,6 +283,7 @@ namespace KhoiProjectManagement.Application
                 new Claim(ClaimTypes.Role, user.Role)
             };
             claims.AddRange(roleIds.Select(id => new Claim("roleId", id.ToString())));
+            claims.AddRange(groupIds.Select(id => new Claim("groupId", id.ToString())));
             claims.AddRange(permissions.Select(p => new Claim("permission", p)));
 
             var accessTokenExpiryMinutes = int.Parse(_configuration["Jwt:AccessTokenExpiryMinutes"] ?? "15");

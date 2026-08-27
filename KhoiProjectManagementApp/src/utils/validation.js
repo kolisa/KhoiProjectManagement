@@ -140,4 +140,15 @@ export const validateRole = ({ name, description }) => {
   return errors;
 };
 
+// CreateGroupDto/UpdateGroupDto rules - same shape/limits as validateRole (same backend
+// validator pattern, GroupValidators.cs mirrors RoleValidators.cs), kept separate since Group and
+// Role are distinct entities on the frontend too.
+export const validateGroup = ({ name, description }) => {
+  const errors = {};
+  validateRequired(errors, 'name', name, 'Name');
+  validateMaxLength(errors, 'name', name, 100, 'Name');
+  validateMaxLength(errors, 'description', description, 500, 'Description');
+  return errors;
+};
+
 export const hasErrors = (errors) => Object.keys(errors).length > 0;

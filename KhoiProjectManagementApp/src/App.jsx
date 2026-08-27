@@ -14,6 +14,9 @@ import LibraryPage from './components/Library/LibraryPage';
 import NotificationPreferences from './components/Settings/NotificationPreferences';
 import DashboardWidgetSettings from './components/Settings/DashboardWidgetSettings';
 import PermissionsManagement from './components/Settings/PermissionsManagement';
+import GroupsManagement from './components/Settings/GroupsManagement';
+import AuditLog from './components/Settings/AuditLog';
+import OrgChartTree from './components/Team/OrgChartTree';
 import IdeasPage from './components/Ideas/IdeasPage';
 import InvoicesPage from './components/Finance/InvoicesPage';
 import RemindersPage from './components/Reminders/RemindersPage';
@@ -479,6 +482,11 @@ const ProjectManagementSystem = () => {
     const [editingProjectId, setEditingProjectId] = useState(null);
     const [showAddTask, setShowAddTask] = useState(false);
     const [showAddMember, setShowAddMember] = useState(false);
+    const [teamView, setTeamView] = useState('list'); // 'list' | 'orgchart'
+    // A member id = the Edit Member modal is open for that member; null = closed.
+    const [editingMemberId, setEditingMemberId] = useState(null);
+    const [editMemberForm, setEditMemberForm] = useState({ name: '', email: '', position: '', managerId: '' });
+    const [savingMemberEdit, setSavingMemberEdit] = useState(false);
     const [showNotifications, setShowNotifications] = useState(false);
     const [showUserMenu, setShowUserMenu] = useState(false);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -510,7 +518,8 @@ const ProjectManagementSystem = () => {
         name: '',
         role: 'member',
         position: '',
-        email: ''
+        email: '',
+        managerId: ''
     });
     // createUser can legitimately take a while (it synchronously sends the temp-password email - see
     // ApiService.createUser's comment on its longer timeout budget), so this needs its own visible
@@ -789,7 +798,8 @@ const ProjectManagementSystem = () => {
                 name: newMember.name,
                 role: newMember.role,
                 position: newMember.position,
-                email: newMember.email
+                email: newMember.email,
+                managerId: newMember.managerId ? Number(newMember.managerId) : null
             };
 
             await apiService.createUser(memberData);
@@ -798,7 +808,8 @@ const ProjectManagementSystem = () => {
                 name: '',
                 role: 'member',
                 position: '',
-                email: ''
+                email: '',
+                managerId: ''
             });
             setShowAddMember(false);
 
@@ -826,6 +837,42 @@ const ProjectManagementSystem = () => {
             toast.success(`Temporary password resent to ${member.email}.`);
         } catch (error) {
             reportApiError(toast, error, 'Error resending temporary password.');
+        }
+    };
+
+    const openEditMember = (member) => {
+        setEditingMemberId(member.id);
+        setEditMemberForm({
+            name: member.name,
+            email: member.email,
+            position: member.position,
+            managerId: member.managerId ? String(member.managerId) : ''
+        });
+    };
+
+    const handleSaveMemberEdit = async (e) => {
+        e.preventDefault();
+        const validationErrors = validateTeamMember(editMemberForm);
+        if (hasErrors(validationErrors)) {
+            toast.error(Object.values(validationErrors)[0]);
+            return;
+        }
+
+        setSavingMemberEdit(true);
+        try {
+            await apiService.updateUser(editingMemberId, {
+                name: editMemberForm.name,
+                email: editMemberForm.email,
+                position: editMemberForm.position,
+                managerId: editMemberForm.managerId ? Number(editMemberForm.managerId) : null
+            });
+            setEditingMemberId(null);
+            await loadTeamMembers();
+            toast.success('Team member updated.');
+        } catch (error) {
+            reportApiError(toast, error, 'Error updating team member.');
+        } finally {
+            setSavingMemberEdit(false);
         }
     };
 
@@ -1842,6 +1889,20 @@ const ProjectManagementSystem = () => {
                                 <p className="text-gray-500">{teamMembers.length} member{teamMembers.length !== 1 ? 's' : ''}</p>
                             </div>
                             <div className="flex items-center gap-4">
+                                <div className="flex items-center bg-gray-100 rounded-[10px] p-1 text-sm font-medium">
+                                    <button
+                                        onClick={() => setTeamView('list')}
+                                        className={`px-3 py-1.5 rounded-lg transition-colors ${teamView === 'list' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                    >
+                                        List
+                                    </button>
+                                    <button
+                                        onClick={() => setTeamView('orgchart')}
+                                        className={`px-3 py-1.5 rounded-lg transition-colors ${teamView === 'orgchart' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                    >
+                                        Org Chart
+                                    </button>
+                                </div>
                                 {hasPermission(user?.permissions, 'users.delete') && (
                                     <label className="flex items-center gap-2 text-sm text-gray-500 cursor-pointer select-none">
                                         <input
@@ -1871,7 +1932,11 @@ const ProjectManagementSystem = () => {
                             <ErrorMessage message={errors.teamMembers} onRetry={loadTeamMembers} />
                         )}
 
-                        {!loading.teamMembers && !errors.teamMembers && (
+                        {!loading.teamMembers && !errors.teamMembers && teamView === 'orgchart' && (
+                            <OrgChartTree teamMembers={teamMembers} />
+                        )}
+
+                        {!loading.teamMembers && !errors.teamMembers && teamView === 'list' && (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                 {teamMembers.length === 0 ? (
                                     <div className="col-span-full text-center py-8 text-gray-500">
@@ -1887,6 +1952,9 @@ const ProjectManagementSystem = () => {
                                                 <div className="ml-4">
                                                     <h3 className="text-lg font-semibold text-gray-900">{member.name}</h3>
                                                     <p className="text-gray-500">{member.position}</p>
+                                                    {member.managerName && (
+                                                        <p className="text-xs text-gray-400">Reports to {member.managerName}</p>
+                                                    )}
                                                 </div>
                                             </div>
                                             <div className="space-y-3">
@@ -1941,6 +2009,14 @@ const ProjectManagementSystem = () => {
                                                 </div>
                                                 {(hasPermission(user?.permissions, 'users.edit') || hasPermission(user?.permissions, 'users.delete')) && member.id !== user?.id && (
                                                     <div className="flex items-center gap-3 pt-3 border-t border-gray-100 text-sm">
+                                                        {hasPermission(user?.permissions, 'users.edit') && (
+                                                            <button
+                                                                onClick={() => openEditMember(member)}
+                                                                className="text-gray-600 hover:text-gray-900 font-medium"
+                                                            >
+                                                                Edit
+                                                            </button>
+                                                        )}
                                                         {hasPermission(user?.permissions, 'users.edit') && member.isActive && member.mustChangePassword && (
                                                             <button
                                                                 onClick={() => handleResendTempPassword(member)}
@@ -2005,6 +2081,12 @@ const ProjectManagementSystem = () => {
                         <DashboardWidgetSettings apiService={apiService} user={user} />
                         {hasPermission(user?.permissions, 'users.manage_roles') && (
                             <PermissionsManagement apiService={apiService} />
+                        )}
+                        {hasPermission(user?.permissions, 'groups.manage') && (
+                            <GroupsManagement apiService={apiService} teamMembers={teamMembers} />
+                        )}
+                        {hasPermission(user?.permissions, 'audit.view') && (
+                            <AuditLog apiService={apiService} />
                         )}
                     </div>
                 )}
@@ -2385,6 +2467,16 @@ const ProjectManagementSystem = () => {
                                     className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
                                     required
                                 />
+                                <select
+                                    value={newMember.managerId}
+                                    onChange={(e) => setNewMember({ ...newMember, managerId: e.target.value })}
+                                    className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                                >
+                                    <option value="">Reports to (no manager)</option>
+                                    {teamMembers.map((m) => (
+                                        <option key={m.id} value={m.id}>{m.name}</option>
+                                    ))}
+                                </select>
                                 <p className="text-xs text-gray-500">
                                     A temporary password will be generated and emailed to this address. They'll be asked to set their own password on first login.
                                 </p>
@@ -2407,6 +2499,74 @@ const ProjectManagementSystem = () => {
                                         <span className="h-4 w-4 rounded-full border-2 border-white/40 border-t-white animate-spin" />
                                     )}
                                     {savingMember ? 'Adding...' : 'Add Member'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {editingMemberId && (
+                <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                    <div className="bg-white rounded-2xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+                        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
+                            <h3 className="text-base font-semibold text-gray-900">Edit Team Member</h3>
+                            <button type="button" onClick={() => setEditingMemberId(null)} className="text-gray-400 hover:text-gray-600 rounded-lg p-1">
+                                <X className="h-5 w-5" />
+                            </button>
+                        </div>
+                        <form onSubmit={handleSaveMemberEdit}>
+                            <div className="px-6 py-5 space-y-4">
+                                <input
+                                    type="text"
+                                    placeholder="Full Name"
+                                    value={editMemberForm.name}
+                                    onChange={(e) => setEditMemberForm({ ...editMemberForm, name: e.target.value })}
+                                    className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                                    required
+                                />
+                                <input
+                                    type="text"
+                                    placeholder="Position"
+                                    value={editMemberForm.position}
+                                    onChange={(e) => setEditMemberForm({ ...editMemberForm, position: e.target.value })}
+                                    className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                                    required
+                                />
+                                <input
+                                    type="email"
+                                    placeholder="Email"
+                                    value={editMemberForm.email}
+                                    onChange={(e) => setEditMemberForm({ ...editMemberForm, email: e.target.value })}
+                                    className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                                    required
+                                />
+                                <select
+                                    value={editMemberForm.managerId}
+                                    onChange={(e) => setEditMemberForm({ ...editMemberForm, managerId: e.target.value })}
+                                    className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                                >
+                                    <option value="">Reports to (no manager)</option>
+                                    {teamMembers.filter((m) => m.id !== editingMemberId).map((m) => (
+                                        <option key={m.id} value={m.id}>{m.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => setEditingMemberId(null)}
+                                    disabled={savingMemberEdit}
+                                    className="inline-flex items-center gap-2 bg-white text-gray-700 border border-gray-300 px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-gray-50 transition-colors disabled:opacity-50"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={savingMemberEdit}
+                                    className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors disabled:opacity-50"
+                                >
+                                    {savingMemberEdit ? 'Saving...' : 'Save changes'}
                                 </button>
                             </div>
                         </form>

@@ -119,6 +119,11 @@ namespace KhoiProjectManagementApi.Extensions
 
             // Runtime role/permission configuration
             services.AddScoped<IRoleService, RoleService>();
+            services.AddScoped<IGroupService, GroupService>();
+
+            // Admin-only Audit section (sent emails + error logs)
+            services.AddScoped<IEmailLogService, EmailLogService>();
+            services.AddScoped<ILogFileService, LogFileService>();
 
             // Timesheets (flat, ownership-based)
             services.AddScoped<ITimesheetService, TimesheetService>();

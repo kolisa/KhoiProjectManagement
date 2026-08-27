@@ -37,6 +37,11 @@ namespace KhoiProjectManagement.Infrastructure.Data
         public DbSet<RolePermission> RolePermissions { get; set; }
         public DbSet<UserRole> UserRoles { get; set; }
 
+        // Ad-hoc, admin-managed collections of users - a SpacePermission grantee alongside Role/User,
+        // but carries no flat CRUD permissions of its own (see Group.cs).
+        public DbSet<Group> Groups { get; set; }
+        public DbSet<UserGroup> UserGroups { get; set; }
+
         // Hierarchical, Space-scoped permission system for dynamic containers (vault, future docs/wiki).
         public DbSet<Space> Spaces { get; set; }
         public DbSet<SpacePermission> SpacePermissions { get; set; }
@@ -185,6 +190,12 @@ namespace KhoiProjectManagement.Infrastructure.Data
                 e.Property(r => r.Description).HasMaxLength(500);
             });
 
+            modelBuilder.Entity<Group>(e =>
+            {
+                e.Property(g => g.Name).IsRequired().HasMaxLength(100);
+                e.Property(g => g.Description).HasMaxLength(500);
+            });
+
             modelBuilder.Entity<Space>(e =>
             {
                 e.Property(s => s.Name).IsRequired().HasMaxLength(200);
@@ -330,6 +341,9 @@ namespace KhoiProjectManagement.Infrastructure.Data
             modelBuilder.Entity<UserRole>()
                 .HasKey(ur => new { ur.UserId, ur.RoleId });
 
+            modelBuilder.Entity<UserGroup>()
+                .HasKey(ug => new { ug.UserId, ug.GroupId });
+
             // Configure relationships
             modelBuilder.Entity<Project>()
                 .HasOne(p => p.Creator)
@@ -364,6 +378,16 @@ namespace KhoiProjectManagement.Infrastructure.Data
                 .HasForeignKey(s => s.ParentSpaceId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            // User nests under itself for the "reports to" org chart, same reasoning as Space above:
+            // Restrict, not Cascade - deactivating/deleting a manager must never cascade-delete their
+            // direct reports. No collection nav (DirectReports) - the org chart is built client-side
+            // from the already-loaded team list, not via EF navigation.
+            modelBuilder.Entity<User>()
+                .HasOne(u => u.Manager)
+                .WithMany()
+                .HasForeignKey(u => u.ManagerId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             modelBuilder.Entity<Space>()
                 .HasOne(s => s.Creator)
                 .WithMany()
@@ -390,7 +414,13 @@ namespace KhoiProjectManagement.Infrastructure.Data
                 .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<SpacePermission>()
-                .HasIndex(sp => new { sp.SpaceId, sp.RoleId, sp.UserId })
+                .HasOne(sp => sp.Group)
+                .WithMany()
+                .HasForeignKey(sp => sp.GroupId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<SpacePermission>()
+                .HasIndex(sp => new { sp.SpaceId, sp.RoleId, sp.UserId, sp.GroupId })
                 .IsUnique();
 
             modelBuilder.Entity<RefreshToken>()
@@ -904,7 +934,9 @@ namespace KhoiProjectManagement.Infrastructure.Data
                 new Permission { Id = 21, Resource = "calendar", Action = "manage", Name = "calendar.manage", Description = "Create, edit, delete company calendar events (birthdays are computed automatically)" },
                 new Permission { Id = 22, Resource = "dashboard", Action = "manage", Name = "dashboard.manage", Description = "Control which dashboard widgets are available company-wide" },
                 new Permission { Id = 23, Resource = "reminders", Action = "view_all", Name = "reminders.view_all", Description = "View and filter every user's reminders" },
-                new Permission { Id = 24, Resource = "reminders", Action = "manage", Name = "reminders.manage", Description = "Assign a reminder to another user, bulk-act on any reminder" }
+                new Permission { Id = 24, Resource = "reminders", Action = "manage", Name = "reminders.manage", Description = "Assign a reminder to another user, bulk-act on any reminder" },
+                new Permission { Id = 25, Resource = "groups", Action = "manage", Name = "groups.manage", Description = "Create groups and manage their membership" },
+                new Permission { Id = 26, Resource = "audit", Action = "view", Name = "audit.view", Description = "View sent-email history and application error logs" }
             );
 
             modelBuilder.Entity<Role>().HasData(
@@ -915,7 +947,7 @@ namespace KhoiProjectManagement.Infrastructure.Data
 
             // Admin: all permissions.
             modelBuilder.Entity<RolePermission>().HasData(
-                Enumerable.Range(1, 24).Select(permissionId => new RolePermission { RoleId = 1, PermissionId = permissionId }).ToArray()
+                Enumerable.Range(1, 26).Select(permissionId => new RolePermission { RoleId = 1, PermissionId = permissionId }).ToArray()
             );
 
             // Manager: projects.create/edit, tasks.delete, attachments.delete, notifications.check_overdue,

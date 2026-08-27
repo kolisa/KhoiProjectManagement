@@ -8,9 +8,11 @@ namespace KhoiProjectManagement.Domain
         Manage = 3
     }
 
-    // Grants a Role or a specific User a PermissionLevel on a Space. Exactly one of RoleId/UserId is
-    // set - RoleId for role-wide grants (e.g. seeded Admin gets Manage on the Vault root), UserId for
-    // per-person grants (e.g. project team membership synced from ProjectUser, see ProjectService).
+    // Grants a Role, a Group, or a specific User a PermissionLevel on a Space. Exactly one of
+    // RoleId/UserId/GroupId is set - RoleId for role-wide grants (e.g. seeded Admin gets Manage on
+    // the Vault root), UserId for per-person grants (e.g. project team membership synced from
+    // ProjectUser, see ProjectService), GroupId for an ad-hoc admin-managed set of users (Group
+    // carries no flat CRUD permissions of its own, unlike Role - see Group.cs).
     public class SpacePermission : BaseEntity
     {
         public int SpaceId { get; set; }
@@ -21,6 +23,9 @@ namespace KhoiProjectManagement.Domain
 
         public int? UserId { get; set; }
         public virtual User? User { get; set; }
+
+        public int? GroupId { get; set; }
+        public virtual Group? Group { get; set; }
 
         public PermissionLevel Level { get; set; }
 

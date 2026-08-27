@@ -12,6 +12,7 @@ namespace KhoiProjectManagement.Application
     {
         private readonly IRepository<WikiPage> _pageRepo;
         private readonly IRepository<UserRole> _userRoleRepo;
+        private readonly IRepository<UserGroup> _userGroupRepo;
         private readonly IRepository<WikiPageVersion> _versionRepo;
         private readonly IRepository<User> _userRepo;
         private readonly IRepository<WikiPageTag> _pageTagRepo;
@@ -27,6 +28,7 @@ namespace KhoiProjectManagement.Application
         public WikiService(
             IRepository<WikiPage> pageRepo,
             IRepository<UserRole> userRoleRepo,
+            IRepository<UserGroup> userGroupRepo,
             IRepository<WikiPageVersion> versionRepo,
             IRepository<User> userRepo,
             IRepository<WikiPageTag> pageTagRepo,
@@ -41,6 +43,7 @@ namespace KhoiProjectManagement.Application
         {
             _pageRepo = pageRepo;
             _userRoleRepo = userRoleRepo;
+            _userGroupRepo = userGroupRepo;
             _versionRepo = versionRepo;
             _userRepo = userRepo;
             _pageTagRepo = pageTagRepo;
@@ -65,8 +68,12 @@ namespace KhoiProjectManagement.Application
                 .Where(ur => ur.UserId == userId)
                 .Select(ur => ur.RoleId)
                 .ToListAsync();
+            var groupIds = await _userGroupRepo.Query()
+                .Where(ug => ug.UserId == userId)
+                .Select(ug => ug.GroupId)
+                .ToListAsync();
 
-            return await _spacePermissionResolver.ResolveEffectiveLevelAsync(page.SpaceId, userId, roleIds);
+            return await _spacePermissionResolver.ResolveEffectiveLevelAsync(page.SpaceId, userId, roleIds, groupIds);
         }
 
         public async Task<List<WikiPageSummaryDto>> GetPagesAsync(int spaceId, int? parentPageId, ClaimsPrincipal caller)
@@ -451,8 +458,12 @@ namespace KhoiProjectManagement.Application
                     .Where(ur => ur.UserId == mentionedId)
                     .Select(ur => ur.RoleId)
                     .ToListAsync();
+                var groupIds = await _userGroupRepo.Query()
+                    .Where(ug => ug.UserId == mentionedId)
+                    .Select(ug => ug.GroupId)
+                    .ToListAsync();
 
-                var level = await _spacePermissionResolver.ResolveEffectiveLevelAsync(page.SpaceId, mentionedId, roleIds);
+                var level = await _spacePermissionResolver.ResolveEffectiveLevelAsync(page.SpaceId, mentionedId, roleIds, groupIds);
                 if (level == null)
                     continue; // No Read access to this Space - don't notify or email.
 
@@ -519,11 +530,15 @@ namespace KhoiProjectManagement.Application
                 .Where(ur => ur.UserId == callerId)
                 .Select(ur => ur.RoleId)
                 .ToListAsync();
+            var groupIds = await _userGroupRepo.Query()
+                .Where(ug => ug.UserId == callerId)
+                .Select(ug => ug.GroupId)
+                .ToListAsync();
 
             var results = new List<WikiSearchResultDto>();
             foreach (var page in candidates)
             {
-                var level = await _spacePermissionResolver.ResolveEffectiveLevelAsync(page.SpaceId, callerId, roleIds);
+                var level = await _spacePermissionResolver.ResolveEffectiveLevelAsync(page.SpaceId, callerId, roleIds, groupIds);
                 if (level == null)
                     continue;
 

@@ -368,6 +368,16 @@ class ApiService {
     }, { timeoutMs: UPLOAD_TIMEOUT_MS });
   }
 
+  // PUT /api/users/{id} - profile fields only (name/email/position/managerId/password), never Role;
+  // role changes go through the separate assignRoles endpoint. Was a live but unused-by-frontend
+  // backend endpoint until the Edit Member modal started calling it.
+  async updateUser(id, dto) {
+    return await this.request(`/users/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(dto),
+    });
+  }
+
   async deactivateUser(id) {
     return await this.request(`/users/${id}`, { method: 'DELETE' });
   }
@@ -412,6 +422,61 @@ class ApiService {
       method: 'PUT',
       body: JSON.stringify(dto),
     });
+  }
+
+  // Groups (admin-only, see GroupsController) - ad-hoc user collections grantable in Manage Access
+  // alongside User/Role, same shape as the Roles methods above.
+  async getGroups() {
+    return await this.request('/groups');
+  }
+
+  async createGroup(dto) {
+    return await this.request('/groups', {
+      method: 'POST',
+      body: JSON.stringify(dto),
+    });
+  }
+
+  async updateGroup(groupId, dto) {
+    return await this.request(`/groups/${groupId}`, {
+      method: 'PUT',
+      body: JSON.stringify(dto),
+    });
+  }
+
+  async getGroupMembers(groupId) {
+    return await this.request(`/groups/${groupId}/members`);
+  }
+
+  async setGroupMembers(groupId, userIds) {
+    return await this.request(`/groups/${groupId}/members`, {
+      method: 'PUT',
+      body: JSON.stringify({ userIds }),
+    });
+  }
+
+  // Audit (admin-only, see AuditController) - sent-email history + application error logs.
+  async getEmailAuditLog({ take, isSuccess, emailType, toEmailContains } = {}) {
+    const params = new URLSearchParams();
+    if (take != null) params.set('take', take);
+    if (isSuccess != null) params.set('isSuccess', isSuccess);
+    if (emailType) params.set('emailType', emailType);
+    if (toEmailContains) params.set('toEmailContains', toEmailContains);
+    const qs = params.toString();
+    return await this.request(`/audit/emails${qs ? `?${qs}` : ''}`);
+  }
+
+  async getErrorLogDates() {
+    return await this.request('/audit/error-logs/dates');
+  }
+
+  async getErrorLogs({ date, level, take } = {}) {
+    const params = new URLSearchParams();
+    if (date) params.set('date', date);
+    if (level) params.set('level', level);
+    if (take != null) params.set('take', take);
+    const qs = params.toString();
+    return await this.request(`/audit/error-logs${qs ? `?${qs}` : ''}`);
   }
 
   // Reports

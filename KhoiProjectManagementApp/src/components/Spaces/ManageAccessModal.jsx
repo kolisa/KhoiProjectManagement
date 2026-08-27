@@ -15,12 +15,17 @@ const ManageAccessModal = ({ apiService, space, teamMembers, currentUser, onClos
   const toast = useToast();
   const [grants, setGrants] = useState(null);
   const [roles, setRoles] = useState(null);
+  const [groups, setGroups] = useState(null);
   const [saving, setSaving] = useState(false);
   const [granteeType, setGranteeType] = useState('user');
   const [granteeId, setGranteeId] = useState('');
   const [newLevel, setNewLevel] = useState('Read');
 
+  // Groups are gated by the same permission that controls managing them - only someone who can
+  // manage groups can grant one Space access, matching how only someone who can manage roles can
+  // grant a Role Space access (canSeeRoles below).
   const canSeeRoles = hasPermission(currentUser?.permissions, 'users.manage_roles');
+  const canSeeGroups = hasPermission(currentUser?.permissions, 'groups.manage');
 
   useEffect(() => {
     const load = async () => {
@@ -30,7 +35,8 @@ const ManageAccessModal = ({ apiService, space, teamMembers, currentUser, onClos
           key: g.id,
           userId: g.userId,
           roleId: g.roleId,
-          name: g.userName || g.roleName,
+          groupId: g.groupId,
+          name: g.userName || g.roleName || g.groupName,
           level: g.level,
         })));
       } catch (err) {
@@ -44,6 +50,13 @@ const ManageAccessModal = ({ apiService, space, teamMembers, currentUser, onClos
           setRoles([]);
         }
       }
+      if (canSeeGroups) {
+        try {
+          setGroups(await apiService.getGroups());
+        } catch {
+          setGroups([]);
+        }
+      }
     };
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -51,17 +64,22 @@ const ManageAccessModal = ({ apiService, space, teamMembers, currentUser, onClos
 
   const availableUsers = teamMembers.filter((m) => !grants?.some((g) => g.userId === m.id));
   const availableRoles = (roles || []).filter((r) => !grants?.some((g) => g.roleId === r.id));
+  const availableGroups = (groups || []).filter((gr) => !grants?.some((g) => g.groupId === gr.id));
 
   const handleAdd = () => {
     if (!granteeId) return;
     if (granteeType === 'user') {
       const user = teamMembers.find((m) => m.id === Number(granteeId));
       if (!user) return;
-      setGrants((prev) => [...prev, { key: `new-user-${user.id}`, userId: user.id, roleId: null, name: user.name, level: newLevel }]);
-    } else {
+      setGrants((prev) => [...prev, { key: `new-user-${user.id}`, userId: user.id, roleId: null, groupId: null, name: user.name, level: newLevel }]);
+    } else if (granteeType === 'role') {
       const role = (roles || []).find((r) => r.id === Number(granteeId));
       if (!role) return;
-      setGrants((prev) => [...prev, { key: `new-role-${role.id}`, userId: null, roleId: role.id, name: role.name, level: newLevel }]);
+      setGrants((prev) => [...prev, { key: `new-role-${role.id}`, userId: null, roleId: role.id, groupId: null, name: role.name, level: newLevel }]);
+    } else {
+      const group = (groups || []).find((gr) => gr.id === Number(granteeId));
+      if (!group) return;
+      setGrants((prev) => [...prev, { key: `new-group-${group.id}`, userId: null, roleId: null, groupId: group.id, name: group.name, level: newLevel }]);
     }
     setGranteeId('');
   };
@@ -80,6 +98,7 @@ const ManageAccessModal = ({ apiService, space, teamMembers, currentUser, onClos
       await apiService.setSpacePermissions(space.id, grants.map((g) => ({
         userId: g.userId,
         roleId: g.roleId,
+        groupId: g.groupId,
         level: g.level,
       })));
       toast.success('Access updated.');
@@ -116,6 +135,7 @@ const ManageAccessModal = ({ apiService, space, teamMembers, currentUser, onClos
                     <span className="flex-1 text-gray-900 truncate">
                       {g.name}
                       {g.roleId && <span className="ml-1.5 text-xs text-gray-400">(role)</span>}
+                      {g.groupId && <span className="ml-1.5 text-xs text-gray-400">(group)</span>}
                     </span>
                     <select
                       value={g.level}
@@ -132,14 +152,15 @@ const ManageAccessModal = ({ apiService, space, teamMembers, currentUser, onClos
               </div>
 
               <div className="border-t border-gray-100 pt-4 flex items-center gap-2">
-                {canSeeRoles && (
+                {(canSeeRoles || canSeeGroups) && (
                   <select
                     value={granteeType}
                     onChange={(e) => { setGranteeType(e.target.value); setGranteeId(''); }}
                     className="text-sm border border-gray-300 rounded-[10px] px-2 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   >
                     <option value="user">Person</option>
-                    <option value="role">Role</option>
+                    {canSeeRoles && <option value="role">Role</option>}
+                    {canSeeGroups && <option value="group">Group</option>}
                   </select>
                 )}
                 <select
@@ -148,9 +169,9 @@ const ManageAccessModal = ({ apiService, space, teamMembers, currentUser, onClos
                   className="flex-1 text-sm border border-gray-300 rounded-[10px] px-2.5 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option value="">
-                    {granteeType === 'user' ? 'Add a person...' : 'Add a role...'}
+                    {granteeType === 'user' ? 'Add a person...' : granteeType === 'role' ? 'Add a role...' : 'Add a group...'}
                   </option>
-                  {(granteeType === 'user' ? availableUsers : availableRoles).map((item) => (
+                  {(granteeType === 'user' ? availableUsers : granteeType === 'role' ? availableRoles : availableGroups).map((item) => (
                     <option key={item.id} value={item.id}>{item.name}</option>
                   ))}
                 </select>

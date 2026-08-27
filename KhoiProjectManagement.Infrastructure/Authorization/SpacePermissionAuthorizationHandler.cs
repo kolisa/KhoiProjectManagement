@@ -39,7 +39,12 @@ namespace KhoiProjectManagement.Infrastructure.Authorization
                 .Where(id => id.HasValue)
                 .Select(id => id!.Value);
 
-            var effectiveLevel = await _resolver.ResolveEffectiveLevelAsync(resource.SpaceId, userId, roleIds);
+            var groupIds = context.User.FindAll("groupId")
+                .Select(c => int.TryParse(c.Value, out var id) ? id : (int?)null)
+                .Where(id => id.HasValue)
+                .Select(id => id!.Value);
+
+            var effectiveLevel = await _resolver.ResolveEffectiveLevelAsync(resource.SpaceId, userId, roleIds, groupIds);
 
             if (effectiveLevel.HasValue && effectiveLevel.Value >= requirement.MinimumLevel)
             {
