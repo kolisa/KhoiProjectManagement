@@ -1,6 +1,7 @@
 // src/App.js - Complete Project Management Frontend
 import React, { useState, useEffect, useRef } from 'react';
-import { Plus, Search, Calendar, Users, CheckCircle, Clock, AlertCircle, Trash2, Edit3, User, Bell, FileText, Tag, Download, Upload, Flag, Shield, UserCheck, Eye, EyeOff, LogOut, Menu, X, Mail, Lock, ChevronDown, LayoutDashboard, Folder, CheckSquare, BookOpen, Archive, Lightbulb, DollarSign, BarChart2, Settings as SettingsIcon, ArrowRight } from 'lucide-react';
+import { Plus, Search, Calendar, Users, CheckCircle, Clock, AlertCircle, Trash2, Edit3, User, Bell, FileText, Tag, Download, Upload, Flag, Shield, UserCheck, Eye, EyeOff, LogOut, Menu, X, Mail, Lock, ChevronDown, LayoutDashboard, Folder, CheckSquare, BookOpen, Archive, Lightbulb, BarChart2, Settings as SettingsIcon, ArrowRight } from 'lucide-react';
+import RandIcon from './components/Common/RandIcon';
 import ApiService, { NetworkError } from './services/ApiService';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ToastProvider, useToast } from './contexts/ToastContext';
@@ -56,7 +57,7 @@ const NAV_GROUPS = [
         label: 'Business',
         items: [
             { key: 'ideas', label: 'Ideas', icon: Lightbulb },
-            { key: 'finance', label: 'Finance', icon: DollarSign },
+            { key: 'finance', label: 'Finance', icon: RandIcon },
             { key: 'reports', label: 'Reports', icon: BarChart2 },
         ],
     },

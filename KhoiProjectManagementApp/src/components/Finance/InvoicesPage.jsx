@@ -1,6 +1,7 @@
 // src/components/Finance/InvoicesPage.js
 import React, { useState, useEffect } from 'react';
-import { DollarSign, Plus, FileStack, X } from 'lucide-react';
+import { Plus, FileStack, X } from 'lucide-react';
+import RandIcon from '../Common/RandIcon';
 import { hasPermission } from '../../utils/permissions';
 import InvoiceDetail from './InvoiceDetail';
 import { useToast } from '../../contexts/ToastContext';
@@ -221,7 +222,7 @@ const InvoicesPage = ({ apiService, user }) => {
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-[27px] font-bold text-gray-900 flex items-center">
-            <DollarSign className="h-7 w-7 mr-2 text-gray-700" />
+            <RandIcon className="h-7 w-7 mr-2 text-gray-700" />
             Invoices
           </h2>
           <p className="text-gray-600">
