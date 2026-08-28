@@ -185,7 +185,7 @@ namespace KhoiProjectManagement.Application
         private async Task<string> SaveToDiskAsync(IFormFile file)
         {
             var libraryPath = GetLibraryPath();
-            var storedFileName = $"{Guid.NewGuid()}_{file.FileName}";
+            var storedFileName = UploadFileNaming.BuildStoredFileName(file.FileName);
             var filePath = Path.Combine(libraryPath, storedFileName);
 
             Directory.CreateDirectory(Path.GetDirectoryName(filePath)!);

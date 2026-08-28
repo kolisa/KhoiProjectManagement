@@ -10,5 +10,6 @@ namespace KhoiProjectManagement.Application
         Task<IEnumerable<AttachmentDto>> GetProjectAttachmentsAsync(int projectId);
         Task<IEnumerable<AttachmentDto>> GetTaskAttachmentsAsync(int taskId);
         Task<bool> DeleteAttachmentAsync(int id);
+        Task<(byte[] Content, string ContentType, string FileName)?> DownloadFileAsync(int id);
     }
 }

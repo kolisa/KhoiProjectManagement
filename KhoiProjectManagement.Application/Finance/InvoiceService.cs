@@ -174,7 +174,7 @@ namespace KhoiProjectManagement.Application
                     File.Delete(oldPath);
             }
 
-            invoice.OriginalFileName = file.FileName;
+            invoice.OriginalFileName = Path.GetFileName(file.FileName);
             invoice.StoredFileName = storedFileName;
             invoice.FileContentType = file.ContentType;
             invoice.FileSize = file.Length;
@@ -208,7 +208,7 @@ namespace KhoiProjectManagement.Application
             if (!File.Exists(sourcePath))
                 return null;
 
-            var templateStoredName = $"{Guid.NewGuid()}_{invoice.OriginalFileName}";
+            var templateStoredName = UploadFileNaming.BuildStoredFileName(invoice.OriginalFileName);
             Directory.CreateDirectory(templatePath);
             File.Copy(sourcePath, Path.Combine(templatePath, templateStoredName));
 
@@ -243,7 +243,7 @@ namespace KhoiProjectManagement.Application
             string? newStoredFileName = null;
             if (File.Exists(sourcePath))
             {
-                newStoredFileName = $"{Guid.NewGuid()}_{template.OriginalFileName}";
+                newStoredFileName = UploadFileNaming.BuildStoredFileName(template.OriginalFileName);
                 Directory.CreateDirectory(uploadPath);
                 File.Copy(sourcePath, Path.Combine(uploadPath, newStoredFileName));
             }
@@ -298,7 +298,7 @@ namespace KhoiProjectManagement.Application
 
         private static async Task<string> SaveFileToDiskAsync(IFormFile file, string uploadPath)
         {
-            var storedFileName = $"{Guid.NewGuid()}_{file.FileName}";
+            var storedFileName = UploadFileNaming.BuildStoredFileName(file.FileName);
             var filePath = Path.Combine(uploadPath, storedFileName);
 
             Directory.CreateDirectory(Path.GetDirectoryName(filePath)!);

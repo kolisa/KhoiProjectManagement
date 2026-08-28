@@ -168,24 +168,23 @@ namespace KhoiProjectManagementApi.Extensions
                     // credentials. Useful to unblock a freshly deployed frontend before its exact
                     // origin is known/added below, but not something to leave on - once you know the
                     // real origin (e.g. your Vercel domain), add it to Cors:AllowedOrigins instead and
-                    // flip this back to false (see README.md). AllowAnyOrigin() can't be combined with
-                    // AllowCredentials() below - browsers reject that combination outright - so this
-                    // uses SetIsOriginAllowed(_ => true), the documented way to get the same effect.
-                    if (configuration.GetValue("Cors:AllowAnyOrigin", false))
-                    {
-                        policy.SetIsOriginAllowed(_ => true);
-                    }
-                    else
-                    {
-                        var allowedOrigins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ??
-                                           new[] { "http://localhost:3000",
-                                               "http://localhost:901",
-                                               "http://localhost:80",
-                                               "http://160.119.250.16/",
-                                               "http://localhost",
-                                               "http://localhost:905"};
-                        policy.WithOrigins(allowedOrigins);
-                    }
+                    // flip this back to false (see README.md).
+                    var allowAny = configuration.GetValue("Cors:AllowAnyOrigin", false);
+                    var allowedOrigins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ??
+                                       new[] { "http://localhost:3000", "http://localhost:901" };
+                    // Optional regex for a family of origins that can't be listed exactly - e.g. Vercel's
+                    // per-PR/per-branch preview deployments, which get a new *.vercel.app subdomain every
+                    // build. Left unset by default; set Cors:PreviewOriginPattern to scope it (e.g. to
+                    // this project's own preview subdomains) rather than trusting all of *.vercel.app.
+                    var previewOriginPattern = configuration["Cors:PreviewOriginPattern"];
+
+                    // AllowAnyOrigin() can't be combined with AllowCredentials() below - browsers reject
+                    // that combination outright - so every case here goes through SetIsOriginAllowed,
+                    // the documented way to allow credentialed requests from more than one fixed origin.
+                    policy.SetIsOriginAllowed(origin =>
+                        allowAny ||
+                        allowedOrigins.Contains(origin) ||
+                        (previewOriginPattern is not null && System.Text.RegularExpressions.Regex.IsMatch(origin, previewOriginPattern)));
 
                     policy.AllowAnyHeader()
                           .AllowAnyMethod()

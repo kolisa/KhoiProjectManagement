@@ -57,24 +57,17 @@ namespace KhoiProjectManagementApi.Controllers
         [HttpGet("{id}/download")]
         public async Task<IActionResult> DownloadFile(int id)
         {
-            var attachment = await _attachmentService.GetAttachmentByIdAsync(id);
-            if (attachment == null)
-                return NotFound("Attachment not found");
-
-            var uploadPath = _configuration["FileUpload:UploadPath"] ?? Path.Combine("wwwroot", "uploads");
-            var filePath = Path.Combine(uploadPath, attachment.FileName ?? string.Empty);
-
-            if (!System.IO.File.Exists(filePath))
-                return NotFound("File not found on disk");
-
             try
             {
-                var fileBytes = await System.IO.File.ReadAllBytesAsync(filePath);
-                return File(fileBytes, attachment.ContentType, attachment.FileName);
+                var result = await _attachmentService.DownloadFileAsync(id);
+                if (result == null)
+                    return NotFound("Attachment not found");
+
+                return File(result.Value.Content, result.Value.ContentType, result.Value.FileName);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to read attachment {AttachmentId} from disk at {FilePath}", id, filePath);
+                _logger.LogError(ex, "Failed to read attachment {AttachmentId} from disk", id);
                 return StatusCode(500, "An error occurred while reading the file.");
             }
         }

@@ -6,6 +6,7 @@ using KhoiProjectManagementApi.Extensions;
 using KhoiProjectManagementApi.Filters;
 using KhoiProjectManagementApi.Hubs;
 using KhoiProjectManagementApi.Middleware;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 
@@ -67,6 +68,8 @@ try
     var reminderJobKey = new JobKey("ReminderDueCheck");
     var dashboardSnapshotJobKey = new JobKey("DashboardSnapshot");
     var scheduledReportJobKey = new JobKey("ScheduledReport");
+    var sendQueuedEmailsJobKey = new JobKey("SendQueuedEmails");
+    var loginReminderJobKey = new JobKey("LoginReminderCheck");
     var firstRecurrence = DateBuilder.FutureDate(1, IntervalUnit.Hour);
 
     builder.Services.AddQuartz(q =>
@@ -98,8 +101,37 @@ try
             .WithIdentity("ScheduledReport-trigger")
             .StartAt(firstRecurrence)
             .WithSimpleSchedule(s => s.WithIntervalInHours(1).RepeatForever()));
+
+        // The actual email-delivery mechanism (see EmailService's outbox pattern) - a much shorter
+        // interval than the jobs above since a queued email's real-world latency is bounded by it.
+        q.AddJob<SendQueuedEmailsJob>(opts => opts.WithIdentity(sendQueuedEmailsJobKey));
+        q.AddTrigger(opts => opts
+            .ForJob(sendQueuedEmailsJobKey)
+            .WithIdentity("SendQueuedEmails-trigger")
+            .StartAt(firstRecurrence)
+            .WithSimpleSchedule(s => s.WithIntervalInSeconds(15).RepeatForever()));
+
+        q.AddJob<LoginReminderCheckJob>(opts => opts.WithIdentity(loginReminderJobKey));
+        q.AddTrigger(opts => opts
+            .ForJob(loginReminderJobKey)
+            .WithIdentity("LoginReminderCheck-trigger")
+            .StartAt(firstRecurrence)
+            .WithSimpleSchedule(s => s.WithIntervalInHours(24).RepeatForever()));
     });
     builder.Services.AddQuartzHostedService(opts => opts.WaitForJobsToComplete = true);
+
+    // Needed once the API sits behind a reverse proxy (nginx/Caddy) on the Linux host - without this,
+    // HttpContext.Connection.RemoteIpAddress/Request.Scheme reflect the proxy hop, not the real client,
+    // which breaks UseHttpsRedirection()'s correctness and any IP-based logging. KnownNetworks/
+    // KnownProxies are cleared because the proxy's address isn't fixed/known ahead of time here - this
+    // is only safe because Kestrel is expected to be reachable exclusively through that proxy, never
+    // directly from the public internet.
+    builder.Services.Configure<ForwardedHeadersOptions>(options =>
+    {
+        options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+        options.KnownIPNetworks.Clear();
+        options.KnownProxies.Clear();
+    });
 
     var app = builder.Build();
 
@@ -114,6 +146,7 @@ try
         app.MapGet("/", () => Results.Redirect("/swagger"));
     }
 
+    app.UseForwardedHeaders();
     app.UseMiddleware<ErrorHandlingMiddleware>();
     app.UseSerilogRequestLogging();
     app.UseHttpsRedirection();
@@ -155,6 +188,10 @@ try
         await scheduler.TriggerJob(reminderJobKey);
         await scheduler.TriggerJob(dashboardSnapshotJobKey);
         await scheduler.TriggerJob(scheduledReportJobKey);
+        // Flushes any emails still Pending from before a restart immediately, instead of waiting up to
+        // 15s for the trigger's own recurring schedule.
+        await scheduler.TriggerJob(sendQueuedEmailsJobKey);
+        await scheduler.TriggerJob(loginReminderJobKey);
     }
 
     await app.RunAsync();

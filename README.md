@@ -150,53 +150,113 @@ never reuse these values for a real deployment.
 
 ## Deploying to a server
 
-Don't put a real server's credentials into `appsettings.json` or `appsettings.Development.json` -
-both are committed to git. Instead, ASP.NET Core layers `appsettings.{ASPNETCORE_ENVIRONMENT}.json` on
-top of `appsettings.json` automatically, so real per-environment secrets go in
-`appsettings.Production.json` instead - gitignored, so it only ever exists on machines that actually
-need it (never in the repo's history).
+**Deploys to the real production server are automated** - `.github/workflows/ci.yml`'s `deploy` job
+runs on every push to `master` once `backend`/`frontend`/`e2e` all pass: publishes the API, stops
+`khoi-api`, replaces `/var/www/khoi-api`, fixes permissions, reloads systemd, restarts, and verifies
+Swagger responds. It never touches `/etc/khoi-api/khoi-api.env`. See "CI/CD deploy" below for how
+that's wired up and how to set it up against a different server.
 
-1. On the server, copy the tracked template and fill in real values:
+The rest of this section (copying `appsettings.Production.json`, running things by hand) is the
+manual process that workflow replaced - kept here as a fallback for deploying without CI, or for
+understanding what the automated job is actually doing under the hood.
+
+Don't put a real server's credentials into `appsettings.json` or `appsettings.Development.json` -
+both are committed to git. ASP.NET Core layers config from multiple sources, later ones winning:
+`appsettings.json` → `appsettings.{ASPNETCORE_ENVIRONMENT}.json` → environment variables (using `__`
+for nested keys, e.g. `Jwt__SecretKey`). Real per-environment secrets can go in either
+`appsettings.Production.json` (gitignored, exists only on machines that need it) or environment
+variables - **the actual production server uses environment variables exclusively**, set in
+`/etc/khoi-api/khoi-api.env` (owned `root:www-data`, mode `640`, referenced by the systemd unit's
+`EnvironmentFile=` directive) - there is no `appsettings.Production.json` on disk there at all. That
+file persists across every deploy (the deploy job only ever touches `/var/www/khoi-api`), so it's the
+one durable place production secrets live - a fresh `git clone` + CI publish never needs to carry or
+regenerate them.
+
+1. If using `appsettings.Production.json` instead, copy the tracked template and fill in real values:
    ```bash
    cp KhoiProjectManagementApi/appsettings.Production.json.example KhoiProjectManagementApi/appsettings.Production.json
    # then edit ConnectionStrings:DefaultConnection, Jwt:SecretKey, App:FrontendBaseUrl, Cors:AllowedOrigins
    ```
-2. Apply the schema **before** the first start - `App:AutoMigrateOnStartup` is `false` in the template
-   (see below for why), so nothing does this for you here the way `dotnet run`/the Docker path do
-   locally:
+   If using environment variables instead (as production actually does), set the equivalent
+   double-underscore keys in whatever mechanism supplies them (an `EnvironmentFile=` for systemd, `env:`
+   for GitHub Actions/Docker, etc.) - `ConnectionStrings__DefaultConnection`, `Jwt__SecretKey`,
+   `App__FrontendBaseUrl`, `App__AutoMigrateOnStartup`, `Cors__AllowedOrigins__0` (and `__1`, `__2`, ...
+   for more than one), `Cors__AllowAnyOrigin`, `Cors__PreviewOriginPattern`, `Email__SmtpHost` etc.
+2. Apply the schema before the first start, *unless* `App:AutoMigrateOnStartup`/`App__AutoMigrateOnStartup`
+   is `true` for that environment (see below - the real production server deliberately sets it `true`,
+   the opposite of this repo's own default advice, so this step is a no-op there):
    ```bash
    cd KhoiProjectManagementApi
    dotnet ef database update --project ..\KhoiProjectManagement.Infrastructure --startup-project . \
-     --connection "<the same connection string you put in appsettings.Production.json>"
+     --connection "<the same connection string production actually uses>"
    ```
-3. Run with `ASPNETCORE_ENVIRONMENT=Production` so `appsettings.Production.json` actually gets picked up:
+3. Run with `ASPNETCORE_ENVIRONMENT=Production` so the Production-layered config actually gets picked up:
    ```bash
    ASPNETCORE_ENVIRONMENT=Production dotnet KhoiProjectManagementApi.dll
    ```
-   (or, for the Docker path, pass it as an environment variable to the `api` service/container the same
-   way `docker-compose.yml` already does for `ConnectionStrings__DefaultConnection` - either an
-   `appsettings.Production.json` mounted into the container, or the equivalent
-   `ConnectionStrings__DefaultConnection`/`Jwt__SecretKey`/etc. environment variables directly).
 
-### Why migrations aren't automatic here
+### Why migrations usually aren't automatic here (but are, deliberately, on the real server)
 
 Locally (`dotnet run` or the `api` Docker container), the API applies pending migrations and seeds
-default data itself on every startup - convenient for a throwaway dev database, but not something you
-want happening automatically against a real, shared production database: multiple instances starting
-at once would race to apply the same migration, and an empty production database would silently get
-the [documented seeded demo accounts](#seeded-users-all-created-automatically---see-above) inserted
-into it. `App:AutoMigrateOnStartup` (`true` in the base `appsettings.json`, `false` in
-`appsettings.Production.json.example`) gates both behind that one setting, so treating your production
-database's schema as a deliberate, reviewed step (step 2 above) is the default for any environment
-that sets it to `false` - not just this specific one.
+default data itself on every startup - convenient for a throwaway dev database, but risky against a
+real, shared production database by default: multiple instances starting at once would race to apply
+the same migration, and an *empty* production database would silently get the
+[documented seeded demo accounts](#seeded-users-all-created-automatically---see-above) inserted into
+it. `App:AutoMigrateOnStartup` (`true` in the base `appsettings.json`, `false` in
+`appsettings.Production.json.example`) gates both behind one setting, so treating schema changes as a
+deliberate, reviewed step is this repo's own recommended default for any environment that sets it to
+`false`.
 
-Anything you don't override in `appsettings.Production.json` still falls back to the base
-`appsettings.json` value (e.g. `FileUpload`/`Serilog` settings rarely need a server-specific override) -
-you only need to list what's actually different.
+**The real production server overrides this to `true`** (`App__AutoMigrateOnStartup=true` in
+`/etc/khoi-api/khoi-api.env`) - a considered choice made when CI/CD was set up, not an oversight: this
+is a single-instance deployment (no concurrent-migration race), the database already has real data
+(the seed step's own `if (await context.Users.AnyAsync()) return;` guard makes the demo-account risk
+moot on a non-empty database), and the team wanted every merge to master to apply pending migrations
+automatically rather than requiring a separate manual step per release.
+
+Anything you don't override falls back to the base `appsettings.json` value (e.g. `FileUpload`/
+`Serilog` settings rarely need a server-specific override) - you only need to set what's actually
+different, whichever mechanism (file or env vars) you're using.
+
+### CI/CD deploy
+
+`.github/workflows/ci.yml`'s `deploy` job (`needs: [backend, frontend, e2e]`, `master` pushes only)
+does exactly what the manual steps above used to: `dotnet publish` the API, SSH in to stop `khoi-api`
+and clear `/var/www/khoi-api`, `scp` the fresh build over, fix ownership (`www-data:www-data` on the
+app directory, `root:www-data` mode `640` on the env file - never touching the file's contents),
+`systemctl daemon-reload && systemctl restart khoi-api`, then poll `/swagger/index.html` through the
+public nginx proxy to confirm the restart actually succeeded before the job reports green.
+
+Two repository secrets drive it: `DEPLOY_HOST` (the server's IP) and `DEPLOY_SSH_KEY` (a private key
+whose public half is in that server's `root` `authorized_keys` - a dedicated key generated
+specifically for this, not anyone's personal key). The workflow pins the server's known host key
+inline rather than trusting whatever answers on connect. Pointing this at a different server means
+regenerating a keypair, adding the public half to that server's `authorized_keys`, updating both
+secrets, and updating the pinned host key line in the workflow to match.
 
 `Host=127.0.0.1` in a server-side connection string means "Postgres running on that same server" (as
 opposed to `docker-compose.yml`'s `postgres` hostname, which only resolves inside Docker Compose's own
 network) - normal for a single-VM deployment where the API and its database share a host.
+
+### Reverse proxy and TLS
+
+A reverse proxy already sits in front of Kestrel on the production server - nginx, listening on
+`:80`, `proxy_pass`ing everything to `http://127.0.0.1:5000` (`/etc/nginx/sites-enabled/khoi-api`;
+`ASPNETCORE_URLS=http://127.0.0.1:5000` in `/etc/khoi-api/khoi-api.env` is what makes Kestrel bind
+there specifically). It already sends `X-Forwarded-Proto`/`X-Forwarded-For`, which is what
+`Program.cs`'s `UseForwardedHeaders()` reads. (The `Dockerfile`'s `ASPNETCORE_URLS=http://+:8080` is
+for a separate, currently-unused container-based path - the real deployment is the native systemd
+service described below, on port 5000, not 8080; don't assume the two are interchangeable.)
+
+**What's still missing is TLS** - nginx has no certificate configured, so the proxy itself only
+speaks plain HTTP too. Getting a certificate needs a real hostname pointed at this server (you can't
+get a certificate for a bare IP address) - once one exists, the lowest-effort path is `certbot`
+(`apt install certbot python3-certbot-nginx`, then `certbot --nginx -d your-hostname` - it edits the
+existing `sites-enabled/khoi-api` config in place to add the `listen 443` block and auto-renewal, no
+manual nginx editing needed). Once that's done, update `KhoiProjectManagementApp/vercel.json`'s
+`/api/(.*)` and `/hubs/(.*)` rewrite destinations from `http://160.119.249.227/...` to
+`https://your-hostname/...` - until then, traffic between Vercel's edge and this server crosses the
+public internet unencrypted.
 
 ## Running the test suite
 

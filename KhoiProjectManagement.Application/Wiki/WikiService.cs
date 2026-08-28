@@ -5,6 +5,7 @@ using KhoiProjectManagement.Application;
 using KhoiProjectManagement.Application.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 
 namespace KhoiProjectManagement.Application
 {
@@ -24,6 +25,7 @@ namespace KhoiProjectManagement.Application
         private readonly ISpacePermissionResolver _spacePermissionResolver;
         private readonly INotificationService _notificationService;
         private readonly IEmailService _emailService;
+        private readonly IConfiguration _configuration;
 
         public WikiService(
             IRepository<WikiPage> pageRepo,
@@ -39,7 +41,8 @@ namespace KhoiProjectManagement.Application
             IAuthorizationService authorizationService,
             ISpacePermissionResolver spacePermissionResolver,
             INotificationService notificationService,
-            IEmailService emailService)
+            IEmailService emailService,
+            IConfiguration configuration)
         {
             _pageRepo = pageRepo;
             _userRoleRepo = userRoleRepo;
@@ -55,6 +58,7 @@ namespace KhoiProjectManagement.Application
             _spacePermissionResolver = spacePermissionResolver;
             _notificationService = notificationService;
             _emailService = emailService;
+            _configuration = configuration;
         }
 
         public async Task<PermissionLevel?> GetMyLevelForPageAsync(int pageId, ClaimsPrincipal caller)
@@ -101,7 +105,7 @@ namespace KhoiProjectManagement.Application
                     CreatedAt = page.CreatedAt,
                     UpdatedAt = latestVersion?.EditedAt,
                     Labels = page.WikiPageTags.Select(t => t.Tag.Name).OrderBy(n => n).ToList(),
-                    WordCount = page.CurrentContentMarkdown.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries).Length
+                    WordCount = (page.CurrentContentMarkdown ?? string.Empty).Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries).Length
                 });
             }
             return result;
@@ -479,7 +483,9 @@ namespace KhoiProjectManagement.Application
                     var user = activeUsers.First(u => u.Id == mentionedId);
                     try
                     {
-                        await _emailService.SendMentionEmailAsync(user.Email, authorName, "wiki page", page.Title, comment.Body);
+                        var frontendBaseUrl = (_configuration["App:FrontendBaseUrl"] ?? "http://localhost:3000").TrimEnd('/');
+                        var contextUrl = $"{frontendBaseUrl}/?tab=wiki&spaceId={page.SpaceId}&pageId={page.Id}";
+                        await _emailService.SendMentionEmailAsync(user.Email, authorName, "wiki page", page.Title, comment.Body, contextUrl);
                     }
                     catch
                     {

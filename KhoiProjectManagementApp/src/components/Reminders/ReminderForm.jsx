@@ -2,11 +2,13 @@
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
 import { validateReminder, hasErrors } from '../../utils/validation';
+import useModalA11y from '../Common/useModalA11y';
 
 const toLocalDateInput = (iso) => (iso ? new Date(iso).toISOString().slice(0, 10) : '');
 const toLocalTimeInput = (iso) => (iso ? new Date(iso).toISOString().slice(11, 16) : '09:00');
 
 const ReminderForm = ({ reminder, users, projects, canAssignOthers, onSave, onClose }) => {
+  const modalRef = useModalA11y(onClose);
   const isEdit = !!reminder;
   const [title, setTitle] = useState(reminder?.title || '');
   const [description, setDescription] = useState(reminder?.description || '');
@@ -64,11 +66,16 @@ const ReminderForm = ({ reminder, users, projects, canAssignOthers, onSave, onCl
   return (
     <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <form
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="reminder-form-modal-title"
+        tabIndex={-1}
         onSubmit={handleSubmit}
-        className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col"
+        className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col outline-none"
       >
         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
-          <h3 className="text-lg font-semibold text-gray-900">{isEdit ? 'Edit Reminder' : 'New Reminder'}</h3>
+          <h3 id="reminder-form-modal-title" className="text-lg font-semibold text-gray-900">{isEdit ? 'Edit Reminder' : 'New Reminder'}</h3>
           <button type="button" onClick={onClose} className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 p-1 rounded-md transition-colors" aria-label="Close">
             <X className="h-4 w-4" />
           </button>

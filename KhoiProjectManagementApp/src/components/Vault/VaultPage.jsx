@@ -10,6 +10,66 @@ import { hasSpaceLevel } from '../../utils/spaceLevel';
 import { hasPermission } from '../../utils/permissions';
 import { useToast } from '../../contexts/ToastContext';
 import { reportApiError } from '../../utils/apiError';
+import useModalA11y from '../Common/useModalA11y';
+
+// Extracted so useModalA11y's mount-time focus-trap setup runs exactly when this modal actually
+// appears - VaultPage itself never unmounts while the Vault tab is open, so a hook call placed
+// directly in VaultPage's body would run its one-time setup effect before showNewCategory ever
+// flips true. Same JSX/classNames/handlers as before, just wrapped in a component that
+// mounts/unmounts with the modal itself (the same shape VaultEntryModal/VaultImportModal use).
+const NewVaultCategoryModal = ({ parentId, parentSpaceName, name, onNameChange, creating, error, onCreate, onClose }) => {
+  const modalRef = useModalA11y(onClose);
+  return (
+    <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      <div ref={modalRef} role="dialog" aria-modal="true" aria-labelledby="vault-new-category-modal-title" tabIndex={-1} className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden outline-none">
+        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+          <h3 id="vault-new-category-modal-title" className="text-base font-semibold text-gray-900">
+            {parentId ? `New subcategory under "${parentSpaceName}"` : 'New category'}
+          </h3>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:bg-gray-100 rounded-md p-1.5 transition-colors"
+            aria-label="Close"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <div className="px-6 py-5 space-y-4">
+          <p className="text-sm text-gray-500">
+            {parentId
+              ? 'Creates a category nested under the currently selected category.'
+              : 'Creates a new top-level category, visible in the tree.'}
+          </p>
+          <input
+            type="text"
+            autoFocus
+            value={name}
+            onChange={(e) => onNameChange(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') onCreate(); }}
+            placeholder="Category name"
+            className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+          />
+          {error && <div className="text-red-600 text-sm">{error}</div>}
+        </div>
+        <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3">
+          <button
+            onClick={onClose}
+            className="inline-flex items-center gap-2 bg-white text-gray-700 border border-gray-300 px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-gray-50 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onCreate}
+            disabled={creating || !name.trim()}
+            className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors disabled:opacity-50"
+          >
+            {creating ? 'Creating...' : 'Create'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const VaultPage = ({ apiService, user, teamMembers = [] }) => {
   const toast = useToast();
@@ -293,54 +353,16 @@ const VaultPage = ({ apiService, user, teamMembers = [] }) => {
       )}
 
       {showNewCategory && (
-        <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-              <h3 className="text-base font-semibold text-gray-900">
-                {newCategoryParentId ? `New subcategory under "${selectedSpace?.name}"` : 'New category'}
-              </h3>
-              <button
-                onClick={() => { setShowNewCategory(false); setNewCategoryName(''); }}
-                className="text-gray-400 hover:bg-gray-100 rounded-md p-1.5 transition-colors"
-                aria-label="Close"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-            <div className="px-6 py-5 space-y-4">
-              <p className="text-sm text-gray-500">
-                {newCategoryParentId
-                  ? 'Creates a category nested under the currently selected category.'
-                  : 'Creates a new top-level category, visible in the tree.'}
-              </p>
-              <input
-                type="text"
-                autoFocus
-                value={newCategoryName}
-                onChange={(e) => setNewCategoryName(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') handleCreateCategory(); }}
-                placeholder="Category name"
-                className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
-              />
-              {categoryError && <div className="text-red-600 text-sm">{categoryError}</div>}
-            </div>
-            <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3">
-              <button
-                onClick={() => { setShowNewCategory(false); setNewCategoryName(''); }}
-                className="inline-flex items-center gap-2 bg-white text-gray-700 border border-gray-300 px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-gray-50 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleCreateCategory}
-                disabled={creatingCategory || !newCategoryName.trim()}
-                className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors disabled:opacity-50"
-              >
-                {creatingCategory ? 'Creating...' : 'Create'}
-              </button>
-            </div>
-          </div>
-        </div>
+        <NewVaultCategoryModal
+          parentId={newCategoryParentId}
+          parentSpaceName={selectedSpace?.name}
+          name={newCategoryName}
+          onNameChange={setNewCategoryName}
+          creating={creatingCategory}
+          error={categoryError}
+          onCreate={handleCreateCategory}
+          onClose={() => { setShowNewCategory(false); setNewCategoryName(''); }}
+        />
       )}
     </div>
   );

@@ -5,6 +5,7 @@ import IdeaDetail from './IdeaDetail';
 import { hasPermission } from '../../utils/permissions';
 import { useToast } from '../../contexts/ToastContext';
 import { validateIdea, hasErrors } from '../../utils/validation';
+import useModalA11y from '../Common/useModalA11y';
 
 const COLUMNS = [
   { key: 'Submitted', label: 'Submitted' },
@@ -22,6 +23,7 @@ const formatIdeaAge = (iso) => {
 };
 
 const NewIdeaModal = ({ onSave, onClose }) => {
+  const modalRef = useModalA11y(onClose);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [saving, setSaving] = useState(false);
@@ -46,9 +48,9 @@ const NewIdeaModal = ({ onSave, onClose }) => {
 
   return (
     <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-2xl shadow-xl overflow-hidden w-full max-w-lg">
+      <div ref={modalRef} role="dialog" aria-modal="true" aria-labelledby="new-idea-modal-title" tabIndex={-1} className="bg-white rounded-2xl shadow-xl overflow-hidden w-full max-w-lg outline-none">
         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-          <h3 className="text-base font-semibold text-gray-900">New Idea</h3>
+          <h3 id="new-idea-modal-title" className="text-base font-semibold text-gray-900">New Idea</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600" aria-label="Close">
             <X className="h-4 w-4" />
           </button>
@@ -91,6 +93,7 @@ const IdeasPage = ({ apiService, user }) => {
   const [error, setError] = useState(null);
   const [selectedId, setSelectedId] = useState(null);
   const [showNewIdea, setShowNewIdea] = useState(false);
+  const ideaDetailModalRef = useModalA11y(() => setSelectedId(null));
 
   const load = async () => {
     try {
@@ -98,6 +101,9 @@ const IdeasPage = ({ apiService, user }) => {
       setIdeas(result || []);
     } catch (err) {
       setError(err.message);
+      // Without this, `ideas` stays null forever on a failed load, so the board keeps showing its
+      // "Loading..." placeholder underneath the error message instead of settling into an empty state.
+      setIdeas([]);
     }
   };
 
@@ -192,7 +198,7 @@ const IdeasPage = ({ apiService, user }) => {
           className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50"
           onClick={(e) => { if (e.target === e.currentTarget) setSelectedId(null); }}
         >
-          <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+          <div ref={ideaDetailModalRef} role="dialog" aria-modal="true" aria-label="Idea details" tabIndex={-1} className="w-full max-w-2xl max-h-[90vh] overflow-y-auto outline-none">
             <IdeaDetail
               apiService={apiService}
               user={user}

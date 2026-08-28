@@ -29,7 +29,7 @@ namespace KhoiProjectManagement.Application
                 throw new InvalidOperationException("Cannot attach to both project and task");
 
             var uploadPath = _configuration["FileUpload:UploadPath"] ?? "wwwroot/uploads";
-            var fileName = $"{Guid.NewGuid()}_{file.FileName}";
+            var fileName = UploadFileNaming.BuildStoredFileName(file.FileName);
             var filePath = Path.Combine(uploadPath, fileName);
 
             // Ensure directory exists
@@ -43,7 +43,7 @@ namespace KhoiProjectManagement.Application
 
             var attachment = new Attachment
             {
-                FileName = file.FileName,
+                FileName = Path.GetFileName(file.FileName),
                 FilePath = fileName,
                 FileSize = file.Length,
                 ContentType = file.ContentType,
@@ -85,6 +85,24 @@ namespace KhoiProjectManagement.Application
                 .ToListAsync();
 
             return attachments.Select(MapToDto);
+        }
+
+        // Reads by FilePath (the actual GUID-prefixed on-disk name), never by the display FileName -
+        // the two used to be conflated in AttachmentsController.DownloadFile, which built the disk path
+        // straight from the display name and so could never actually find the file it just uploaded.
+        public async Task<(byte[] Content, string ContentType, string FileName)?> DownloadFileAsync(int id)
+        {
+            var attachment = await _attachmentRepo.FindAsync(id);
+            if (attachment == null)
+                return null;
+
+            var uploadPath = _configuration["FileUpload:UploadPath"] ?? "wwwroot/uploads";
+            var filePath = Path.Combine(uploadPath, attachment.FilePath);
+            if (!File.Exists(filePath))
+                return null;
+
+            var content = await File.ReadAllBytesAsync(filePath);
+            return (content, attachment.ContentType, attachment.FileName);
         }
 
         public async Task<bool> DeleteAttachmentAsync(int id)

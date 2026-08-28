@@ -1,7 +1,14 @@
 // src/App.js - Complete Project Management Frontend
-import React, { useState, useEffect, useRef } from 'react';
-import { Plus, Search, Calendar, Users, CheckCircle, Clock, AlertCircle, Trash2, Edit3, User, Bell, FileText, Tag, Download, Upload, Flag, Shield, UserCheck, Eye, EyeOff, LogOut, Menu, X, Mail, Lock, ChevronDown, LayoutDashboard, Folder, CheckSquare, BookOpen, Archive, Lightbulb, BarChart2, Settings as SettingsIcon, ArrowRight } from 'lucide-react';
+import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
+import { Plus, Search, Calendar, Users, CheckCircle, Clock, AlertCircle, Trash2, Edit3, User, Bell, FileText, Tag, Download, Upload, Flag, Shield, UserCheck, Eye, LogOut, Menu, X, Lock, ChevronDown, LayoutDashboard, Folder, CheckSquare, BookOpen, Archive, Lightbulb, BarChart2, Settings as SettingsIcon, ArrowRight } from 'lucide-react';
 import RandIcon from './components/Common/RandIcon';
+import PriorityBadge from './components/Common/PriorityBadge';
+import StatusBadge from './components/Common/StatusBadge';
+import RoleBadge from './components/Common/RoleBadge';
+import TagsList from './components/Common/TagsList';
+import LoadingSpinner from './components/Common/LoadingSpinner';
+import ErrorMessage from './components/Common/ErrorMessage';
+import useModalA11y from './components/Common/useModalA11y';
 import ApiService, { NetworkError } from './services/ApiService';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ToastProvider, useToast } from './contexts/ToastContext';
@@ -9,23 +16,28 @@ import { hasPermission } from './utils/permissions';
 import { validateProject, validateTask, validateTeamMember, hasErrors } from './utils/validation';
 import { getAvatarColor } from './utils/avatarColor';
 import { reportApiError } from './utils/apiError';
-import VaultPage from './components/Vault/VaultPage';
-import WikiPage from './components/Wiki/WikiPage';
-import LibraryPage from './components/Library/LibraryPage';
-import NotificationPreferences from './components/Settings/NotificationPreferences';
-import DashboardWidgetSettings from './components/Settings/DashboardWidgetSettings';
-import PermissionsManagement from './components/Settings/PermissionsManagement';
-import GroupsManagement from './components/Settings/GroupsManagement';
-import AuditLog from './components/Settings/AuditLog';
+// Lazily loaded: these are secondary tabs (not every session visits Vault/Wiki/Library/Ideas/
+// Reminders/Finance/Settings), so splitting them out of the main bundle avoids shipping their code
+// to users who only ever use Dashboard/Projects/Tasks/Team. Each render site below wraps its tab in
+// <Suspense fallback={<LoadingSpinner />}> - the fallback only ever shows on this chunk's first load
+// this session (browser-cached after that), not on every tab switch.
+const VaultPage = lazy(() => import('./components/Vault/VaultPage'));
+const WikiPage = lazy(() => import('./components/Wiki/WikiPage'));
+const LibraryPage = lazy(() => import('./components/Library/LibraryPage'));
+const NotificationPreferences = lazy(() => import('./components/Settings/NotificationPreferences'));
+const DashboardWidgetSettings = lazy(() => import('./components/Settings/DashboardWidgetSettings'));
+const PermissionsManagement = lazy(() => import('./components/Settings/PermissionsManagement'));
+const GroupsManagement = lazy(() => import('./components/Settings/GroupsManagement'));
+const AuditLog = lazy(() => import('./components/Settings/AuditLog'));
 import OrgChartTree from './components/Team/OrgChartTree';
-import IdeasPage from './components/Ideas/IdeasPage';
-import InvoicesPage from './components/Finance/InvoicesPage';
-import RemindersPage from './components/Reminders/RemindersPage';
+const IdeasPage = lazy(() => import('./components/Ideas/IdeasPage'));
+const InvoicesPage = lazy(() => import('./components/Finance/InvoicesPage'));
+const RemindersPage = lazy(() => import('./components/Reminders/RemindersPage'));
+import LoginForm from './components/Auth/LoginForm';
 import ForgotPasswordForm from './components/Auth/ForgotPasswordForm';
 import ResetPasswordForm from './components/Auth/ResetPasswordForm';
 import OfflineBanner from './components/Common/OfflineBanner';
 import UpdateAvailableBanner from './components/Common/UpdateAvailableBanner';
-import khoiLogo from './assets/khoi-logo.png';
 
 // Grouped sidebar/drawer nav config - single source of truth for both the desktop sidebar and the
 // mobile drawer (previously two separate flat arrays of tab names duplicated between them).
@@ -67,259 +79,14 @@ const SETTINGS_ITEM = { key: 'settings', label: 'Settings', icon: SettingsIcon }
 // Utility Components
 const CHIP_CLASS = 'inline-flex items-center px-[9px] py-[3px] rounded-[7px] text-[11.5px] font-semibold whitespace-nowrap';
 
-const StatusBadge = ({ status }) => {
-    const statusColors = {
-        'todo': 'bg-[#F2F2F4] text-[#62626A]',
-        'in-progress': 'bg-[#EEEEFF] text-[#4131B0]',
-        'blocked': 'bg-[#FFEBE8] text-[#B71824]',
-        'completed': 'bg-[#E3F8E9] text-[#005F2E]'
-    };
-
-    return (
-        <span className={`${CHIP_CLASS} ${statusColors[status] || statusColors['todo']}`}>
-            {status.replace('-', ' ')}
-        </span>
-    );
-};
-
-const PriorityBadge = ({ priority }) => {
-    const priorityColors = {
-        'low': 'bg-[#F2F2F4] text-[#62626A]',
-        'medium': 'bg-[#FFEED6] text-[#874400]',
-        'high': 'bg-[#FFEBE8] text-[#B71824]'
-    };
-
-    return (
-        <span className={`${CHIP_CLASS} ${priorityColors[priority]}`}>
-            {priority}
-        </span>
-    );
-};
-
-const RoleBadge = ({ role }) => {
-    const roleColors = {
-        'admin': 'bg-[#EEEEFF] text-[#4131B0]',
-        'manager': 'bg-[#E3F8E9] text-[#005F2E]',
-        'member': 'bg-[#F2F2F4] text-[#62626A]'
-    };
-
-    return (
-        <span className={`${CHIP_CLASS} ${roleColors[role]}`}>
-            {role}
-        </span>
-    );
-};
-
-const TagsList = ({ tags }) => {
-    if (!tags || tags.length === 0) return null;
-
-    return (
-        <div className="flex flex-wrap gap-1.5">
-            {tags.map((tag, index) => (
-                <span key={index} className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-gray-100 text-gray-700">
-                    <Tag className="w-3 h-3 mr-1" />
-                    {tag}
-                </span>
-            ))}
-        </div>
-    );
-};
-
-const LoadingSpinner = ({ text = "Loading..." }) => (
-    <div className="flex justify-center items-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        <span className="ml-2 text-gray-600">{text}</span>
-    </div>
-);
-
-const ErrorMessage = ({ message, onRetry }) => (
-    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-        <p className="text-red-800">Error: {message}</p>
-        {onRetry && (
-            <button
-                onClick={onRetry}
-                className="mt-2 text-red-600 hover:text-red-800 underline"
-            >
-                Try again
-            </button>
-        )}
-    </div>
-);
-
-// Login Component
-const LoginForm = ({ onForgotPassword, onMustChangePassword }) => {
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [showPassword, setShowPassword] = useState(false);
-    const [rememberMe, setRememberMe] = useState(true);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState('');
-    const { login } = useAuth();
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setLoading(true);
-        setError('');
-
-        try {
-            const result = await login(email, password, rememberMe);
-            if (result?.mustChangePassword) {
-                onMustChangePassword(result.passwordResetToken);
-            }
-        } catch (error) {
-            // A NetworkError means the request never reached the server at all (CORS block, offline,
-            // timeout, DNS failure) - blaming the password for that is actively misleading and sends
-            // people chasing the wrong problem (this exact confusion is why this distinction exists -
-            // see ApiService.js's NetworkError).
-            setError(
-                error instanceof NetworkError
-                    ? "Couldn't reach the server. Check your connection, or that this site is allowed to call the API (CORS)."
-                    : 'Invalid email or password'
-            );
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const inputWrapClass = 'relative flex items-center rounded-[10px] border border-gray-200 bg-gray-50 transition-all focus-within:bg-white focus-within:border-blue-500 focus-within:ring-4 focus-within:ring-blue-500/10';
-    const inputIconClass = 'h-[18px] w-[18px] ml-3.5 flex-shrink-0 text-gray-400 transition-colors peer-focus:text-blue-600';
-
-    return (
-        <div className="min-h-screen flex bg-gray-50">
-            {/* Brand panel */}
-            <div className="hidden lg:flex lg:w-[44%] relative overflow-hidden flex-col justify-between bg-gradient-to-br from-blue-900 via-blue-700 to-blue-600 px-14 py-14">
-                <div
-                    className="absolute inset-0 opacity-[0.07]"
-                    style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.6) 1px, transparent 1px)', backgroundSize: '42px 42px' }}
-                />
-                <div className="absolute -top-32 -right-32 h-[420px] w-[420px] rounded-full bg-blue-300/20 blur-3xl" />
-                <div className="absolute -bottom-40 -left-24 h-[480px] w-[480px] rounded-full bg-blue-400/20 blur-3xl" />
-
-                <div className="relative flex items-center gap-3">
-                    <img src={khoiLogo} alt="Khoi" className="h-8 w-auto brightness-0 invert" />
-                    <span className="text-white text-lg font-bold tracking-tight">Khoi Pro</span>
-                </div>
-
-                <div className="relative max-w-md">
-                    <h1 className="text-white text-[34px] font-extrabold leading-[1.15] tracking-tight mb-4">
-                        Where the whole company keeps its work in one place.
-                    </h1>
-                    <p className="text-blue-100/80 text-base leading-relaxed">
-                        Projects, tasks, wiki, vault and finance &mdash; unified under one roof.
-                    </p>
-
-                    <div className="flex flex-col gap-3.5 mt-9">
-                        {[
-                            'Space-based permissions, inherited automatically',
-                            'A secrets vault with a full audit trail',
-                            'Timesheets, invoicing and reminders built in',
-                        ].map((feature) => (
-                            <div key={feature} className="flex items-center gap-3">
-                                <div className="h-6 w-6 rounded-md bg-white/15 ring-1 ring-white/10 flex items-center justify-center flex-shrink-0">
-                                    <CheckCircle className="h-3.5 w-3.5 text-white" />
-                                </div>
-                                <span className="text-blue-50/90 text-sm">{feature}</span>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-
-                <p className="relative text-blue-200/50 text-xs">&copy; 2026 Khoi. All rights reserved.</p>
-            </div>
-
-            {/* Form panel */}
-            <div className="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-8 py-12">
-                <div className="max-w-sm w-full">
-                    <div className="lg:hidden flex flex-col items-center mb-8">
-                        <img src={khoiLogo} alt="Khoi" className="h-10 w-auto mb-3" />
-                    </div>
-
-                    <div className="relative bg-white rounded-[20px] border border-gray-100 shadow-[0_2px_4px_rgba(16,24,40,0.04),0_20px_48px_-12px_rgba(16,24,40,0.14)] p-8 sm:p-10">
-                        <div className="absolute inset-x-0 top-0 h-1 rounded-t-[20px] bg-gradient-to-r from-blue-600 via-blue-500 to-blue-400" />
-                        <div className="hidden lg:flex h-11 w-11 rounded-xl bg-blue-50 items-center justify-center mb-5">
-                            <Lock className="h-5 w-5 text-blue-600" />
-                        </div>
-                        <h2 className="text-[26px] font-bold text-gray-900 tracking-tight">
-                            Sign in to Khoi Pro
-                        </h2>
-                        <p className="mt-1.5 text-sm text-gray-500">
-                            Enter your credentials to access the project management system
-                        </p>
-
-                        <form className="mt-8 space-y-4" onSubmit={handleSubmit}>
-                            <div className={inputWrapClass}>
-                                <Mail className={inputIconClass} />
-                                <input
-                                    type="email"
-                                    required
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    className="peer w-full pl-2.5 pr-4 py-3 bg-transparent rounded-[10px] text-[15px] text-gray-900 placeholder-gray-400 focus:outline-none"
-                                    placeholder="Email address"
-                                />
-                            </div>
-                            <div className={inputWrapClass}>
-                                <Lock className={inputIconClass} />
-                                <input
-                                    type={showPassword ? 'text' : 'password'}
-                                    required
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    className="peer w-full pl-2.5 pr-2 py-3 bg-transparent rounded-[10px] text-[15px] text-gray-900 placeholder-gray-400 focus:outline-none"
-                                    placeholder="Password"
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => setShowPassword((v) => !v)}
-                                    className="mr-2.5 flex-shrink-0 text-gray-400 hover:text-gray-600 transition-colors p-1 -m-1"
-                                    aria-label={showPassword ? 'Hide password' : 'Show password'}
-                                    tabIndex={-1}
-                                >
-                                    {showPassword ? <EyeOff className="h-[18px] w-[18px]" /> : <Eye className="h-[18px] w-[18px]" />}
-                                </button>
-                            </div>
-
-                            <div className="flex items-center justify-between">
-                                <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer select-none">
-                                    <input
-                                        type="checkbox"
-                                        checked={rememberMe}
-                                        onChange={(e) => setRememberMe(e.target.checked)}
-                                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                    />
-                                    Remember me for 30 days
-                                </label>
-                                <button
-                                    type="button"
-                                    onClick={onForgotPassword}
-                                    className="text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors"
-                                >
-                                    Forgot password?
-                                </button>
-                            </div>
-
-                            {error && (
-                                <div className="rounded-[10px] bg-red-50 border border-red-100 px-3.5 py-2.5 text-sm text-red-600 text-center">
-                                    {error}
-                                </div>
-                            )}
-
-                            <button
-                                type="submit"
-                                disabled={loading}
-                                className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-[10px] text-[15px] font-semibold text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 focus:outline-none focus:ring-4 focus:ring-blue-500/25 disabled:opacity-60 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md"
-                            >
-                                {loading && (
-                                    <span className="h-4 w-4 rounded-full border-2 border-white/40 border-t-white animate-spin" />
-                                )}
-                                {loading ? 'Signing in...' : 'Sign in'}
-                            </button>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
+// Task status colors for the shared Common/StatusBadge - status.replace('-', ' ') is passed as
+// `label` (display text) while the raw hyphenated value stays the colorMap lookup key, preserving
+// the exact color+text this app has always shown for task statuses.
+const TASK_STATUS_COLORS = {
+    'todo': 'bg-[#F2F2F4] text-[#62626A]',
+    'in-progress': 'bg-[#EEEEFF] text-[#4131B0]',
+    'blocked': 'bg-[#FFEBE8] text-[#B71824]',
+    'completed': 'bg-[#E3F8E9] text-[#005F2E]'
 };
 
 // Main Dashboard Component
@@ -689,6 +456,14 @@ const ProjectManagementSystem = () => {
         setEditingProjectId(null);
         setNewProject(emptyProjectForm);
     };
+
+    // Hooks must be called unconditionally regardless of which (if any) modal is currently open -
+    // each hook's own effect no-ops when its ref never gets attached to anything (the modal it
+    // belongs to isn't rendered this pass).
+    const projectModalRef = useModalA11y(closeProjectModal);
+    const taskModalRef = useModalA11y(() => setShowAddTask(false));
+    const addMemberModalRef = useModalA11y(() => setShowAddMember(false));
+    const editMemberModalRef = useModalA11y(() => setEditingMemberId(null));
 
     const handleAddProject = async (e) => {
         e.preventDefault();
@@ -1494,7 +1269,7 @@ const ProjectManagementSystem = () => {
                                                                 )}
                                                             </div>
                                                             <div className="flex items-center space-x-4">
-                                                                <StatusBadge status={task.status} />
+                                                                <StatusBadge status={task.status} label={task.status.replace('-', ' ')} colorMap={TASK_STATUS_COLORS} />
                                                                 <PriorityBadge priority={task.priority} />
                                                                 <span className="text-sm text-gray-500">{task.assignedToName || getTeamMemberName(task.assignedToId)}</span>
                                                             </div>
@@ -1536,7 +1311,7 @@ const ProjectManagementSystem = () => {
                                                     pendingTimesheets.map((t) => (
                                                         <div key={t.id} className="px-6 py-4 flex items-center justify-between text-sm">
                                                             <span className="text-gray-900">{t.userName} &middot; {new Date(t.periodStart).toLocaleDateString()}</span>
-                                                            <StatusBadge status={t.status.toLowerCase()} />
+                                                            <StatusBadge status={t.status.toLowerCase()} label={t.status.toLowerCase().replace('-', ' ')} colorMap={TASK_STATUS_COLORS} />
                                                         </div>
                                                     ))
                                                 )}
@@ -2047,49 +1822,63 @@ const ProjectManagementSystem = () => {
 
                 {/* Vault Tab */}
                 {activeTab === 'vault' && (
-                    <VaultPage apiService={apiService} user={user} teamMembers={teamMembers} />
+                    <Suspense fallback={<LoadingSpinner />}>
+                        <VaultPage apiService={apiService} user={user} teamMembers={teamMembers} />
+                    </Suspense>
                 )}
 
                 {/* Wiki Tab */}
                 {activeTab === 'wiki' && (
-                    <WikiPage apiService={apiService} user={user} teamMembers={teamMembers} deepLink={deepLink?.tab === 'wiki' ? deepLink : null} />
+                    <Suspense fallback={<LoadingSpinner />}>
+                        <WikiPage apiService={apiService} user={user} teamMembers={teamMembers} deepLink={deepLink?.tab === 'wiki' ? deepLink : null} />
+                    </Suspense>
                 )}
 
                 {/* Library Tab */}
                 {activeTab === 'library' && (
-                    <LibraryPage apiService={apiService} user={user} teamMembers={teamMembers} deepLink={deepLink?.tab === 'library' ? deepLink : null} />
+                    <Suspense fallback={<LoadingSpinner />}>
+                        <LibraryPage apiService={apiService} user={user} teamMembers={teamMembers} deepLink={deepLink?.tab === 'library' ? deepLink : null} />
+                    </Suspense>
                 )}
 
                 {/* Ideas Tab */}
                 {activeTab === 'ideas' && (
-                    <IdeasPage apiService={apiService} user={user} />
+                    <Suspense fallback={<LoadingSpinner />}>
+                        <IdeasPage apiService={apiService} user={user} />
+                    </Suspense>
                 )}
 
                 {/* Reminders Tab */}
                 {activeTab === 'reminders' && (
-                    <RemindersPage apiService={apiService} user={user} />
+                    <Suspense fallback={<LoadingSpinner />}>
+                        <RemindersPage apiService={apiService} user={user} />
+                    </Suspense>
                 )}
 
                 {/* Finance Tab */}
                 {activeTab === 'finance' && (
-                    <InvoicesPage apiService={apiService} user={user} />
+                    <Suspense fallback={<LoadingSpinner />}>
+                        <InvoicesPage apiService={apiService} user={user} />
+                    </Suspense>
                 )}
 
                 {/* Settings Tab */}
                 {activeTab === 'settings' && (
-                    <div className="space-y-10">
-                        <NotificationPreferences apiService={apiService} />
-                        <DashboardWidgetSettings apiService={apiService} user={user} />
-                        {hasPermission(user?.permissions, 'users.manage_roles') && (
-                            <PermissionsManagement apiService={apiService} />
-                        )}
-                        {hasPermission(user?.permissions, 'groups.manage') && (
-                            <GroupsManagement apiService={apiService} teamMembers={teamMembers} />
-                        )}
-                        {hasPermission(user?.permissions, 'audit.view') && (
-                            <AuditLog apiService={apiService} />
-                        )}
-                    </div>
+                    <Suspense fallback={<LoadingSpinner />}>
+                        <div className="space-y-10">
+                            <NotificationPreferences apiService={apiService} />
+                            <DashboardWidgetSettings apiService={apiService} user={user} />
+                            {hasPermission(user?.permissions, 'users.manage_roles') && (
+                                <PermissionsManagement apiService={apiService} />
+                            )}
+                            {hasPermission(user?.permissions, 'groups.manage') && (
+                                <GroupsManagement apiService={apiService} teamMembers={teamMembers} />
+                            )}
+                            {hasPermission(user?.permissions, 'audit.view') && (
+                                <AuditLog apiService={apiService} />
+                            )}
+                        </div>
+                    </Suspense>
                 )}
 
                 {/* Reports Tab */}
@@ -2209,9 +1998,9 @@ const ProjectManagementSystem = () => {
             {/* Add Project Modal */}
             {showAddProject && (
                 <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-                    <div className="bg-white rounded-2xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+                    <div ref={projectModalRef} role="dialog" aria-modal="true" aria-labelledby="project-modal-title" tabIndex={-1} className="bg-white rounded-2xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto outline-none">
                         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
-                            <h3 className="text-base font-semibold text-gray-900">{editingProjectId !== null ? 'Edit Project' : 'Add New Project'}</h3>
+                            <h3 id="project-modal-title" className="text-base font-semibold text-gray-900">{editingProjectId !== null ? 'Edit Project' : 'Add New Project'}</h3>
                             <button type="button" onClick={closeProjectModal} className="text-gray-400 hover:text-gray-600 rounded-lg p-1">
                                 <X className="h-5 w-5" />
                             </button>
@@ -2329,9 +2118,9 @@ const ProjectManagementSystem = () => {
             {/* Add Task Modal */}
             {showAddTask && (
                 <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-                    <div className="bg-white rounded-2xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+                    <div ref={taskModalRef} role="dialog" aria-modal="true" aria-labelledby="task-modal-title" tabIndex={-1} className="bg-white rounded-2xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto outline-none">
                         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
-                            <h3 className="text-base font-semibold text-gray-900">Add New Task</h3>
+                            <h3 id="task-modal-title" className="text-base font-semibold text-gray-900">Add New Task</h3>
                             <button type="button" onClick={() => setShowAddTask(false)} className="text-gray-400 hover:text-gray-600 rounded-lg p-1">
                                 <X className="h-5 w-5" />
                             </button>
@@ -2426,9 +2215,9 @@ const ProjectManagementSystem = () => {
             {/* Add Member Modal */}
             {showAddMember && (
                 <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-                    <div className="bg-white rounded-2xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+                    <div ref={addMemberModalRef} role="dialog" aria-modal="true" aria-labelledby="add-member-modal-title" tabIndex={-1} className="bg-white rounded-2xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto outline-none">
                         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
-                            <h3 className="text-base font-semibold text-gray-900">Add Team Member</h3>
+                            <h3 id="add-member-modal-title" className="text-base font-semibold text-gray-900">Add Team Member</h3>
                             <button type="button" onClick={() => setShowAddMember(false)} className="text-gray-400 hover:text-gray-600 rounded-lg p-1">
                                 <X className="h-5 w-5" />
                             </button>
@@ -2509,9 +2298,9 @@ const ProjectManagementSystem = () => {
 
             {editingMemberId && (
                 <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-                    <div className="bg-white rounded-2xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+                    <div ref={editMemberModalRef} role="dialog" aria-modal="true" aria-labelledby="edit-member-modal-title" tabIndex={-1} className="bg-white rounded-2xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto outline-none">
                         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
-                            <h3 className="text-base font-semibold text-gray-900">Edit Team Member</h3>
+                            <h3 id="edit-member-modal-title" className="text-base font-semibold text-gray-900">Edit Team Member</h3>
                             <button type="button" onClick={() => setEditingMemberId(null)} className="text-gray-400 hover:text-gray-600 rounded-lg p-1">
                                 <X className="h-5 w-5" />
                             </button>

@@ -6,9 +6,11 @@ import React, { useState, useRef } from 'react';
 import { X, Upload, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { reportApiError } from '../../utils/apiError';
 import { useToast } from '../../contexts/ToastContext';
+import useModalA11y from '../Common/useModalA11y';
 
 const VaultImportModal = ({ apiService, spaceId, onClose, onImported }) => {
   const toast = useToast();
+  const modalRef = useModalA11y(onClose);
   const [file, setFile] = useState(null);
   const [importing, setImporting] = useState(false);
   const [result, setResult] = useState(null);
@@ -33,9 +35,9 @@ const VaultImportModal = ({ apiService, spaceId, onClose, onImported }) => {
 
   return (
     <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-2xl shadow-xl overflow-hidden w-full max-w-md max-h-[85vh] flex flex-col">
+      <div ref={modalRef} role="dialog" aria-modal="true" aria-labelledby="vault-import-modal-title" tabIndex={-1} className="bg-white rounded-2xl shadow-xl overflow-hidden w-full max-w-md max-h-[85vh] flex flex-col outline-none">
         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
-          <h3 className="text-base font-semibold text-gray-900">Import entries</h3>
+          <h3 id="vault-import-modal-title" className="text-base font-semibold text-gray-900">Import entries</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600" aria-label="Close">
             <X className="h-4 w-4" />
           </button>

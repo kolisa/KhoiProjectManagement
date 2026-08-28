@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, FileStack, X } from 'lucide-react';
 import RandIcon from '../Common/RandIcon';
+import useModalA11y from '../Common/useModalA11y';
 import { hasPermission } from '../../utils/permissions';
 import InvoiceDetail from './InvoiceDetail';
 import { useToast } from '../../contexts/ToastContext';
@@ -23,6 +24,7 @@ const InvoiceStatusBadge = ({ status }) => (
 );
 
 const InvoiceFormModal = ({ title, templates, onSave, onClose }) => {
+  const modalRef = useModalA11y(onClose);
   const [invoiceNumber, setInvoiceNumber] = useState('');
   const [clientName, setClientName] = useState('');
   const [issueDate, setIssueDate] = useState('');
@@ -65,9 +67,9 @@ const InvoiceFormModal = ({ title, templates, onSave, onClose }) => {
 
   return (
     <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-2xl shadow-xl overflow-hidden w-full max-w-lg max-h-[90vh] flex flex-col">
+      <div ref={modalRef} role="dialog" aria-modal="true" aria-labelledby="invoice-modal-title" tabIndex={-1} className="bg-white rounded-2xl shadow-xl overflow-hidden w-full max-w-lg max-h-[90vh] flex flex-col outline-none">
         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-          <h3 className="text-base font-semibold text-gray-900">{title}</h3>
+          <h3 id="invoice-modal-title" className="text-base font-semibold text-gray-900">{title}</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600" aria-label="Close">
             <X className="h-4 w-4" />
           </button>

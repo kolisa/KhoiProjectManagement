@@ -27,6 +27,9 @@ jobs:
       - name: Unit tests (fast, no Docker required)
         run: dotnet test tests/KhoiProjectManagement.UnitTests --no-build --configuration Release --collect:"XPlat Code Coverage" --settings coverlet.runsettings
 
+      - name: Architecture tests (layer-dependency rules, no Docker required)
+        run: dotnet test tests/KhoiProjectManagement.ArchitectureTests --no-build --configuration Release
+
       # ubuntu-latest runners have Docker preinstalled, so Testcontainers.PostgreSql works with no
       # extra service-container setup - each project spins up its own throwaway Postgres 16 container.
       - name: Integration tests (Testcontainers Postgres)
@@ -160,3 +163,86 @@ jobs:
           name: playwright-report
           path: KhoiProjectManagementApp/playwright-report
           retention-days: 14
+
+  # Deploys the backend to the Linux production server once every prior job on this push to master
+  # has passed. Mirrors the (now-retired) manual process exactly: stop the service, wipe the old
+  # binaries in /var/www/khoi-api (never touching /etc/khoi-api/khoi-api.env - that file holds every
+  # production-specific setting now, including what used to be a manually-maintained
+  # appsettings.Production.json outside git; this workflow never generates or uploads one), publish
+  # fresh, upload, fix ownership, reload systemd, restart, and verify. `App:AutoMigrateOnStartup` is
+  # deliberately `true` in that env file (unlike this repo's documented default recommendation of
+  # `false` for a production database) - a considered choice, not an oversight, so EF Core migrations
+  # apply automatically on every restart this job triggers.
+  deploy:
+    needs: [backend, frontend, e2e]
+    if: github.ref == 'refs/heads/master' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Publish API
+        run: dotnet publish KhoiProjectManagementApi --configuration Release --output ./publish
+
+      # Framework-dependent publish output always includes appsettings.Development.json - harmless
+      # (ASPNETCORE_ENVIRONMENT=Production means it's never loaded) but no reason to ship it.
+      - name: Remove dev config from publish output
+        run: rm -f ./publish/appsettings.Development.json
+
+      - name: Configure SSH
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          # Pinned to the server's actual host key rather than accepting on first connect (which
+          # would trust whatever key answers on that IP with no verification at all).
+          echo "$DEPLOY_HOST ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICTg594fCP01BbE+2qlAskc6B1XJBS5mnqGouW74GuD6" > ~/.ssh/known_hosts
+
+      - name: Stop service and clear old binaries
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+        run: |
+          ssh -i ~/.ssh/deploy_key root@$DEPLOY_HOST "systemctl stop khoi-api && rm -rf /var/www/khoi-api/*"
+
+      - name: Upload new build
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+        run: |
+          scp -i ~/.ssh/deploy_key -r ./publish/* root@$DEPLOY_HOST:/var/www/khoi-api/
+
+      - name: Fix permissions, reload, and restart
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+        run: |
+          ssh -i ~/.ssh/deploy_key root@$DEPLOY_HOST '
+            set -e
+            test -f /var/www/khoi-api/KhoiProjectManagementApi.dll
+            chown -R www-data:www-data /var/www/khoi-api
+            chown root:www-data /etc/khoi-api/khoi-api.env
+            chmod 640 /etc/khoi-api/khoi-api.env
+            systemctl daemon-reload
+            systemctl restart khoi-api
+            sleep 3
+            systemctl status khoi-api --no-pager
+          '
+
+      # No dedicated health-check endpoint exists in this API - Swagger is confirmed enabled in
+      # Production (Program.cs), so its own page is the closest thing to one available today.
+      - name: Verify the API actually came back up
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+        run: |
+          for i in $(seq 1 15); do
+            curl -sf http://$DEPLOY_HOST/swagger/index.html > /dev/null 2>&1 && exit 0
+            sleep 2
+          done
+          echo "API did not respond within 30s of restart - check 'systemctl status khoi-api' and 'journalctl -u khoi-api' on the server"
+          exit 1

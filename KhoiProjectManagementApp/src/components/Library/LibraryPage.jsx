@@ -8,6 +8,7 @@ import { hasSpaceLevel } from '../../utils/spaceLevel';
 import { hasPermission } from '../../utils/permissions';
 import { formatFileSize } from '../../utils/formatFileSize';
 import ShareButton from '../Common/ShareButton';
+import useModalA11y from '../Common/useModalA11y';
 import { useToast } from '../../contexts/ToastContext';
 import { reportApiError } from '../../utils/apiError';
 
@@ -35,6 +36,7 @@ const LibraryPage = ({ apiService, user, teamMembers = [], deepLink }) => {
   const uploadInputRef = useRef(null);
   const versionInputRef = useRef(null);
   const versionTargetIdRef = useRef(null);
+  const newFolderModalRef = useModalA11y(() => { setShowNewFolder(false); setNewFolderName(''); });
 
   const loadFiles = async (spaceId) => {
     setLoadingFiles(true);
@@ -373,9 +375,9 @@ const LibraryPage = ({ apiService, user, teamMembers = [], deepLink }) => {
 
       {showNewFolder && (
         <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden">
+          <div ref={newFolderModalRef} role="dialog" aria-modal="true" aria-labelledby="library-new-folder-modal-title" tabIndex={-1} className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden outline-none">
             <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-              <h3 className="text-base font-semibold text-gray-900">
+              <h3 id="library-new-folder-modal-title" className="text-base font-semibold text-gray-900">
                 {newFolderParentId ? `New subfolder under "${selectedSpace?.name}"` : 'New root folder'}
               </h3>
               <button

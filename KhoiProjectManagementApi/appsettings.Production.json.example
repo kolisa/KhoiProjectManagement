@@ -28,7 +28,9 @@
 
   "Cors": {
     "AllowedOrigins": [ "https://your-production-frontend-domain" ],
-    "_comment_AllowAnyOrigin": "Set true temporarily to unblock a freshly deployed frontend before you know its exact origin (reflects back whatever Origin header the browser sends, with credentials - any website can call this API while this is on). Once you know the real origin, put it in AllowedOrigins above and set this back to false/remove it.",
-    "AllowAnyOrigin": false
+    "_comment_AllowAnyOrigin": "Set true temporarily to unblock a freshly deployed frontend before you know its exact origin (reflects back whatever Origin header the browser sends, with credentials - any website can call this API while this is on). Once you know the real origin, put it in AllowedOrigins above and set this back to false/remove it - do not leave this on in a real deployment.",
+    "AllowAnyOrigin": false,
+    "_comment_PreviewOriginPattern": "Optional regex for a whole family of origins that can't be listed exactly - e.g. Vercel preview deployments get a new *.vercel.app subdomain per PR/branch. Scope it to your own project's preview subdomains rather than matching all of *.vercel.app. Omit this key entirely if you don't need it.",
+    "PreviewOriginPattern": "^https://your-project-name-[a-z0-9-]+\\.vercel\\.app$"
   }
 }
