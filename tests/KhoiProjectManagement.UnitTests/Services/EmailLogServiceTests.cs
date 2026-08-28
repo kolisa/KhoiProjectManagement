@@ -21,6 +21,7 @@ namespace KhoiProjectManagement.UnitTests.Services
             Subject = $"Subject {id}",
             EmailType = type,
             IsSuccess = success,
+            Status = success ? EmailLogStatus.Sent : EmailLogStatus.Failed,
             SentAt = sentAt,
             ErrorMessage = success ? null : "SMTP unreachable"
         };
@@ -45,7 +46,7 @@ namespace KhoiProjectManagement.UnitTests.Services
         }
 
         [Fact]
-        public async Task GetRecentAsync_FiltersByIsSuccess()
+        public async Task GetRecentAsync_FiltersByStatus()
         {
             var logs = new List<EmailLog>
             {
@@ -55,11 +56,29 @@ namespace KhoiProjectManagement.UnitTests.Services
             _emailLogRepo.Query().Returns(logs.BuildMock());
 
             var sut = CreateSut();
-            var result = await sut.GetRecentAsync(isSuccess: false);
+            var result = await sut.GetRecentAsync(status: "Failed");
 
             Assert.Single(result);
             Assert.Equal(2, result[0].Id);
             Assert.Equal("SMTP unreachable", result[0].ErrorMessage);
+            Assert.Equal("Failed", result[0].Status);
+        }
+
+        [Fact]
+        public async Task GetRecentAsync_FiltersByPendingStatus()
+        {
+            var logs = new List<EmailLog>
+            {
+                Log(1, "a@x.com", true, "welcome", DateTime.UtcNow),
+                new() { Id = 2, ToEmail = "b@x.com", Subject = "Subject 2", EmailType = "welcome", Status = EmailLogStatus.Pending, SentAt = DateTime.UtcNow },
+            };
+            _emailLogRepo.Query().Returns(logs.BuildMock());
+
+            var sut = CreateSut();
+            var result = await sut.GetRecentAsync(status: "Pending");
+
+            Assert.Single(result);
+            Assert.Equal(2, result[0].Id);
         }
 
         [Fact]

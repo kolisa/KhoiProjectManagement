@@ -2,6 +2,7 @@ using KhoiProjectManagement.Application.Abstractions;
 using KhoiProjectManagement.Domain;
 using KhoiProjectManagement.Application;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 
 namespace KhoiProjectManagement.Application
 {
@@ -10,21 +11,27 @@ namespace KhoiProjectManagement.Application
         private readonly IRepository<Notification> _notificationRepo;
         private readonly IRepository<NotificationPreference> _preferenceRepo;
         private readonly IRepository<ProjectTask> _taskRepo;
+        private readonly IRepository<User> _userRepo;
         private readonly IUnitOfWork _unitOfWork;
         private readonly IEmailService _emailService;
+        private readonly IConfiguration _configuration;
 
         public NotificationService(
             IRepository<Notification> notificationRepo,
             IRepository<NotificationPreference> preferenceRepo,
             IRepository<ProjectTask> taskRepo,
+            IRepository<User> userRepo,
             IUnitOfWork unitOfWork,
-            IEmailService emailService)
+            IEmailService emailService,
+            IConfiguration configuration)
         {
             _notificationRepo = notificationRepo;
             _preferenceRepo = preferenceRepo;
             _taskRepo = taskRepo;
+            _userRepo = userRepo;
             _unitOfWork = unitOfWork;
             _emailService = emailService;
+            _configuration = configuration;
         }
 
         public async Task CreateNotificationAsync(int userId, string type, string message, int? taskId = null, int? projectId = null, int? wikiPageId = null, int? ideaId = null, int? reminderId = null)
@@ -162,6 +169,52 @@ namespace KhoiProjectManagement.Application
                             // The in-app notification already saved - a failed SMTP send must not stop
                             // the rest of the overdue-check loop. Already logged to EmailLog.
                         }
+                    }
+                }
+            }
+        }
+
+        public async Task CheckInactiveUsersAsync()
+        {
+            var thresholdDays = int.Parse(_configuration["Notifications:LoginReminderThresholdDays"] ?? "3");
+            var repeatDays = int.Parse(_configuration["Notifications:LoginReminderRepeatDays"] ?? "7");
+            var cutoff = DateTime.UtcNow.AddDays(-thresholdDays);
+
+            // MustChangePassword alone (not LastLoginAt) is the right single signal - it stays true
+            // whether the person never attempted a login at all, or logged in once with the temp
+            // password and abandoned setup before choosing their own. Both are "hasn't finished joining."
+            var pendingUsers = await _userRepo.Query()
+                .Where(u => u.IsActive && u.MustChangePassword && u.CreatedAt < cutoff)
+                .ToListAsync();
+
+            foreach (var user in pendingUsers)
+            {
+                var recentlyReminded = await _notificationRepo.Query()
+                    .Where(n => n.UserId == user.Id &&
+                               n.Type == NotificationTypes.LoginReminder &&
+                               n.CreatedAt > DateTime.UtcNow.AddDays(-repeatDays))
+                    .FirstOrDefaultAsync();
+
+                if (recentlyReminded != null)
+                    continue;
+
+                var daysSinceInvite = (int)(DateTime.UtcNow - user.CreatedAt).TotalDays;
+
+                await CreateNotificationAsync(
+                    user.Id,
+                    NotificationTypes.LoginReminder,
+                    $"You haven't finished setting up your account ({daysSinceInvite} days since it was created)."
+                );
+
+                if (await IsEmailEnabledAsync(user.Id, NotificationTypes.LoginReminder))
+                {
+                    try
+                    {
+                        await _emailService.SendLoginReminderEmailAsync(user.Email, user.Name, daysSinceInvite);
+                    }
+                    catch
+                    {
+                        // The in-app notification already saved - a failed send must not stop the loop.
                     }
                 }
             }

@@ -10,5 +10,6 @@ namespace KhoiProjectManagement.Application
         public DateTime SentAt { get; set; }
         public bool IsSuccess { get; set; }
         public string? ErrorMessage { get; set; }
+        public string Status { get; set; } = string.Empty;
     }
 }

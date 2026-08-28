@@ -11,6 +11,7 @@ namespace KhoiProjectManagement.Application
         public const string ProjectCreated = "project_created";
         public const string Mention = "mention";
         public const string ReminderDue = "reminder_due";
+        public const string LoginReminder = "login_reminder";
 
         public static readonly IReadOnlyList<(string Type, string DisplayName, string Description)> Catalog = new List<(string, string, string)>
         {
@@ -20,6 +21,7 @@ namespace KhoiProjectManagement.Application
             (ProjectCreated, "Added to a project", "When you're added as a team member on a new project."),
             (Mention, "Mentioned in a comment", "When someone @mentions you in a wiki page or idea comment."),
             (ReminderDue, "Reminder due", "When a reminder assigned to you reaches its due time."),
+            (LoginReminder, "Account setup reminder", "When you haven't finished setting up a newly created account."),
         };
 
         public static bool IsValid(string type) => Catalog.Any(c => c.Type == type);

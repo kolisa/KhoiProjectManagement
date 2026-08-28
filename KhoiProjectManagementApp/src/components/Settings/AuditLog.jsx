@@ -18,7 +18,7 @@ const SentEmailsView = ({ apiService }) => {
   const load = async () => {
     try {
       const result = await apiService.getEmailAuditLog({
-        isSuccess: statusFilter === 'all' ? undefined : statusFilter === 'success',
+        status: statusFilter === 'all' ? undefined : statusFilter,
         toEmailContains: search.trim() || undefined,
       });
       setLogs(result || []);
@@ -53,8 +53,9 @@ const SentEmailsView = ({ apiService }) => {
           className="text-sm border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         >
           <option value="all">All statuses</option>
-          <option value="success">Sent</option>
-          <option value="failed">Failed</option>
+          <option value="Pending">Pending</option>
+          <option value="Sent">Sent</option>
+          <option value="Failed">Failed</option>
         </select>
       </div>
 
@@ -63,7 +64,7 @@ const SentEmailsView = ({ apiService }) => {
       ) : logs.length === 0 ? (
         <div className="text-sm text-gray-400 italic p-4 text-center">No emails match.</div>
       ) : (
-        <div className="border border-gray-100 rounded-xl overflow-hidden">
+        <div className="border border-gray-100 rounded-xl overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-gray-50/60 text-xs uppercase tracking-wide text-gray-500">
               <tr>
@@ -77,14 +78,18 @@ const SentEmailsView = ({ apiService }) => {
             <tbody className="divide-y divide-gray-100">
               {logs.map((log) => (
                 <tr key={log.id}>
-                  <td className="px-3 py-2 text-gray-900 truncate max-w-[180px]">{log.toEmail}</td>
-                  <td className="px-3 py-2 text-gray-700 truncate max-w-[220px]">{log.subject}</td>
+                  <td className="px-3 py-2 text-gray-900 truncate max-w-[180px]" title={log.toEmail}>{log.toEmail}</td>
+                  <td className="px-3 py-2 text-gray-700 truncate max-w-[220px]" title={log.subject}>{log.subject}</td>
                   <td className="px-3 py-2 text-gray-500">{log.emailType}</td>
                   <td className="px-3 py-2 text-gray-500 whitespace-nowrap">{new Date(log.sentAt).toLocaleString()}</td>
                   <td className="px-3 py-2">
-                    {log.isSuccess ? (
+                    {log.status === 'Pending' && (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-amber-50 text-amber-700">Pending</span>
+                    )}
+                    {log.status === 'Sent' && (
                       <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-green-50 text-green-700">Sent</span>
-                    ) : (
+                    )}
+                    {log.status === 'Failed' && (
                       <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-red-50 text-red-700" title={log.errorMessage || ''}>Failed</span>
                     )}
                   </td>

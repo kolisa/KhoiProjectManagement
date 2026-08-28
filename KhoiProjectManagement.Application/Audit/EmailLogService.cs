@@ -13,12 +13,12 @@ namespace KhoiProjectManagement.Application
             _emailLogRepo = emailLogRepo;
         }
 
-        public async Task<List<EmailLogDto>> GetRecentAsync(int take = 200, bool? isSuccess = null, string? emailType = null, string? toEmailContains = null)
+        public async Task<List<EmailLogDto>> GetRecentAsync(int take = 200, string? status = null, string? emailType = null, string? toEmailContains = null)
         {
             var query = _emailLogRepo.Query();
 
-            if (isSuccess.HasValue)
-                query = query.Where(e => e.IsSuccess == isSuccess.Value);
+            if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<EmailLogStatus>(status, ignoreCase: true, out var parsedStatus))
+                query = query.Where(e => e.Status == parsedStatus);
             if (!string.IsNullOrWhiteSpace(emailType))
                 query = query.Where(e => e.EmailType == emailType);
             if (!string.IsNullOrWhiteSpace(toEmailContains))
@@ -35,7 +35,8 @@ namespace KhoiProjectManagement.Application
                     EmailType = e.EmailType,
                     SentAt = e.SentAt,
                     IsSuccess = e.IsSuccess,
-                    ErrorMessage = e.ErrorMessage
+                    ErrorMessage = e.ErrorMessage,
+                    Status = e.Status.ToString()
                 })
                 .ToListAsync();
         }

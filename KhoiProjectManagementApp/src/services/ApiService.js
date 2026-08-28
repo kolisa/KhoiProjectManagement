@@ -456,10 +456,10 @@ class ApiService {
   }
 
   // Audit (admin-only, see AuditController) - sent-email history + application error logs.
-  async getEmailAuditLog({ take, isSuccess, emailType, toEmailContains } = {}) {
+  async getEmailAuditLog({ take, status, emailType, toEmailContains } = {}) {
     const params = new URLSearchParams();
     if (take != null) params.set('take', take);
-    if (isSuccess != null) params.set('isSuccess', isSuccess);
+    if (status) params.set('status', status);
     if (emailType) params.set('emailType', emailType);
     if (toEmailContains) params.set('toEmailContains', toEmailContains);
     const qs = params.toString();

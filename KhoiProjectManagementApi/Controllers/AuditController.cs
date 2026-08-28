@@ -25,11 +25,11 @@ namespace KhoiProjectManagementApi.Controllers
         [HttpGet("emails")]
         public async Task<IActionResult> GetEmailLog(
             [FromQuery] int take = 200,
-            [FromQuery] bool? isSuccess = null,
+            [FromQuery] string? status = null,
             [FromQuery] string? emailType = null,
             [FromQuery] string? toEmailContains = null)
         {
-            var result = await _emailLogService.GetRecentAsync(take, isSuccess, emailType, toEmailContains);
+            var result = await _emailLogService.GetRecentAsync(take, status, emailType, toEmailContains);
             return Ok(result);
         }
 

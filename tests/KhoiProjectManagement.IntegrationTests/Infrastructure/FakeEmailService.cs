@@ -24,7 +24,7 @@ namespace KhoiProjectManagement.IntegrationTests.Infrastructure
         public Task SendProjectCreatedEmailAsync(string toEmail, string projectName) =>
             Record(nameof(SendProjectCreatedEmailAsync), toEmail);
 
-        public Task SendMentionEmailAsync(string toEmail, string mentionedByName, string contextLabel, string contextTitle, string commentBody) =>
+        public Task SendMentionEmailAsync(string toEmail, string mentionedByName, string contextLabel, string contextTitle, string commentBody, string? contextUrl = null) =>
             Record(nameof(SendMentionEmailAsync), toEmail);
 
         public Task SendReminderDueEmailAsync(string toEmail, string reminderTitle, DateTime dueAt) =>
@@ -38,6 +38,11 @@ namespace KhoiProjectManagement.IntegrationTests.Infrastructure
 
         public Task SendTemporaryPasswordEmailAsync(string toEmail, string userName, string tempPassword) =>
             Record(nameof(SendTemporaryPasswordEmailAsync), toEmail);
+
+        public Task SendLoginReminderEmailAsync(string toEmail, string userName, int daysSinceInvite) =>
+            Record(nameof(SendLoginReminderEmailAsync), toEmail);
+
+        public Task DispatchPendingEmailsAsync() => Task.CompletedTask;
 
         private Task Record(string method, string toEmail)
         {

@@ -28,8 +28,8 @@ describe('AuditLog', () => {
   it('shows the Sent Emails tab by default, loading then rendering rows from the audit log', async () => {
     server.use(
       http.get(`${API_BASE_URL}/audit/emails`, () => HttpResponse.json([
-        { id: 1, toEmail: 'person@example.com', subject: 'Welcome', emailType: 'Welcome', sentAt: '2026-08-20T10:00:00Z', isSuccess: true },
-        { id: 2, toEmail: 'other@example.com', subject: 'Reset password', emailType: 'PasswordReset', sentAt: '2026-08-21T10:00:00Z', isSuccess: false, errorMessage: 'SMTP timeout' },
+        { id: 1, toEmail: 'person@example.com', subject: 'Welcome', emailType: 'Welcome', sentAt: '2026-08-20T10:00:00Z', status: 'Sent' },
+        { id: 2, toEmail: 'other@example.com', subject: 'Reset password', emailType: 'PasswordReset', sentAt: '2026-08-21T10:00:00Z', status: 'Failed', errorMessage: 'SMTP timeout' },
       ]))
     );
     renderComponent();
