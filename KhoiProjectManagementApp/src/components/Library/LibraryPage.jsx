@@ -8,6 +8,8 @@ import { hasSpaceLevel } from '../../utils/spaceLevel';
 import { hasPermission } from '../../utils/permissions';
 import { formatFileSize } from '../../utils/formatFileSize';
 import ShareButton from '../Common/ShareButton';
+import LoadingSpinner from '../Common/LoadingSpinner';
+import ErrorMessage from '../Common/ErrorMessage';
 import useModalA11y from '../Common/useModalA11y';
 import { useToast } from '../../contexts/ToastContext';
 import { reportApiError } from '../../utils/apiError';
@@ -220,19 +222,20 @@ const LibraryPage = ({ apiService, user, teamMembers = [], deepLink }) => {
 
         <div className="md:col-span-3 space-y-4">
           {!selectedSpace && (
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center text-gray-400">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-10 text-center text-gray-400">
+              <FolderOpen className="h-9 w-9 mx-auto mb-2 text-gray-300" />
               Select a folder on the left to view its files.
             </div>
           )}
 
           {selectedSpace && (
             <>
-              <div className="flex justify-between items-center">
-                <div>
-                  <h3 className="text-xl font-semibold text-gray-900">{selectedSpace.name}</h3>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
+                  <h3 className="text-xl font-semibold text-gray-900 truncate" title={selectedSpace.name}>{selectedSpace.name}</h3>
                   <p className="text-sm text-gray-500">{files.length} file{files.length !== 1 ? 's' : ''}</p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   {canManage && (
                     <button
                       onClick={handleDeleteFolder}
@@ -281,24 +284,27 @@ const LibraryPage = ({ apiService, user, teamMembers = [], deepLink }) => {
                 )}
               </div>
 
-              {error && <div className="text-red-600 text-sm">{error}</div>}
-              {loadingFiles && <div className="text-gray-400">Loading files...</div>}
+              {error && <ErrorMessage message={error} />}
+              {loadingFiles && <LoadingSpinner text="Loading files..." />}
 
               {!loadingFiles && (
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm divide-y divide-gray-100">
                   {files.length === 0 && (
-                    <div className="p-6 text-center text-gray-400">No files in this folder yet.</div>
+                    <div className="p-8 text-center text-gray-400">
+                      <Upload className="h-8 w-8 mx-auto mb-2 text-gray-300" />
+                      No files in this folder yet.
+                    </div>
                   )}
                   {files.map((file) => (
-                    <div key={file.id}>
-                      <div className="p-4 flex justify-between items-center">
-                        <div>
-                          <div className="font-medium text-gray-900">{file.fileName}</div>
+                    <div key={file.id} className="hover:bg-gray-50/60 transition-colors">
+                      <div className="p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="min-w-0">
+                          <div className="font-medium text-gray-900 truncate" title={file.fileName}>{file.fileName}</div>
                           <div className="text-sm text-gray-500">
                             v{file.currentVersionNumber} · {formatFileSize(file.fileSize)} · {file.creatorName}
                           </div>
                         </div>
-                        <div className="flex items-center space-x-3">
+                        <div className="flex flex-wrap items-center gap-2 sm:gap-3 sm:flex-shrink-0">
                           <button
                             onClick={() => handleView(file)}
                             className="text-gray-400 hover:bg-gray-100 rounded-md p-1.5 transition-colors"

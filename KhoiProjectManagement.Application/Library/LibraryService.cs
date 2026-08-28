@@ -85,7 +85,7 @@ namespace KhoiProjectManagement.Application
             {
                 VersionNumber = 1,
                 StoredPath = storedPath,
-                ContentType = file.ContentType,
+                ContentType = ContentTypeResolver.Resolve(file.ContentType, file.FileName),
                 FileSize = file.Length,
                 UploadedBy = userId
             });
@@ -113,7 +113,7 @@ namespace KhoiProjectManagement.Application
                 LibraryFileId = libraryFile.Id,
                 VersionNumber = nextVersion,
                 StoredPath = storedPath,
-                ContentType = file.ContentType,
+                ContentType = ContentTypeResolver.Resolve(file.ContentType, file.FileName),
                 FileSize = file.Length,
                 Comment = comment,
                 UploadedBy = GetUserId(caller)
@@ -207,7 +207,7 @@ namespace KhoiProjectManagement.Application
                 return null;
 
             var content = await File.ReadAllBytesAsync(filePath);
-            return (content, contentType, displayFileName);
+            return (content, ContentTypeResolver.Resolve(contentType, displayFileName), displayFileName);
         }
 
         private static LibraryFileDto MapToDto(LibraryFile file)
