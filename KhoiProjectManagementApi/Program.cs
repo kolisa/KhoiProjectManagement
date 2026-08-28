@@ -68,8 +68,6 @@ try
     var reminderJobKey = new JobKey("ReminderDueCheck");
     var dashboardSnapshotJobKey = new JobKey("DashboardSnapshot");
     var scheduledReportJobKey = new JobKey("ScheduledReport");
-    var sendQueuedEmailsJobKey = new JobKey("SendQueuedEmails");
-    var loginReminderJobKey = new JobKey("LoginReminderCheck");
     var firstRecurrence = DateBuilder.FutureDate(1, IntervalUnit.Hour);
 
     builder.Services.AddQuartz(q =>
@@ -101,22 +99,6 @@ try
             .WithIdentity("ScheduledReport-trigger")
             .StartAt(firstRecurrence)
             .WithSimpleSchedule(s => s.WithIntervalInHours(1).RepeatForever()));
-
-        // The actual email-delivery mechanism (see EmailService's outbox pattern) - a much shorter
-        // interval than the jobs above since a queued email's real-world latency is bounded by it.
-        q.AddJob<SendQueuedEmailsJob>(opts => opts.WithIdentity(sendQueuedEmailsJobKey));
-        q.AddTrigger(opts => opts
-            .ForJob(sendQueuedEmailsJobKey)
-            .WithIdentity("SendQueuedEmails-trigger")
-            .StartAt(firstRecurrence)
-            .WithSimpleSchedule(s => s.WithIntervalInSeconds(15).RepeatForever()));
-
-        q.AddJob<LoginReminderCheckJob>(opts => opts.WithIdentity(loginReminderJobKey));
-        q.AddTrigger(opts => opts
-            .ForJob(loginReminderJobKey)
-            .WithIdentity("LoginReminderCheck-trigger")
-            .StartAt(firstRecurrence)
-            .WithSimpleSchedule(s => s.WithIntervalInHours(24).RepeatForever()));
     });
     builder.Services.AddQuartzHostedService(opts => opts.WaitForJobsToComplete = true);
 
@@ -188,10 +170,6 @@ try
         await scheduler.TriggerJob(reminderJobKey);
         await scheduler.TriggerJob(dashboardSnapshotJobKey);
         await scheduler.TriggerJob(scheduledReportJobKey);
-        // Flushes any emails still Pending from before a restart immediately, instead of waiting up to
-        // 15s for the trigger's own recurring schedule.
-        await scheduler.TriggerJob(sendQueuedEmailsJobKey);
-        await scheduler.TriggerJob(loginReminderJobKey);
     }
 
     await app.RunAsync();
