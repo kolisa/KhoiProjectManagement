@@ -370,11 +370,11 @@ namespace KhoiProjectManagement.UnitTests.Services
             Assert.NotNull(result);
             await _notificationService.Received(1).CreateNotificationAsync(
                 8, "mention", Arg.Is<string>(m => m.Contains("Alice Author") && m.Contains("Great Idea")), null, null, null, 1, null);
-            await _emailService.DidNotReceiveWithAnyArgs().SendMentionEmailAsync(default!, default!, default!, default!, default!, default);
+            await _emailService.DidNotReceiveWithAnyArgs().SendMentionEmailAsync(default!, default!, default!, default!, default!);
         }
 
         [Fact]
-        public async Task AddCommentAsync_WhenMentionedUserHasEmailEnabled_SendsMentionEmailWithIdeasTabLink()
+        public async Task AddCommentAsync_WhenMentionedUserHasEmailEnabled_SendsMentionEmail()
         {
             var idea = new Idea { Id = 1, Title = "Great Idea" };
             _ideaRepo.Query().Returns(new List<Idea> { idea }.BuildMock());
@@ -400,7 +400,7 @@ namespace KhoiProjectManagement.UnitTests.Services
             await CreateSut().AddCommentAsync(1, dto, CallerWithId(7));
 
             await _emailService.Received(1).SendMentionEmailAsync(
-                "bob@x.com", "Alice Author", "idea", "Great Idea", dto.Body, "http://localhost:3000/?tab=ideas");
+                "bob@x.com", "Alice Author", "idea", "Great Idea", dto.Body);
         }
 
         [Fact]
@@ -426,7 +426,7 @@ namespace KhoiProjectManagement.UnitTests.Services
                 new() { Id = 8, Name = "Bob Bystander", IsActive = true, Email = "bob@x.com" },
             }.BuildMock());
             _notificationService.IsEmailEnabledAsync(8, NotificationTypes.Mention).Returns(true);
-            _emailService.SendMentionEmailAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>())
+            _emailService.SendMentionEmailAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>())
                 .Returns(Task.FromException(new InvalidOperationException("SMTP unreachable")));
 
             var dto = new CreateIdeaCommentDto { Body = "Hey @Bob Bystander, check this idea" };

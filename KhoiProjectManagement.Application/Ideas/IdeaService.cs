@@ -217,11 +217,7 @@ namespace KhoiProjectManagement.Application
                     var user = activeUsers.First(u => u.Id == mentionedId);
                     try
                     {
-                        // No per-idea deep link exists on the frontend yet (unlike Wiki's spaceId/pageId
-                        // one) - lands on the Ideas tab generally rather than the specific idea.
-                        var frontendBaseUrl = (_configuration["App:FrontendBaseUrl"] ?? "http://localhost:3000").TrimEnd('/');
-                        var contextUrl = $"{frontendBaseUrl}/?tab=ideas";
-                        await _emailService.SendMentionEmailAsync(user.Email, authorName, "idea", idea.Title, comment.Body, contextUrl);
+                        await _emailService.SendMentionEmailAsync(user.Email, authorName, "idea", idea.Title, comment.Body);
                     }
                     catch
                     {

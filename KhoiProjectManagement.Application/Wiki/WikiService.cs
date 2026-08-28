@@ -483,9 +483,7 @@ namespace KhoiProjectManagement.Application
                     var user = activeUsers.First(u => u.Id == mentionedId);
                     try
                     {
-                        var frontendBaseUrl = (_configuration["App:FrontendBaseUrl"] ?? "http://localhost:3000").TrimEnd('/');
-                        var contextUrl = $"{frontendBaseUrl}/?tab=wiki&spaceId={page.SpaceId}&pageId={page.Id}";
-                        await _emailService.SendMentionEmailAsync(user.Email, authorName, "wiki page", page.Title, comment.Body, contextUrl);
+                        await _emailService.SendMentionEmailAsync(user.Email, authorName, "wiki page", page.Title, comment.Body);
                     }
                     catch
                     {

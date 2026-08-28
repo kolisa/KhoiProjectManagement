@@ -750,7 +750,7 @@ namespace KhoiProjectManagement.UnitTests.Services
             await _notificationService.DidNotReceive().CreateNotificationAsync(
                 2, Arg.Any<string>(), Arg.Any<string>(), Arg.Any<int?>(), Arg.Any<int?>(), Arg.Any<int?>(), Arg.Any<int?>(), Arg.Any<int?>());
             await _emailService.DidNotReceive().SendMentionEmailAsync(
-                Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>());
+                Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>());
         }
 
         [Fact]
@@ -770,13 +770,12 @@ namespace KhoiProjectManagement.UnitTests.Services
             _spacePermissionResolver.ResolveEffectiveLevelAsync(10, 2, Arg.Any<IEnumerable<int>>(), Arg.Any<IEnumerable<int>>())
                 .Returns(PermissionLevel.Read);
             _notificationService.IsEmailEnabledAsync(2, NotificationTypes.Mention).Returns(true);
-            _configuration["App:FrontendBaseUrl"].Returns("http://localhost:3000");
 
             var dto = new CreateWikiCommentDto { Body = "@Mentioned Person please look" };
             await CreateSut().AddCommentAsync(1, dto, CallerWithId(1));
 
             await _emailService.Received(1).SendMentionEmailAsync(
-                "mentioned@khoi.africa", "Author Name", "wiki page", "Runbook", dto.Body, Arg.Is<string>(u => u.Contains("pageId=1")));
+                "mentioned@khoi.africa", "Author Name", "wiki page", "Runbook", dto.Body);
         }
 
         [Fact]
@@ -797,7 +796,7 @@ namespace KhoiProjectManagement.UnitTests.Services
                 .Returns(PermissionLevel.Read);
             _notificationService.IsEmailEnabledAsync(2, NotificationTypes.Mention).Returns(true);
             _emailService.SendMentionEmailAsync(
-                    Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>())
+                    Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>())
                 .Returns<Task>(_ => throw new InvalidOperationException("SMTP down"));
 
             var dto = new CreateWikiCommentDto { Body = "@Mentioned Person please look" };
