@@ -91,7 +91,11 @@ describe('PermissionsManagement', () => {
     renderComponent();
 
     await screen.findByRole('button', { name: /admin/i });
-    const deleteCheckbox = await screen.findByRole('checkbox', { name: /delete projects/i });
+    // The permission grid renders before the role's granted-permissions fetch resolves (see the
+    // previous test's comment) - wait for that fetch to settle before toggling, or the click can
+    // race the fetch's setState and get clobbered on a slower (e.g. CI) runner.
+    await waitFor(() => expect(screen.getByRole('checkbox', { name: /view projects/i })).toBeChecked());
+    const deleteCheckbox = screen.getByRole('checkbox', { name: /delete projects/i });
     const saveButton = screen.getByRole('button', { name: /save changes/i });
     expect(saveButton).toBeDisabled();
 

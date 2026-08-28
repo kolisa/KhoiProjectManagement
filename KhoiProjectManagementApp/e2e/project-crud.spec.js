@@ -11,7 +11,9 @@ test.describe('Project CRUD', () => {
     await page.getByPlaceholder('Email address').fill(ADMIN_EMAIL);
     await page.getByPlaceholder('Password').fill(ADMIN_PASSWORD);
     await page.getByRole('button', { name: /sign in/i }).click();
-    await expect(page.getByRole('heading', { name: /^dashboard$/i })).toBeVisible();
+    // The Dashboard tab's own heading is a time-of-day greeting ("Good morning, ..."), not the
+    // literal word "Dashboard" - see App.jsx's Dashboard Tab section.
+    await expect(page.getByRole('heading', { name: /good (morning|afternoon|evening)/i })).toBeVisible();
 
     await page.getByRole('button', { name: /^projects$/i }).click();
   });
