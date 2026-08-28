@@ -155,6 +155,11 @@ jobs:
       - name: Run E2E tests
         working-directory: KhoiProjectManagementApp
         run: npx playwright test
+        env:
+          # .env.local (which normally supplies this for local dev) is gitignored and not present in
+          # CI's checkout - without this, ApiService.js falls back to its https://localhost:7148/api
+          # default, which doesn't match the API this job actually started on port 5278.
+          VITE_API_URL: http://localhost:5278/api
 
       - name: Upload Playwright report
         uses: actions/upload-artifact@v4
