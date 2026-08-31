@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Throwaway diagnostic tool, deliberately NOT added to KhoiProjectManagement.sln: it's a one-off
+    read-only report, not part of the shipped app, and keeping it out of the solution keeps
+    ArchitectureTests' layer graph and `dotnet build`/`dotnet test` at the repo root untouched.
+
+    Usage (run from this folder):
+      dotnet run
+        (uses KhoiProjectManagementApi/appsettings.json's DefaultConnection)
+      dotnet run [connection string] [thresholdDays]
+        (pass an empty string for the connection string to keep the default and only override the
+        threshold, e.g. pass a real production connection string as the first argument)
+
+    Point the connection string at your real server's Postgres instance to get real findings; this
+    repo's local dev Postgres only holds seed data.
+  -->
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\KhoiProjectManagement.Infrastructure\KhoiProjectManagement.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -8,6 +8,13 @@ import React, { useState, useEffect } from 'react';
 import { ClipboardList, Search } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import { reportApiError } from '../../utils/apiError';
+import StatusBadge from '../Common/StatusBadge';
+
+const EMAIL_STATUS_COLORS = {
+  Pending: 'bg-amber-50 text-amber-700',
+  Sent: 'bg-green-50 text-green-700',
+  Failed: 'bg-red-50 text-red-700',
+};
 
 const SentEmailsView = ({ apiService }) => {
   const toast = useToast();
@@ -64,7 +71,7 @@ const SentEmailsView = ({ apiService }) => {
       ) : logs.length === 0 ? (
         <div className="text-sm text-gray-400 italic p-4 text-center">No emails match.</div>
       ) : (
-        <div className="border border-gray-100 rounded-xl overflow-x-auto">
+        <div className="border border-gray-100 rounded-2xl overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-gray-50/60 text-xs uppercase tracking-wide text-gray-500">
               <tr>
@@ -83,15 +90,9 @@ const SentEmailsView = ({ apiService }) => {
                   <td className="px-3 py-2 text-gray-500">{log.emailType}</td>
                   <td className="px-3 py-2 text-gray-500 whitespace-nowrap">{new Date(log.sentAt).toLocaleString()}</td>
                   <td className="px-3 py-2">
-                    {log.status === 'Pending' && (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-amber-50 text-amber-700">Pending</span>
-                    )}
-                    {log.status === 'Sent' && (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-green-50 text-green-700">Sent</span>
-                    )}
-                    {log.status === 'Failed' && (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-red-50 text-red-700" title={log.errorMessage || ''}>Failed</span>
-                    )}
+                    <span title={log.status === 'Failed' ? (log.errorMessage || '') : undefined}>
+                      <StatusBadge status={log.status} colorMap={EMAIL_STATUS_COLORS} />
+                    </span>
                   </td>
                 </tr>
               ))}
@@ -181,7 +182,7 @@ const ErrorLogsView = ({ apiService }) => {
       ) : entries.length === 0 ? (
         <div className="text-sm text-gray-400 italic p-4 text-center">No matching entries for this day.</div>
       ) : (
-        <div className="bg-gray-900 rounded-xl p-4 max-h-[28rem] overflow-y-auto font-mono text-xs space-y-2">
+        <div className="bg-gray-900 rounded-2xl p-4 max-h-[28rem] overflow-y-auto font-mono text-xs space-y-2">
           {entries.map((entry, i) => (
             <div key={i} className="whitespace-pre-wrap break-all">
               <span className="text-gray-500">{entry.timestamp ? new Date(entry.timestamp).toLocaleString() : ''}</span>{' '}

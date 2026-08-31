@@ -30,6 +30,12 @@ namespace KhoiProjectManagement.Domain
         // this, never the birth year, to anyone other than the user themselves or a users.edit caller.
         public DateTime? DateOfBirth { get; set; }
 
+        // SHA-256 hex hash of an opaque per-user calendar-subscription token (never the raw token
+        // itself - same "hashed, stored, revocable" convention as RefreshToken/PasswordResetToken).
+        // Null until the user first generates a subscription link; regenerating replaces this and
+        // invalidates the old link. See CalendarService.RegenerateFeedTokenAsync/GetIcsFeedAsync.
+        public string? CalendarFeedTokenHash { get; set; }
+
         // Self-referencing "reports to" link for the team org chart - nullable (top of the chart has
         // no manager). Mutable after creation (unlike Space.ParentSpaceId), so UserService validates
         // against self-reference and cycles on every write - see UserService.ValidateManagerAsync.

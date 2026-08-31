@@ -119,7 +119,8 @@ namespace KhoiProjectManagement.Application
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(tempPassword),
                 IsActive = true,
                 MustChangePassword = true,
-                ManagerId = createUserDto.ManagerId
+                ManagerId = createUserDto.ManagerId,
+                DateOfBirth = createUserDto.DateOfBirth
             };
 
             _userRepo.Add(user);
@@ -164,6 +165,13 @@ namespace KhoiProjectManagement.Application
             user.Email = updateUserDto.Email;
             user.Position = updateUserDto.Position;
             user.ManagerId = updateUserDto.ManagerId;
+
+            // Nullable-means-"leave unchanged", same convention as Password just below - the edit
+            // form never reads the existing DateOfBirth back (see User.DateOfBirth's privacy comment:
+            // it's not exposed via TeamMemberDto to arbitrary viewers), so this is the only way to add
+            // it later without wiping a previously-set birthday on every unrelated edit.
+            if (updateUserDto.DateOfBirth.HasValue)
+                user.DateOfBirth = updateUserDto.DateOfBirth.Value;
 
             if (!string.IsNullOrEmpty(updateUserDto.Password))
             {

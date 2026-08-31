@@ -23,6 +23,10 @@ namespace KhoiProjectManagement.Application
             RuleFor(x => x.Email).NotEmpty().EmailAddress().MaximumLength(256);
             RuleFor(x => x.Position).NotEmpty().MaximumLength(200);
             RuleFor(x => x.Role).NotEmpty();
+            RuleFor(x => x.DateOfBirth)
+                .LessThan(DateTime.UtcNow).WithMessage("DateOfBirth must be in the past")
+                .GreaterThan(DateTime.UtcNow.AddYears(-120)).WithMessage("DateOfBirth is not plausible")
+                .When(x => x.DateOfBirth.HasValue);
         }
     }
 
@@ -36,6 +40,10 @@ namespace KhoiProjectManagement.Application
             RuleFor(x => x.Email).NotEmpty().EmailAddress().MaximumLength(256);
             RuleFor(x => x.Position).NotEmpty().MaximumLength(200);
             RuleFor(x => x.Password).MinimumLength(8).When(x => !string.IsNullOrEmpty(x.Password));
+            RuleFor(x => x.DateOfBirth)
+                .LessThan(DateTime.UtcNow).WithMessage("DateOfBirth must be in the past")
+                .GreaterThan(DateTime.UtcNow.AddYears(-120)).WithMessage("DateOfBirth is not plausible")
+                .When(x => x.DateOfBirth.HasValue);
         }
     }
 

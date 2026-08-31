@@ -139,6 +139,11 @@ namespace KhoiProjectManagement.Infrastructure.Data
                 // this column is added - the 6 documented demo accounts below are explicitly pinned back
                 // to false so they keep working exactly as documented.
                 e.Property(u => u.MustChangePassword).HasDefaultValue(true);
+                e.Property(u => u.CalendarFeedTokenHash).HasMaxLength(64);
+                // Postgres unique indexes already treat multiple NULLs as distinct (not a conflict),
+                // so this stays a plain unique index - no partial-index filter needed, unlike some
+                // other RDBMSes.
+                e.HasIndex(u => u.CalendarFeedTokenHash).IsUnique();
             });
 
             modelBuilder.Entity<Project>(e =>

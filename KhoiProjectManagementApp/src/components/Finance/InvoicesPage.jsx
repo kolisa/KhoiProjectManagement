@@ -1,6 +1,6 @@
 // src/components/Finance/InvoicesPage.js
 import React, { useState, useEffect } from 'react';
-import { Plus, FileStack, X } from 'lucide-react';
+import { Plus, FileStack, X, CheckCircle, Clock, AlertCircle, TrendingUp } from 'lucide-react';
 import RandIcon from '../Common/RandIcon';
 import useModalA11y from '../Common/useModalA11y';
 import { hasPermission } from '../../utils/permissions';
@@ -9,19 +9,10 @@ import { useToast } from '../../contexts/ToastContext';
 import { reportApiError } from '../../utils/apiError';
 import { formatCurrency } from '../../utils/currency';
 import { validateInvoice, hasErrors } from '../../utils/validation';
+import StatusBadge from '../Common/StatusBadge';
+import { INVOICE_STATUS_COLORS } from './invoiceStatusColors';
 
 const emptyLineItem = () => ({ description: '', quantity: 1, unitPrice: 0 });
-
-const InvoiceStatusBadge = ({ status }) => (
-  <span className={`inline-flex items-center px-[9px] py-[3px] rounded-[7px] text-[11.5px] font-semibold whitespace-nowrap ${
-    status === 'Paid' ? 'bg-[#E3F8E9] text-[#005F2E]' :
-    status === 'Sent' ? 'bg-[#FFEED6] text-[#874400]' :
-    status === 'Overdue' ? 'bg-[#FFEBE8] text-[#B71824]' :
-    'bg-[#F2F2F4] text-[#62626A]'
-  }`}>
-    {status}
-  </span>
-);
 
 const InvoiceFormModal = ({ title, templates, onSave, onClose }) => {
   const modalRef = useModalA11y(onClose);
@@ -276,22 +267,50 @@ const InvoicesPage = ({ apiService, user }) => {
 
         return (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="bg-white p-5 rounded-[14px] border border-gray-100 shadow-sm">
-              <p className="text-sm font-medium text-gray-500">Paid this month</p>
-              <p className="text-2xl font-bold text-gray-900">{fmt(paidThisMonth)}</p>
+            <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+              <div className="flex items-center">
+                <div className="bg-green-50 rounded-lg p-3 mr-3 flex-shrink-0">
+                  <CheckCircle className="h-6 w-6 text-green-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-500">Paid this month</p>
+                  <p className="text-2xl font-bold text-gray-900">{fmt(paidThisMonth)}</p>
+                </div>
+              </div>
             </div>
-            <div className="bg-white p-5 rounded-[14px] border border-gray-100 shadow-sm">
-              <p className="text-sm font-medium text-gray-500">Awaiting payment</p>
-              <p className="text-2xl font-bold text-gray-900">{fmt(awaitingPayment)}</p>
+            <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+              <div className="flex items-center">
+                <div className="bg-amber-50 rounded-lg p-3 mr-3 flex-shrink-0">
+                  <Clock className="h-6 w-6 text-amber-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-500">Awaiting payment</p>
+                  <p className="text-2xl font-bold text-gray-900">{fmt(awaitingPayment)}</p>
+                </div>
+              </div>
             </div>
-            <div className={`bg-white p-5 rounded-[14px] border shadow-sm ${overdueCount > 0 ? 'border-[#DB4241]/30' : 'border-gray-100'}`}>
-              <p className={`text-sm font-medium ${overdueCount > 0 ? 'text-red-600' : 'text-gray-500'}`}>Overdue</p>
-              <p className="text-2xl font-bold text-gray-900">{fmt(overdue)}</p>
-              {overdueCount > 0 && <p className="text-xs text-red-600 mt-1">{overdueCount} invoice{overdueCount !== 1 ? 's' : ''}</p>}
+            <div className={`bg-white p-5 rounded-2xl border shadow-sm ${overdueCount > 0 ? 'border-[#DB4241]/30' : 'border-gray-100'}`}>
+              <div className="flex items-center">
+                <div className="bg-red-50 rounded-lg p-3 mr-3 flex-shrink-0">
+                  <AlertCircle className="h-6 w-6 text-red-600" />
+                </div>
+                <div>
+                  <p className={`text-sm font-medium ${overdueCount > 0 ? 'text-red-600' : 'text-gray-500'}`}>Overdue</p>
+                  <p className="text-2xl font-bold text-gray-900">{fmt(overdue)}</p>
+                  {overdueCount > 0 && <p className="text-xs text-red-600 mt-1">{overdueCount} invoice{overdueCount !== 1 ? 's' : ''}</p>}
+                </div>
+              </div>
             </div>
-            <div className="bg-white p-5 rounded-[14px] border border-gray-100 shadow-sm">
-              <p className="text-sm font-medium text-gray-500">Avg. days to pay</p>
-              <p className="text-2xl font-bold text-gray-900">{avgDaysToPay ?? '—'}</p>
+            <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+              <div className="flex items-center">
+                <div className="bg-blue-50 rounded-lg p-3 mr-3 flex-shrink-0">
+                  <TrendingUp className="h-6 w-6 text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-500">Avg. days to pay</p>
+                  <p className="text-2xl font-bold text-gray-900">{avgDaysToPay ?? '—'}</p>
+                </div>
+              </div>
             </div>
           </div>
         );
@@ -337,7 +356,7 @@ const InvoicesPage = ({ apiService, user }) => {
                 <div className="font-mono font-medium text-gray-900">{inv.invoiceNumber}</div>
                 <div className="text-sm text-gray-500 flex items-center gap-1.5 mt-0.5">
                   <span>{inv.clientName}</span>
-                  <InvoiceStatusBadge status={inv.status} />
+                  <StatusBadge status={inv.status} colorMap={INVOICE_STATUS_COLORS} />
                 </div>
               </div>
               <div className="text-sm font-semibold text-gray-900">{formatCurrency(inv.total)}</div>
