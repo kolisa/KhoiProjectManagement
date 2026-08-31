@@ -3,11 +3,12 @@ using KhoiProjectManagement.Application;
 
 namespace KhoiProjectManagement.Application
 {
-    // "Event"/"Promotion" - the two CompanyEvent.EventType values from the original design (general
-    // company events vs. promotion announcements naming a SubjectUserId).
+    // "Event"/"Promotion" from the original design (general company events vs. promotion
+    // announcements naming a SubjectUserId), plus "Marketing"/"Activation" for that team's campaigns
+    // and on-the-ground activations - same free-form-string column, no SubjectUserId requirement.
     internal static class CompanyEventTypeRule
     {
-        public static readonly string[] Valid = { "Event", "Promotion" };
+        public static readonly string[] Valid = { "Event", "Promotion", "Marketing", "Activation" };
     }
 
     public class CreateCompanyEventDtoValidator : AbstractValidator<CreateCompanyEventDto>

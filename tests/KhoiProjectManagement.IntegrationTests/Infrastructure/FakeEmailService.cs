@@ -42,6 +42,18 @@ namespace KhoiProjectManagement.IntegrationTests.Infrastructure
         public Task SendLoginReminderEmailAsync(string toEmail, string userName, int daysSinceInvite) =>
             Record(nameof(SendLoginReminderEmailAsync), toEmail);
 
+        public Task SendWeeklyDigestEmailAsync(string toEmail, string userName, int tasksCompleted, int tasksOpen, int tasksOverdue, int projectsActive, int libraryUploads, DateTime weekStart, DateTime weekEnd) =>
+            Record(nameof(SendWeeklyDigestEmailAsync), toEmail);
+
+        public Task SendNoDocumentsNudgeEmailAsync(string toEmail, string userName) =>
+            Record(nameof(SendNoDocumentsNudgeEmailAsync), toEmail);
+
+        public Task SendDormantUserNudgeEmailAsync(string toEmail, string userName, int daysSinceLastLogin) =>
+            Record(nameof(SendDormantUserNudgeEmailAsync), toEmail);
+
+        public Task SendBirthdayEmailAsync(string toEmail, string userName) =>
+            Record(nameof(SendBirthdayEmailAsync), toEmail);
+
         public Task DispatchPendingEmailsAsync() => Task.CompletedTask;
 
         private Task Record(string method, string toEmail)

@@ -141,6 +141,62 @@ namespace KhoiProjectManagement.Infrastructure.Services
             await EnqueueEmailAsync(toEmail, subject, body, "login_reminder");
         }
 
+        public async Task SendWeeklyDigestEmailAsync(string toEmail, string userName, int tasksCompleted, int tasksOpen, int tasksOverdue, int projectsActive, int libraryUploads, DateTime weekStart, DateTime weekEnd)
+        {
+            var subject = $"Your weekly activity digest ({weekStart:MMM d} - {weekEnd:MMM d})";
+            var inner = $@"
+                <p>Hi {userName},</p>
+                <p>Here's a summary of your activity for {weekStart:MMM d} - {weekEnd:MMM d}:</p>
+                <ul>
+                    <li><strong>{tasksCompleted}</strong> task{(tasksCompleted == 1 ? "" : "s")} completed</li>
+                    <li><strong>{tasksOpen}</strong> open task{(tasksOpen == 1 ? "" : "s")}{(tasksOverdue > 0 ? $" ({tasksOverdue} overdue)" : "")}</li>
+                    <li><strong>{projectsActive}</strong> active project{(projectsActive == 1 ? "" : "s")}</li>
+                    <li><strong>{libraryUploads}</strong> Library upload{(libraryUploads == 1 ? "" : "s")} this week</li>
+                </ul>
+            ";
+            var body = EmailTemplates.Wrap("Your Weekly Digest", inner, "View Dashboard", GetFrontendUrl("?tab=dashboard"), GetFrontendUrl());
+
+            await EnqueueEmailAsync(toEmail, subject, body, "weekly_digest");
+        }
+
+        public async Task SendNoDocumentsNudgeEmailAsync(string toEmail, string userName)
+        {
+            var subject = "Anything to upload to the Library?";
+            var inner = $@"
+                <p>Hi {userName},</p>
+                <p>We noticed you haven't uploaded any files to the Library yet. If there's nothing you need to upload, no action needed - just let us know.</p>
+                <p>Otherwise, head to the Library tab to upload documents whenever you're ready.</p>
+            ";
+            var body = EmailTemplates.Wrap("No Documents Uploaded Yet", inner, "Open Library", GetFrontendUrl("?tab=library"), GetFrontendUrl());
+
+            await EnqueueEmailAsync(toEmail, subject, body, "no_documents_nudge");
+        }
+
+        public async Task SendDormantUserNudgeEmailAsync(string toEmail, string userName, int daysSinceLastLogin)
+        {
+            var subject = "We miss you on Khoi Pro";
+            var inner = $@"
+                <p>Hi {userName},</p>
+                <p>It's been {daysSinceLastLogin} days since you last logged in. Your projects and tasks are still waiting for you.</p>
+                <p>If something's blocking you from using the system, let your manager or admin know - we'd like to help.</p>
+            ";
+            var body = EmailTemplates.Wrap("We Miss You", inner, "Log In Now", GetFrontendUrl(), GetFrontendUrl());
+
+            await EnqueueEmailAsync(toEmail, subject, body, "dormant_user_nudge");
+        }
+
+        public async Task SendBirthdayEmailAsync(string toEmail, string userName)
+        {
+            var subject = $"Happy Birthday, {userName}! ";
+            var inner = $@"
+                <p>Hi {userName},</p>
+                <p>Wishing you a very happy birthday from all of us at Khoi Pro! Hope you have a fantastic day.</p>
+            ";
+            var body = EmailTemplates.Wrap("Happy Birthday!", inner, "Open Khoi Pro", GetFrontendUrl(), GetFrontendUrl());
+
+            await EnqueueEmailAsync(toEmail, subject, body, "birthday_greeting");
+        }
+
         public async Task SendScheduledReportEmailAsync(string toEmail, string reportTitle, byte[] attachmentContent, string attachmentFileName, string attachmentContentType)
         {
             // Not queued (see IEmailService's comment) - already runs off the request thread via

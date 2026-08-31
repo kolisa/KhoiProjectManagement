@@ -10,5 +10,10 @@ namespace KhoiProjectManagement.Application
         public string Role { get; set; } = "member";
         public string Position { get; set; } = string.Empty;
         public int? ManagerId { get; set; }
+
+        // Optional - lets HR capture a new employee's birthday at creation time so it shows up on
+        // the company Calendar immediately, instead of only ever being set later via the separate
+        // date-of-birth endpoint.
+        public DateTime? DateOfBirth { get; set; }
     }
 }

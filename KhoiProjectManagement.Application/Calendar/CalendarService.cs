@@ -2,6 +2,7 @@ using KhoiProjectManagement.Application.Abstractions;
 using KhoiProjectManagement.Domain;
 using KhoiProjectManagement.Application;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Cryptography;
 
 namespace KhoiProjectManagement.Application
 {
@@ -129,6 +130,73 @@ namespace KhoiProjectManagement.Application
         {
             var daysInMonth = DateTime.DaysInMonth(year, month);
             return new DateTime(year, month, Math.Min(day, daysInMonth));
+        }
+
+        public async Task<string> RegenerateFeedTokenAsync(int userId)
+        {
+            var user = await _userRepo.FindAsync(userId) ?? throw new InvalidOperationException("User not found.");
+
+            // Hex, not base64 - this token sits directly in a URL query string that gets pasted into
+            // Outlook/Google/Apple Calendar, so it needs to be URL-safe with zero encoding required.
+            var rawToken = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
+            user.CalendarFeedTokenHash = Hash(rawToken);
+            await _unitOfWork.SaveChangesAsync();
+
+            return rawToken;
+        }
+
+        public async Task<bool> HasFeedTokenAsync(int userId)
+        {
+            var user = await _userRepo.FindAsync(userId);
+            return user?.CalendarFeedTokenHash != null;
+        }
+
+        public async Task<string?> GetIcsFeedAsync(string rawToken)
+        {
+            var hash = Hash(rawToken);
+            var user = await _userRepo.Query().FirstOrDefaultAsync(u => u.CalendarFeedTokenHash == hash);
+            if (user == null)
+                return null;
+
+            var now = DateTime.UtcNow.Date;
+            var from = now.AddDays(-30);
+            var to = now.AddDays(365);
+
+            var companyEvents = await _eventRepo.Query()
+                .Where(e => e.EventDate >= from && e.EventDate <= to)
+                .OrderBy(e => e.EventDate)
+                .ToListAsync();
+
+            var icsEvents = companyEvents.Select(e => new IcsFeedBuilder.IcsEvent(
+                Uid: $"event-{e.Id}",
+                Date: e.EventDate,
+                Summary: $"[{e.EventType}] {e.Title}",
+                Description: e.Description
+            ));
+
+            var usersWithBirthdays = await _userRepo.Query()
+                .Where(u => u.IsActive && u.DateOfBirth != null)
+                .Select(u => new { u.Id, u.Name, u.DateOfBirth })
+                .ToListAsync();
+
+            var icsBirthdays = usersWithBirthdays.Select(u =>
+            {
+                var dob = u.DateOfBirth!.Value;
+                // Next occurrence (this year if it hasn't passed yet, else next year) - only affects
+                // which DTSTART the RRULE:YEARLY starts counting from, never exposes the real birth
+                // year (see IcsFeedBuilder's comment).
+                var thisYear = SafeDate(now.Year, dob.Month, dob.Day);
+                var nextOccurrence = thisYear >= now ? thisYear : SafeDate(now.Year + 1, dob.Month, dob.Day);
+                return new IcsFeedBuilder.IcsBirthday(Uid: $"birthday-{u.Id}", NextOccurrence: nextOccurrence, Summary: $"{u.Name}'s birthday");
+            });
+
+            return IcsFeedBuilder.Build(icsEvents, icsBirthdays);
+        }
+
+        private static string Hash(string value)
+        {
+            var bytes = SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(value));
+            return Convert.ToHexString(bytes);
         }
 
         private static CompanyEventDto MapEvent(CompanyEvent e) => new()

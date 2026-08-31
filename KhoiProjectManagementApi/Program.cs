@@ -70,6 +70,10 @@ try
     var scheduledReportJobKey = new JobKey("ScheduledReport");
     var sendQueuedEmailsJobKey = new JobKey("SendQueuedEmails");
     var loginReminderJobKey = new JobKey("LoginReminderCheck");
+    var weeklyDigestJobKey = new JobKey("WeeklyDigest");
+    var noDocumentsNudgeJobKey = new JobKey("NoDocumentsNudge");
+    var dormantUserJobKey = new JobKey("DormantUserCheck");
+    var birthdayJobKey = new JobKey("BirthdayCheck");
     var firstRecurrence = DateBuilder.FutureDate(1, IntervalUnit.Hour);
     // SendQueuedEmailsJob repeats every 15s (it's the actual delivery mechanism for the EmailLog
     // outbox every Send*EmailAsync call now writes to - see EmailService), so reusing firstRecurrence's
@@ -119,6 +123,37 @@ try
         q.AddTrigger(opts => opts
             .ForJob(loginReminderJobKey)
             .WithIdentity("LoginReminderCheck-trigger")
+            .StartAt(firstRecurrence)
+            .WithSimpleSchedule(s => s.WithIntervalInHours(24).RepeatForever()));
+
+        // Checked daily, not weekly - the real weekly cadence is enforced by
+        // NotificationService.GenerateWeeklyDigestsAsync's own dedup window, not this interval (see
+        // WeeklyDigestJob's comment - matches the LoginReminderCheckJob pattern above).
+        q.AddJob<WeeklyDigestJob>(opts => opts.WithIdentity(weeklyDigestJobKey));
+        q.AddTrigger(opts => opts
+            .ForJob(weeklyDigestJobKey)
+            .WithIdentity("WeeklyDigest-trigger")
+            .StartAt(firstRecurrence)
+            .WithSimpleSchedule(s => s.WithIntervalInHours(24).RepeatForever()));
+
+        q.AddJob<NoDocumentsNudgeJob>(opts => opts.WithIdentity(noDocumentsNudgeJobKey));
+        q.AddTrigger(opts => opts
+            .ForJob(noDocumentsNudgeJobKey)
+            .WithIdentity("NoDocumentsNudge-trigger")
+            .StartAt(firstRecurrence)
+            .WithSimpleSchedule(s => s.WithIntervalInHours(24).RepeatForever()));
+
+        q.AddJob<DormantUserCheckJob>(opts => opts.WithIdentity(dormantUserJobKey));
+        q.AddTrigger(opts => opts
+            .ForJob(dormantUserJobKey)
+            .WithIdentity("DormantUserCheck-trigger")
+            .StartAt(firstRecurrence)
+            .WithSimpleSchedule(s => s.WithIntervalInHours(24).RepeatForever()));
+
+        q.AddJob<BirthdayCheckJob>(opts => opts.WithIdentity(birthdayJobKey));
+        q.AddTrigger(opts => opts
+            .ForJob(birthdayJobKey)
+            .WithIdentity("BirthdayCheck-trigger")
             .StartAt(firstRecurrence)
             .WithSimpleSchedule(s => s.WithIntervalInHours(24).RepeatForever()));
     });
@@ -194,6 +229,12 @@ try
         await scheduler.TriggerJob(scheduledReportJobKey);
         await scheduler.TriggerJob(sendQueuedEmailsJobKey);
         await scheduler.TriggerJob(loginReminderJobKey);
+        // Safe to fire on every boot alongside the jobs above - each one's own dedup window (see
+        // NotificationService) makes this a no-op except on a genuinely new week/threshold crossing.
+        await scheduler.TriggerJob(weeklyDigestJobKey);
+        await scheduler.TriggerJob(noDocumentsNudgeJobKey);
+        await scheduler.TriggerJob(dormantUserJobKey);
+        await scheduler.TriggerJob(birthdayJobKey);
     }
 
     await app.RunAsync();
