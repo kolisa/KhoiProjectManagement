@@ -5,17 +5,8 @@ import { hasPermission } from '../../utils/permissions';
 import { useToast } from '../../contexts/ToastContext';
 import { reportApiError } from '../../utils/apiError';
 import { formatCurrency } from '../../utils/currency';
-
-const InvoiceStatusBadge = ({ status }) => (
-  <span className={`inline-flex items-center px-[9px] py-[3px] rounded-[7px] text-[11.5px] font-semibold whitespace-nowrap ${
-    status === 'Paid' ? 'bg-[#E3F8E9] text-[#005F2E]' :
-    status === 'Sent' ? 'bg-[#FFEED6] text-[#874400]' :
-    status === 'Overdue' ? 'bg-[#FFEBE8] text-[#B71824]' :
-    'bg-[#F2F2F4] text-[#62626A]'
-  }`}>
-    {status}
-  </span>
-);
+import StatusBadge from '../Common/StatusBadge';
+import { INVOICE_STATUS_COLORS } from './invoiceStatusColors';
 
 const InvoiceDetail = ({ apiService, user, invoice, onClose, onChanged, onDeleted }) => {
   const toast = useToast();
@@ -111,7 +102,7 @@ const InvoiceDetail = ({ apiService, user, invoice, onClose, onChanged, onDelete
         <div>
           <dt className="text-gray-500">Status</dt>
           <dd className="text-gray-900 mt-1 flex items-center gap-2">
-            <InvoiceStatusBadge status={invoice.status} />
+            <StatusBadge status={invoice.status} colorMap={INVOICE_STATUS_COLORS} />
             {canManage && (
               <select
                 value=""

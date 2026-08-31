@@ -169,7 +169,7 @@ const IdeasPage = ({ apiService, user }) => {
                     <div
                       key={idea.id}
                       onClick={() => setSelectedId(idea.id)}
-                      className="bg-white rounded-xl border border-gray-100 shadow-sm p-3 cursor-pointer hover:border-gray-200 hover:shadow transition-all"
+                      className="bg-white rounded-2xl border border-gray-100 shadow-sm p-3 cursor-pointer hover:shadow-md transition-shadow"
                     >
                       <p className="text-sm font-medium text-gray-900 line-clamp-2">{idea.title}</p>
                       <div className="flex items-center justify-between mt-2 text-xs text-gray-500">

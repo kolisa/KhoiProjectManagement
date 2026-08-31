@@ -9,6 +9,8 @@ const STATUS_COLORS = {
   Snoozed: 'bg-[#FFEED6] text-[#874400]',
   Completed: 'bg-[#E3F8E9] text-[#005F2E]',
 };
+const RECURRENCE_COLOR = 'bg-[#EEEEFF] text-[#4131B0]';
+const OVERDUE_COLOR = 'bg-[#FFEBE8] text-[#B71824]';
 
 const formatDateTime = (iso) => (iso ? new Date(iso).toLocaleString() : '-');
 
@@ -24,14 +26,10 @@ const ReminderDetail = ({ reminder, onClose, onEdit, onComplete, onReopen, onDel
             <PriorityBadge priority={reminder.priority} />
             <StatusBadge status={reminder.status} colorMap={STATUS_COLORS} />
             {reminder.recurrenceType && (
-              <span className="inline-flex items-center px-[9px] py-[3px] rounded-[7px] text-[11.5px] font-semibold whitespace-nowrap bg-[#EEEEFF] text-[#4131B0]">
-                {reminder.recurrenceType}
-              </span>
+              <StatusBadge status={reminder.recurrenceType} colorMap={{ [reminder.recurrenceType]: RECURRENCE_COLOR }} />
             )}
             {reminder.isOverdue && (
-              <span className="inline-flex items-center px-[9px] py-[3px] rounded-[7px] text-[11.5px] font-semibold whitespace-nowrap bg-[#FFEBE8] text-[#B71824]">
-                Overdue
-              </span>
+              <StatusBadge status="Overdue" colorMap={{ Overdue: OVERDUE_COLOR }} />
             )}
           </div>
         </div>

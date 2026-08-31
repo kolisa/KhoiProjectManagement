@@ -1194,6 +1194,54 @@ class ApiService {
       }
     }
   }
+
+  // --- Calendar ---
+
+  async getCalendarFeed(from, to) {
+    const params = new URLSearchParams({ from: from.toISOString(), to: to.toISOString() });
+    return await this.request(`/calendar?${params.toString()}`);
+  }
+
+  async createCalendarEvent(dto) {
+    return await this.request('/calendar/events', {
+      method: 'POST',
+      body: JSON.stringify(dto),
+    });
+  }
+
+  async updateCalendarEvent(id, dto) {
+    return await this.request(`/calendar/events/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(dto),
+    });
+  }
+
+  async deleteCalendarEvent(id) {
+    return await this.request(`/calendar/events/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async setDateOfBirth(userId, dateOfBirth) {
+    return await this.request(`/users/${userId}/date-of-birth`, {
+      method: 'PUT',
+      body: JSON.stringify({ dateOfBirth }),
+    });
+  }
+
+  async getCalendarFeedTokenStatus() {
+    return await this.request('/calendar/feed-token/status');
+  }
+
+  async regenerateCalendarFeedToken() {
+    return await this.request('/calendar/feed-token/regenerate', { method: 'POST' });
+  }
+
+  // Not behind /calendar - this is the raw .ics subscription URL a calendar app polls directly
+  // (no Authorization header sent), so it's built from the API base URL, not requested via `request()`.
+  getIcsFeedUrl(token) {
+    return `${API_BASE_URL}/calendar/feed.ics?token=${encodeURIComponent(token)}`;
+  }
 }
 
 export default ApiService;

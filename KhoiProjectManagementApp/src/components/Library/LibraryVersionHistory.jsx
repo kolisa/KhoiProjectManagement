@@ -34,7 +34,7 @@ const LibraryVersionHistory = ({ apiService, file }) => {
   if (!versions) return <div className="text-gray-400 text-sm">Loading version history...</div>;
 
   return (
-    <div className="divide-y divide-gray-100 border border-gray-100 rounded-xl">
+    <div className="divide-y divide-gray-100 border border-gray-100 rounded-2xl overflow-hidden">
       {versions.map((v) => (
         <div key={v.versionNumber} className="p-3 flex justify-between items-center text-sm">
           <div>

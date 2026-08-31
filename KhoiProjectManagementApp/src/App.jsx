@@ -33,6 +33,7 @@ import OrgChartTree from './components/Team/OrgChartTree';
 const IdeasPage = lazy(() => import('./components/Ideas/IdeasPage'));
 const InvoicesPage = lazy(() => import('./components/Finance/InvoicesPage'));
 const RemindersPage = lazy(() => import('./components/Reminders/RemindersPage'));
+const CalendarPage = lazy(() => import('./components/Calendar/CalendarPage'));
 import LoginForm from './components/Auth/LoginForm';
 import ForgotPasswordForm from './components/Auth/ForgotPasswordForm';
 import ResetPasswordForm from './components/Auth/ResetPasswordForm';
@@ -47,6 +48,7 @@ const NAV_GROUPS = [
         items: [
             { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
             { key: 'reminders', label: 'Reminders', icon: Bell },
+            { key: 'calendar', label: 'Calendar', icon: Calendar },
         ],
     },
     {
@@ -253,7 +255,7 @@ const ProjectManagementSystem = () => {
     const [teamView, setTeamView] = useState('list'); // 'list' | 'orgchart'
     // A member id = the Edit Member modal is open for that member; null = closed.
     const [editingMemberId, setEditingMemberId] = useState(null);
-    const [editMemberForm, setEditMemberForm] = useState({ name: '', email: '', position: '', managerId: '' });
+    const [editMemberForm, setEditMemberForm] = useState({ name: '', email: '', position: '', managerId: '', dateOfBirth: '' });
     const [savingMemberEdit, setSavingMemberEdit] = useState(false);
     const [showNotifications, setShowNotifications] = useState(false);
     const [showUserMenu, setShowUserMenu] = useState(false);
@@ -287,7 +289,8 @@ const ProjectManagementSystem = () => {
         role: 'member',
         position: '',
         email: '',
-        managerId: ''
+        managerId: '',
+        dateOfBirth: ''
     });
     // createUser can legitimately take a while (it synchronously sends the temp-password email - see
     // ApiService.createUser's comment on its longer timeout budget), so this needs its own visible
@@ -575,7 +578,8 @@ const ProjectManagementSystem = () => {
                 role: newMember.role,
                 position: newMember.position,
                 email: newMember.email,
-                managerId: newMember.managerId ? Number(newMember.managerId) : null
+                managerId: newMember.managerId ? Number(newMember.managerId) : null,
+                dateOfBirth: newMember.dateOfBirth ? new Date(`${newMember.dateOfBirth}T00:00:00`).toISOString() : null
             };
 
             await apiService.createUser(memberData);
@@ -585,7 +589,8 @@ const ProjectManagementSystem = () => {
                 role: 'member',
                 position: '',
                 email: '',
-                managerId: ''
+                managerId: '',
+                dateOfBirth: ''
             });
             setShowAddMember(false);
 
@@ -622,7 +627,12 @@ const ProjectManagementSystem = () => {
             name: member.name,
             email: member.email,
             position: member.position,
-            managerId: member.managerId ? String(member.managerId) : ''
+            managerId: member.managerId ? String(member.managerId) : '',
+            // Deliberately not pre-filled - the API never exposes an existing DateOfBirth to the team
+            // list (see User.DateOfBirth's privacy comment), so this stays a "set it if you're here to
+            // set it" field. Left blank, updateUser leaves the existing value untouched (see
+            // UserService.UpdateUserAsync).
+            dateOfBirth: ''
         });
     };
 
@@ -640,7 +650,10 @@ const ProjectManagementSystem = () => {
                 name: editMemberForm.name,
                 email: editMemberForm.email,
                 position: editMemberForm.position,
-                managerId: editMemberForm.managerId ? Number(editMemberForm.managerId) : null
+                managerId: editMemberForm.managerId ? Number(editMemberForm.managerId) : null,
+                // null means "leave unchanged" server-side (see UserService.UpdateUserAsync) - only
+                // sent when the admin actually filled it in for this edit.
+                dateOfBirth: editMemberForm.dateOfBirth ? new Date(`${editMemberForm.dateOfBirth}T00:00:00`).toISOString() : null
             });
             setEditingMemberId(null);
             await loadTeamMembers();
@@ -804,8 +817,8 @@ const ProjectManagementSystem = () => {
 
     const navButtonClass = (key) =>
         `w-full flex items-center gap-3 px-3 py-2 rounded-[10px] text-sm font-medium transition-colors ${isTabActive(key)
-            ? 'bg-blue-50 text-blue-700 font-semibold'
-            : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+            ? 'bg-white text-blue-700 font-semibold shadow-sm'
+            : 'text-blue-100 hover:bg-white/10 hover:text-white'
         }`;
 
     const navCounts = {
@@ -819,7 +832,7 @@ const ProjectManagementSystem = () => {
             {NAV_GROUPS.map((group) => (
                 <div key={group.label || group.items[0].key} className="mb-1">
                     {group.label && (
-                        <p className="px-5 pt-4 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-gray-400">
+                        <p className="px-5 pt-4 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-blue-300">
                             {group.label}
                         </p>
                     )}
@@ -831,7 +844,7 @@ const ProjectManagementSystem = () => {
                                     <Icon className="h-[18px] w-[18px] flex-shrink-0" />
                                     {label}
                                     {!!count && (
-                                        <span className="ml-auto text-xs font-medium text-gray-400">{count}</span>
+                                        <span className={`ml-auto text-xs font-medium ${isTabActive(key) ? 'text-blue-400' : 'text-blue-200'}`}>{count}</span>
                                     )}
                                 </button>
                             );
@@ -845,17 +858,17 @@ const ProjectManagementSystem = () => {
     return (
         <div className="min-h-screen flex bg-gray-50">
             {/* Desktop sidebar */}
-            <aside className="hidden md:flex w-64 flex-shrink-0 flex-col bg-white border-r border-gray-200 h-screen sticky top-0 overflow-y-auto">
-                <div className="flex items-center gap-2.5 h-16 px-5 border-b border-gray-100 flex-shrink-0">
-                    <div className="h-9 w-9 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-base flex-shrink-0">K</div>
-                    <span className="text-base font-bold text-gray-900 tracking-tight">Khoi Pro</span>
+            <aside className="hidden md:flex w-64 flex-shrink-0 flex-col bg-blue-800 h-screen sticky top-0 overflow-y-auto">
+                <div className="flex items-center gap-2.5 h-16 px-5 border-b border-white/10 flex-shrink-0">
+                    <div className="h-9 w-9 rounded-lg bg-white flex items-center justify-center text-blue-700 font-bold text-base flex-shrink-0">K</div>
+                    <span className="text-base font-bold text-white tracking-tight">Khoi Pro</span>
                 </div>
 
                 <nav className="flex-1 py-3">
                     {renderNavGroups(setActiveTab)}
                 </nav>
 
-                <div className="border-t border-gray-100 py-3 flex-shrink-0">
+                <div className="border-t border-white/10 py-3 flex-shrink-0">
                     <div className="px-3">
                         <button onClick={() => setActiveTab(SETTINGS_ITEM.key)} className={navButtonClass(SETTINGS_ITEM.key)}>
                             <SettingsIcon className="h-[18px] w-[18px] flex-shrink-0" />
@@ -863,12 +876,12 @@ const ProjectManagementSystem = () => {
                         </button>
                     </div>
                     <div className="flex items-center gap-2.5 px-5 pt-3">
-                        <div className={`h-8 w-8 ${getAvatarColor(user?.name)} rounded-full flex items-center justify-center text-white text-xs font-semibold flex-shrink-0`}>
+                        <div className={`h-8 w-8 ${getAvatarColor(user?.name)} rounded-full flex items-center justify-center text-white text-xs font-semibold flex-shrink-0 ring-2 ring-white/20`}>
                             {(user?.name || '?').split(' ').filter(Boolean).map(n => n[0]).slice(0, 2).join('').toUpperCase()}
                         </div>
                         <div className="min-w-0">
-                            <p className="text-sm font-medium text-gray-900 truncate leading-tight">{user?.name}</p>
-                            <p className="text-xs text-gray-400 truncate capitalize">{user?.role}</p>
+                            <p className="text-sm font-medium text-white truncate leading-tight">{user?.name}</p>
+                            <p className="text-xs text-blue-200 truncate capitalize">{user?.role}</p>
                         </div>
                     </div>
                 </div>
@@ -885,7 +898,7 @@ const ProjectManagementSystem = () => {
                         </div>
 
                         <div className="hidden md:block flex-1 max-w-md">
-                            <div className="relative" ref={searchBoxRef}>
+                            <div className="relative max-w-xs" ref={searchBoxRef}>
                                 <Search className="h-4 w-4 absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
                                 <input
                                     ref={searchInputRef}
@@ -1039,14 +1052,14 @@ const ProjectManagementSystem = () => {
                             className="fixed inset-0 bg-black/40"
                             onClick={() => setMobileMenuOpen(false)}
                         />
-                        <div className="relative w-72 max-w-[80%] h-full bg-white shadow-xl overflow-y-auto animate-slide-up">
-                            <div className="flex items-center gap-2.5 h-16 px-5 border-b border-gray-100">
-                                <div className="h-9 w-9 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-base flex-shrink-0">K</div>
-                                <span className="text-base font-bold text-gray-900 tracking-tight">Khoi Pro</span>
+                        <div className="relative w-72 max-w-[80%] h-full bg-blue-800 shadow-xl overflow-y-auto animate-slide-up">
+                            <div className="flex items-center gap-2.5 h-16 px-5 border-b border-white/10">
+                                <div className="h-9 w-9 rounded-lg bg-white flex items-center justify-center text-blue-700 font-bold text-base flex-shrink-0">K</div>
+                                <span className="text-base font-bold text-white tracking-tight">Khoi Pro</span>
                             </div>
                             <nav className="py-3">
                                 {renderNavGroups((key) => { setActiveTab(key); setMobileMenuOpen(false); })}
-                                <div className="border-t border-gray-100 mt-2 pt-3 px-3 space-y-0.5">
+                                <div className="border-t border-white/10 mt-2 pt-3 px-3 space-y-0.5">
                                     <button
                                         onClick={() => { setActiveTab(SETTINGS_ITEM.key); setMobileMenuOpen(false); }}
                                         className={navButtonClass(SETTINGS_ITEM.key)}
@@ -1056,7 +1069,7 @@ const ProjectManagementSystem = () => {
                                     </button>
                                     <button
                                         onClick={logout}
-                                        className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
+                                        className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-red-200 hover:bg-white/10 hover:text-red-100 transition-colors"
                                     >
                                         <LogOut className="h-[18px] w-[18px] flex-shrink-0" />
                                         Logout
@@ -1072,8 +1085,8 @@ const ProjectManagementSystem = () => {
                 {/* Dashboard Tab */}
                 {activeTab === 'dashboard' && (
                     <div className="space-y-6">
-                        <div>
-                            <h2 className="text-[27px] font-bold text-gray-900 tracking-tight">
+                        <div className="bg-gradient-to-r from-blue-600 to-blue-800 rounded-2xl shadow-sm p-6 sm:p-7">
+                            <h2 className="text-[27px] font-bold text-white tracking-tight">
                                 {(() => {
                                     const hour = new Date().getHours();
                                     const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
@@ -1081,7 +1094,7 @@ const ProjectManagementSystem = () => {
                                     return firstName ? `${greeting}, ${firstName}` : greeting;
                                 })()}
                             </h2>
-                            <p className="text-gray-500">Overview of all projects and tasks</p>
+                            <p className="text-blue-100">Overview of all projects and tasks</p>
                         </div>
 
                         {loading.dashboard && <LoadingSpinner text="Loading dashboard..." />}
@@ -1111,7 +1124,7 @@ const ProjectManagementSystem = () => {
 
                             const STAT_CARDS = {
                                 total_projects: (
-                                    <div className="bg-white p-5 rounded-[14px] border border-gray-100 shadow-sm">
+                                    <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
                                         <div className="flex items-center">
                                             <div className="bg-blue-50 rounded-lg p-3 mr-3 flex-shrink-0">
                                                 <CheckCircle className="h-6 w-6 text-blue-600" />
@@ -1124,7 +1137,7 @@ const ProjectManagementSystem = () => {
                                     </div>
                                 ),
                                 active_projects: (
-                                    <div className="bg-white p-5 rounded-[14px] border border-gray-100 shadow-sm">
+                                    <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
                                         <div className="flex items-center">
                                             <div className="bg-green-50 rounded-lg p-3 mr-3 flex-shrink-0">
                                                 <Clock className="h-6 w-6 text-green-600" />
@@ -1140,7 +1153,7 @@ const ProjectManagementSystem = () => {
                                     </div>
                                 ),
                                 total_tasks: (
-                                    <div className="bg-white p-5 rounded-[14px] border border-gray-100 shadow-sm">
+                                    <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
                                         <div className="flex items-center">
                                             <div className="bg-amber-50 rounded-lg p-3 mr-3 flex-shrink-0">
                                                 <AlertCircle className="h-6 w-6 text-amber-600" />
@@ -1156,7 +1169,7 @@ const ProjectManagementSystem = () => {
                                     </div>
                                 ),
                                 overdue_tasks: (
-                                    <div className={`bg-white p-5 rounded-[14px] border shadow-sm ${dashboardStats.overdueTasks > 0 ? 'border-[#DB4241]/30' : 'border-gray-100'}`}>
+                                    <div className={`bg-white p-5 rounded-2xl border shadow-sm hover:shadow-md transition-shadow ${dashboardStats.overdueTasks > 0 ? 'border-[#DB4241]/30' : 'border-gray-100'}`}>
                                         <div className="flex items-center justify-between">
                                             <div className="flex items-center">
                                                 <div className="bg-red-50 rounded-lg p-3 mr-3 flex-shrink-0">
@@ -1182,7 +1195,7 @@ const ProjectManagementSystem = () => {
                                     </div>
                                 ),
                                 completion_rate: (
-                                    <div className="bg-white p-5 rounded-[14px] border border-gray-100 shadow-sm">
+                                    <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
                                         <div className="flex items-center">
                                             <div className="bg-purple-50 rounded-lg p-3 mr-3 flex-shrink-0">
                                                 <Users className="h-6 w-6 text-purple-600" />
@@ -1855,6 +1868,13 @@ const ProjectManagementSystem = () => {
                     </Suspense>
                 )}
 
+                {/* Calendar Tab */}
+                {activeTab === 'calendar' && (
+                    <Suspense fallback={<LoadingSpinner />}>
+                        <CalendarPage apiService={apiService} user={user} />
+                    </Suspense>
+                )}
+
                 {/* Finance Tab */}
                 {activeTab === 'finance' && (
                     <Suspense fallback={<LoadingSpinner />}>
@@ -2267,6 +2287,17 @@ const ProjectManagementSystem = () => {
                                         <option key={m.id} value={m.id}>{m.name}</option>
                                     ))}
                                 </select>
+                                <div>
+                                    <label className="block text-sm text-gray-600 mb-1" htmlFor="new-member-dob">Date of birth (optional)</label>
+                                    <input
+                                        id="new-member-dob"
+                                        type="date"
+                                        value={newMember.dateOfBirth}
+                                        onChange={(e) => setNewMember({ ...newMember, dateOfBirth: e.target.value })}
+                                        className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                                    />
+                                    <p className="text-xs text-gray-400 mt-1">Shows their birthday on the company Calendar.</p>
+                                </div>
                                 <p className="text-xs text-gray-500">
                                     A temporary password will be generated and emailed to this address. They'll be asked to set their own password on first login.
                                 </p>
@@ -2341,6 +2372,17 @@ const ProjectManagementSystem = () => {
                                         <option key={m.id} value={m.id}>{m.name}</option>
                                     ))}
                                 </select>
+                                <div>
+                                    <label className="block text-sm text-gray-600 mb-1" htmlFor="edit-member-dob">Date of birth</label>
+                                    <input
+                                        id="edit-member-dob"
+                                        type="date"
+                                        value={editMemberForm.dateOfBirth}
+                                        onChange={(e) => setEditMemberForm({ ...editMemberForm, dateOfBirth: e.target.value })}
+                                        className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                                    />
+                                    <p className="text-xs text-gray-400 mt-1">Leave blank to keep it unchanged.</p>
+                                </div>
                             </div>
                             <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3">
                                 <button

@@ -6,8 +6,18 @@ import { formatFileSize } from '../../utils/formatFileSize';
 import IdeaAttachmentAnnotations from './IdeaAttachmentAnnotations';
 import { useToast } from '../../contexts/ToastContext';
 import { reportApiError } from '../../utils/apiError';
+import StatusBadge from '../Common/StatusBadge';
 
 const STATUS_OPTIONS = ['Submitted', 'UnderReview', 'Approved', 'Rejected'];
+
+const IDEA_STATUS_LABELS = { UnderReview: 'Under Review', ConvertedToProject: 'Converted to Project' };
+const IDEA_STATUS_COLORS = {
+  UnderReview: 'bg-[#FFF1E3] text-[#B75E00]',
+  Approved: 'bg-[#E3F8E9] text-[#005F2E]',
+  Rejected: 'bg-[#FFEBE8] text-[#B71824]',
+  ConvertedToProject: 'bg-[#EEEEFF] text-[#4131B0]',
+  // Submitted deliberately omitted - StatusBadge's own neutral default already matches.
+};
 
 const IdeaDetail = ({ apiService, user, ideaId, onClose, onChanged }) => {
   const toast = useToast();
@@ -225,9 +235,7 @@ const IdeaDetail = ({ apiService, user, ideaId, onClose, onChanged }) => {
       <p className="text-gray-700 my-4">{idea.description}</p>
 
       <div className="flex items-center flex-wrap gap-3 mb-6">
-        <span className="inline-flex items-center px-[9px] py-[3px] rounded-[7px] text-[11.5px] font-semibold whitespace-nowrap bg-[#EEEEFF] text-[#4131B0]">
-          {idea.status}
-        </span>
+        <StatusBadge status={idea.status} label={IDEA_STATUS_LABELS[idea.status]} colorMap={IDEA_STATUS_COLORS} />
 
         {canManage && idea.status !== 'ConvertedToProject' && (
           <select
@@ -277,7 +285,7 @@ const IdeaDetail = ({ apiService, user, ideaId, onClose, onChanged }) => {
 
         {attachments.length === 0 && <div className="text-sm text-gray-400 italic">No files uploaded yet.</div>}
 
-        <div className="divide-y border border-gray-200 rounded-lg">
+        <div className="divide-y border border-gray-200 rounded-2xl overflow-hidden">
           {attachments.map((a) => (
             <div key={a.id}>
               <div className="p-3 flex justify-between items-center">
