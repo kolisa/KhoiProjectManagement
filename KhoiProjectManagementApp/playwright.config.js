@@ -20,7 +20,10 @@ export default defineConfig({
   fullyParallel: false,
   workers: 1,
   retries: 0,
-  reporter: [['list']],
+  // 'list' for readable console output; 'html' so CI's "Upload Playwright report" step has an
+  // actual playwright-report/ directory to upload (it was previously always empty - see ci.yml) -
+  // open: 'never' since a headless CI runner has no browser to auto-open a report in.
+  reporter: [['list'], ['html', { open: 'never', outputFolder: 'playwright-report' }]],
   // Vite's dev server transforms modules on demand - the very first real navigation of a freshly
   // booted server (not yet warmed by an earlier run) can take longer than Playwright's 5s default
   // assertion timeout to finish transforming ~1900 modules, independent of anything the test is
