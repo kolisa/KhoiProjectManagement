@@ -115,7 +115,18 @@ namespace KhoiProjectManagement.Application
 
         public async Task<IEnumerable<Notification>> GetUserNotificationsAsync(int userId)
         {
+            // AsNoTracking is load-bearing, not just a perf tweak: with change tracking on, loading a
+            // notification's Task and a (different notification's) Project in the same query lets EF's
+            // automatic relationship fixup wire Task.Project <-> Project.Tasks behind the scenes
+            // whenever their FKs happen to match - neither navigation was Included that deep, but
+            // Project.Tasks is a change-tracked collection initialized to `new List<ProjectTask>()`
+            // (see Project.cs), so EF still populates it once both entities are tracked. That produces
+            // a real object cycle (Notification -> Task -> Project -> Tasks -> [that Task] -> ...) which
+            // System.Text.Json has no ReferenceHandler configured to tolerate, 500ing this endpoint
+            // outright. No-tracking queries never perform fixup, so this is the actual fix, not a
+            // side effect of "it's read-only anyway."
             return await _notificationRepo.Query()
+                .AsNoTracking()
                 .Where(n => n.UserId == userId)
                 .Include(n => n.Task)
                 .Include(n => n.Project)
