@@ -15,6 +15,7 @@ namespace KhoiProjectManagement.Application
         public string Description { get; set; } = string.Empty;
         public string Status { get; set; } = string.Empty;
         public string Priority { get; set; } = string.Empty;
+        public string Type { get; set; } = string.Empty;
         public int? AssignedToId { get; set; }
         public string AssignedToName { get; set; } = string.Empty;
         public DateTime DueDate { get; set; }

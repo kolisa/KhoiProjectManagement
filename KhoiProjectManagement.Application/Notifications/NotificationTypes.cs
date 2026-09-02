@@ -16,6 +16,7 @@ namespace KhoiProjectManagement.Application
         public const string NoDocumentsNudge = "no_documents_nudge";
         public const string DormantUserNudge = "dormant_user_nudge";
         public const string BirthdayGreeting = "birthday_greeting";
+        public const string TimesheetSubmitted = "timesheet_submitted";
 
         public static readonly IReadOnlyList<(string Type, string DisplayName, string Description)> Catalog = new List<(string, string, string)>
         {
@@ -30,6 +31,7 @@ namespace KhoiProjectManagement.Application
             (NoDocumentsNudge, "No documents uploaded", "When you haven't uploaded any files to the Library."),
             (DormantUserNudge, "Inactivity check-in", "When you haven't logged in for a while."),
             (BirthdayGreeting, "Birthday greeting", "A happy birthday email on your birthday."),
+            (TimesheetSubmitted, "Timesheet submitted", "When a timesheet is submitted for your approval (you hold finance.manage)."),
         };
 
         public static bool IsValid(string type) => Catalog.Any(c => c.Type == type);

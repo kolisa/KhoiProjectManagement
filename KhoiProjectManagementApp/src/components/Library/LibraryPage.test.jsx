@@ -4,6 +4,7 @@ import { http, HttpResponse } from 'msw';
 import { describe, expect, it } from 'vitest';
 import { server, API_BASE_URL } from '../../test/mswServer';
 import { ToastProvider } from '../../contexts/ToastContext';
+import { ConfirmProvider } from '../../contexts/ConfirmContext';
 import ApiService from '../../services/ApiService';
 import LibraryPage from './LibraryPage';
 
@@ -27,7 +28,9 @@ const renderLibraryPage = (props = {}) => {
   const apiService = new ApiService();
   return render(
     <ToastProvider>
-      <LibraryPage apiService={apiService} user={testUser} teamMembers={[]} {...props} />
+      <ConfirmProvider>
+        <LibraryPage apiService={apiService} user={testUser} teamMembers={[]} {...props} />
+      </ConfirmProvider>
     </ToastProvider>
   );
 };

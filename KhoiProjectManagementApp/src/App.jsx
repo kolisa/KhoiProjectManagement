@@ -1,6 +1,6 @@
 // src/App.js - Complete Project Management Frontend
 import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
-import { Plus, Search, Calendar, Users, CheckCircle, Clock, AlertCircle, Trash2, Edit3, User, Bell, FileText, Tag, Download, Upload, Flag, Shield, UserCheck, Eye, LogOut, Menu, X, Lock, ChevronDown, LayoutDashboard, Folder, CheckSquare, BookOpen, Archive, Lightbulb, BarChart2, Settings as SettingsIcon, ArrowRight } from 'lucide-react';
+import { Plus, Search, Calendar, Users, CheckCircle, Clock, AlertCircle, Trash2, Edit3, User, Bell, FileText, Tag, Download, Upload, Flag, Shield, UserCheck, LogOut, Menu, X, Lock, ChevronDown, LayoutDashboard, Folder, CheckSquare, BookOpen, Archive, Lightbulb, BarChart2, Settings as SettingsIcon, ArrowRight } from 'lucide-react';
 import RandIcon from './components/Common/RandIcon';
 import PriorityBadge from './components/Common/PriorityBadge';
 import StatusBadge from './components/Common/StatusBadge';
@@ -12,6 +12,7 @@ import useModalA11y from './components/Common/useModalA11y';
 import ApiService, { NetworkError } from './services/ApiService';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ToastProvider, useToast } from './contexts/ToastContext';
+import { ConfirmProvider, useConfirm } from './contexts/ConfirmContext';
 import { hasPermission } from './utils/permissions';
 import { validateProject, validateTask, validateTeamMember, hasErrors } from './utils/validation';
 import { getAvatarColor } from './utils/avatarColor';
@@ -34,6 +35,7 @@ const IdeasPage = lazy(() => import('./components/Ideas/IdeasPage'));
 const InvoicesPage = lazy(() => import('./components/Finance/InvoicesPage'));
 const RemindersPage = lazy(() => import('./components/Reminders/RemindersPage'));
 const CalendarPage = lazy(() => import('./components/Calendar/CalendarPage'));
+const TimesheetsPage = lazy(() => import('./components/Timesheets/TimesheetsPage'));
 import LoginForm from './components/Auth/LoginForm';
 import ForgotPasswordForm from './components/Auth/ForgotPasswordForm';
 import ResetPasswordForm from './components/Auth/ResetPasswordForm';
@@ -56,6 +58,7 @@ const NAV_GROUPS = [
         items: [
             { key: 'projects', label: 'Projects', icon: Folder },
             { key: 'tasks', label: 'Tasks', icon: CheckSquare },
+            { key: 'timesheets', label: 'Timesheets', icon: Clock },
             { key: 'team', label: 'Team', icon: Users },
         ],
     },
@@ -91,10 +94,23 @@ const TASK_STATUS_COLORS = {
     'completed': 'bg-[#E3F8E9] text-[#005F2E]'
 };
 
+// Task type colors for the shared Common/StatusBadge - Task itself is left out so it falls back to
+// StatusBadge's own neutral default (it's the common case, not worth a badge color of its own).
+const TASK_TYPE_COLORS = {
+    Meeting: 'bg-[#EEEEFF] text-[#4131B0]',
+    Milestone: 'bg-[#F3E8FF] text-[#6B21A8]',
+    Review: 'bg-[#FFF1E3] text-[#B75E00]'
+};
+
+// <input type="date"> needs "YYYY-MM-DD"; <input type="datetime-local"> needs "YYYY-MM-DDTHH:mm" -
+// both are just a prefix of the full ISO string the API returns, so this is a slice, not a parse.
+const formatDueDateForInput = (dueDate, type) => (dueDate || '').slice(0, type === 'Meeting' ? 16 : 10);
+
 // Main Dashboard Component
 const ProjectManagementSystem = () => {
     const { user, logout } = useAuth();
     const toast = useToast();
+    const confirm = useConfirm();
     const [apiService] = useState(() => new ApiService());
 
     // Data state
@@ -251,6 +267,8 @@ const ProjectManagementSystem = () => {
     // project instead (opened via the card's Edit3 button - see openEditProject/handleAddProject).
     const [editingProjectId, setEditingProjectId] = useState(null);
     const [showAddTask, setShowAddTask] = useState(false);
+    // Same null-vs-id toggle as editingProjectId - opened via the task row's Edit3 button.
+    const [editingTaskId, setEditingTaskId] = useState(null);
     const [showAddMember, setShowAddMember] = useState(false);
     const [teamView, setTeamView] = useState('list'); // 'list' | 'orgchart'
     // A member id = the Edit Member modal is open for that member; null = closed.
@@ -274,15 +292,18 @@ const ProjectManagementSystem = () => {
     };
     const [newProject, setNewProject] = useState(emptyProjectForm);
 
-    const [newTask, setNewTask] = useState({
+    const emptyTaskForm = {
         projectId: '',
         title: '',
         description: '',
+        status: 'todo', // only sent on update - CreateTaskDto has no Status (server defaults it)
         priority: 'medium',
+        type: 'Task', // Task, Meeting, Milestone, Review - only Meeting shows/uses a time-of-day
         assignedToId: '',
         dueDate: '',
         tags: ''
-    });
+    };
+    const [newTask, setNewTask] = useState(emptyTaskForm);
 
     const [newMember, setNewMember] = useState({
         name: '',
@@ -413,6 +434,16 @@ const ProjectManagementSystem = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
+    // Same reasoning as teamMembers above - the Add/Edit Task modal's "Select Project" dropdown is
+    // reachable from Dashboard/Tasks, not just the Projects tab. Previously this only loaded once you
+    // visited Projects, so opening "New Task" first showed an empty, unsubmittable dropdown until you
+    // separately visited Projects and came back - which read as "the task modal takes forever to load
+    // projects" rather than "it never loads them at all" until you find the workaround.
+    useEffect(() => {
+        loadProjects();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
     useEffect(() => {
         if (activeTab === 'tasks') {
             loadTasks();
@@ -460,11 +491,33 @@ const ProjectManagementSystem = () => {
         setNewProject(emptyProjectForm);
     };
 
+    const openEditTask = (task) => {
+        setEditingTaskId(task.id);
+        setNewTask({
+            projectId: String(task.projectId),
+            title: task.title,
+            description: task.description || '',
+            status: task.status,
+            priority: task.priority,
+            type: task.type || 'Task',
+            assignedToId: task.assignedToId ? String(task.assignedToId) : '',
+            dueDate: formatDueDateForInput(task.dueDate, task.type),
+            tags: (task.tags || []).join(', ')
+        });
+        setShowAddTask(true);
+    };
+
+    const closeTaskModal = () => {
+        setShowAddTask(false);
+        setEditingTaskId(null);
+        setNewTask(emptyTaskForm);
+    };
+
     // Hooks must be called unconditionally regardless of which (if any) modal is currently open -
     // each hook's own effect no-ops when its ref never gets attached to anything (the modal it
     // belongs to isn't rendered this pass).
     const projectModalRef = useModalA11y(closeProjectModal);
-    const taskModalRef = useModalA11y(() => setShowAddTask(false));
+    const taskModalRef = useModalA11y(closeTaskModal);
     const addMemberModalRef = useModalA11y(() => setShowAddMember(false));
     const editMemberModalRef = useModalA11y(() => setEditingMemberId(null));
 
@@ -524,35 +577,44 @@ const ProjectManagementSystem = () => {
             return;
         }
 
+        const isEditing = editingTaskId !== null;
         setSavingTask(true);
         try {
-            const taskData = {
-                projectId: parseInt(newTask.projectId),
-                title: newTask.title,
-                description: newTask.description,
-                priority: newTask.priority,
-                assignedToId: newTask.assignedToId ? parseInt(newTask.assignedToId) : null,
-                dueDate: newTask.dueDate,
-                tags: newTask.tags.split(',').map(tag => tag.trim()).filter(tag => tag)
-            };
+            const tags = newTask.tags.split(',').map(tag => tag.trim()).filter(tag => tag);
+            const assignedToId = newTask.assignedToId ? parseInt(newTask.assignedToId) : null;
 
-            await apiService.createTask(taskData);
+            if (isEditing) {
+                // No projectId here - UpdateTaskDto doesn't support reassigning a task's project (the
+                // form's Select Project is disabled while editing, for the same reason).
+                await apiService.updateTask(editingTaskId, {
+                    title: newTask.title,
+                    description: newTask.description,
+                    status: newTask.status,
+                    priority: newTask.priority,
+                    type: newTask.type,
+                    assignedToId,
+                    dueDate: newTask.dueDate,
+                    tags
+                });
+            } else {
+                await apiService.createTask({
+                    projectId: parseInt(newTask.projectId),
+                    title: newTask.title,
+                    description: newTask.description,
+                    priority: newTask.priority,
+                    type: newTask.type,
+                    assignedToId,
+                    dueDate: newTask.dueDate,
+                    tags
+                });
+            }
 
-            setNewTask({
-                projectId: '',
-                title: '',
-                description: '',
-                priority: 'medium',
-                assignedToId: '',
-                dueDate: '',
-                tags: ''
-            });
-            setShowAddTask(false);
+            closeTaskModal();
 
             await loadTasks();
-            toast.success('Task created successfully!');
+            toast.success(isEditing ? 'Task updated successfully!' : 'Task created successfully!');
         } catch (error) {
-            reportApiError(toast, error, 'Error creating task.');
+            reportApiError(toast, error, `Error ${isEditing ? 'updating' : 'creating'} task.`);
         } finally {
             setSavingTask(false);
         }
@@ -667,7 +729,7 @@ const ProjectManagementSystem = () => {
 
     const handleToggleMemberActive = async (member) => {
         const deactivating = member.isActive;
-        if (deactivating && !window.confirm(`Lock ${member.name} out of the system? They won't be able to sign in until reactivated.`)) {
+        if (deactivating && !(await confirm(`Lock ${member.name} out of the system? They won't be able to sign in until reactivated.`, { title: 'Deactivate team member', confirmText: 'Deactivate', danger: true }))) {
             return;
         }
 
@@ -709,7 +771,7 @@ const ProjectManagementSystem = () => {
             return;
         }
 
-        if (!window.confirm('Are you sure you want to delete this task?')) {
+        if (!(await confirm('Are you sure you want to delete this task?', { title: 'Delete task', confirmText: 'Delete', danger: true }))) {
             return;
         }
 
@@ -728,7 +790,7 @@ const ProjectManagementSystem = () => {
             return;
         }
 
-        if (!window.confirm('Are you sure you want to delete this project? This will also delete all associated tasks.')) {
+        if (!(await confirm('Are you sure you want to delete this project? This will also delete all associated tasks.', { title: 'Delete project', confirmText: 'Delete', danger: true }))) {
             return;
         }
 
@@ -1221,9 +1283,21 @@ const ProjectManagementSystem = () => {
                                 ? widgetPrefs.map((w) => w.widgetKey)
                                 : ['my_tasks', 'recent_tasks', 'recent_mentions', 'pending_timesheets', 'weekly_completion_chart', 'activity_feed'];
 
+                            // "Today" means "needs attention now" - due today OR overdue, not just an
+                            // exact date-string match. An incomplete task due yesterday used to fall
+                            // through into "Upcoming" (wrong - "upcoming" implies future) simply
+                            // because its due-date string didn't match today's; it now correctly
+                            // surfaces under "Today" instead, alongside anything actually due today.
+                            const startOfToday = new Date();
+                            startOfToday.setHours(0, 0, 0, 0);
+                            const startOfTomorrow = new Date(startOfToday.getTime() + 86400000);
+                            const isDueTodayOrEarlier = (t) => t.dueDate && new Date(t.dueDate) < startOfTomorrow;
                             const myTaskGroups = {
-                                today: myTasks.filter((t) => t.status !== 'completed' && t.dueDate && new Date(t.dueDate).toDateString() === new Date().toDateString()),
-                                upcoming: myTasks.filter((t) => t.status !== 'completed' && (!t.dueDate || new Date(t.dueDate).toDateString() !== new Date().toDateString())),
+                                today: myTasks.filter((t) => t.status !== 'completed' && isDueTodayOrEarlier(t)),
+                                // No due date at all is treated like "upcoming" (nothing urgent yet),
+                                // same as before this fix - only a task actually due today or earlier
+                                // moves into the "today" bucket now.
+                                upcoming: myTasks.filter((t) => t.status !== 'completed' && !isDueTodayOrEarlier(t)),
                                 done: myTasks.filter((t) => t.status === 'completed'),
                             };
 
@@ -1607,9 +1681,12 @@ const ProjectManagementSystem = () => {
                                                     <tr key={task.id} className={`hover:bg-gray-50/60 transition-colors ${task.isOverdue ? 'bg-red-50/60' : ''}`}>
                                                         <td className="px-6 py-4">
                                                             <div className="flex items-center">
-                                                                <div className="text-sm font-medium text-gray-900 flex items-center">
+                                                                <div className="text-sm font-medium text-gray-900 flex items-center gap-2">
                                                                     {task.title}
-                                                                    {task.isOverdue && <Flag className="h-4 w-4 text-red-500 ml-2" />}
+                                                                    {task.type && task.type !== 'Task' && (
+                                                                        <StatusBadge status={task.type} colorMap={TASK_TYPE_COLORS} />
+                                                                    )}
+                                                                    {task.isOverdue && <Flag className="h-4 w-4 text-red-500" />}
                                                                 </div>
                                                             </div>
                                                             <div className="text-sm text-gray-500">{task.description}</div>
@@ -1641,12 +1718,18 @@ const ProjectManagementSystem = () => {
                                                             <PriorityBadge priority={task.priority} />
                                                         </td>
                                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                            {new Date(task.dueDate).toLocaleDateString()}
+                                                            {task.type === 'Meeting'
+                                                                ? new Date(task.dueDate).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
+                                                                : new Date(task.dueDate).toLocaleDateString()}
                                                         </td>
                                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                                             <div className="flex space-x-2">
-                                                                <button className="text-blue-600 hover:text-blue-900">
-                                                                    <Eye className="h-4 w-4" />
+                                                                <button
+                                                                    onClick={() => openEditTask(task)}
+                                                                    className="text-blue-600 hover:text-blue-900"
+                                                                    aria-label={`Edit ${task.title}`}
+                                                                >
+                                                                    <Edit3 className="h-4 w-4" />
                                                                 </button>
                                                                 {hasPermission(user?.permissions, 'tasks.delete') && (
                                                                     <button
@@ -1872,6 +1955,13 @@ const ProjectManagementSystem = () => {
                 {activeTab === 'calendar' && (
                     <Suspense fallback={<LoadingSpinner />}>
                         <CalendarPage apiService={apiService} user={user} />
+                    </Suspense>
+                )}
+
+                {/* Timesheets Tab */}
+                {activeTab === 'timesheets' && (
+                    <Suspense fallback={<LoadingSpinner />}>
+                        <TimesheetsPage apiService={apiService} user={user} />
                     </Suspense>
                 )}
 
@@ -2140,17 +2230,19 @@ const ProjectManagementSystem = () => {
                 <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
                     <div ref={taskModalRef} role="dialog" aria-modal="true" aria-labelledby="task-modal-title" tabIndex={-1} className="bg-white rounded-2xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto outline-none">
                         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
-                            <h3 id="task-modal-title" className="text-base font-semibold text-gray-900">Add New Task</h3>
-                            <button type="button" onClick={() => setShowAddTask(false)} className="text-gray-400 hover:text-gray-600 rounded-lg p-1">
+                            <h3 id="task-modal-title" className="text-base font-semibold text-gray-900">{editingTaskId !== null ? 'Edit Task' : 'Add New Task'}</h3>
+                            <button type="button" onClick={closeTaskModal} className="text-gray-400 hover:text-gray-600 rounded-lg p-1">
                                 <X className="h-5 w-5" />
                             </button>
                         </div>
                         <form onSubmit={handleAddTask}>
                             <div className="px-6 py-5 space-y-4">
                                 <select
+                                    disabled={editingTaskId !== null}
+                                    title={editingTaskId !== null ? "A task's project can't be changed here" : undefined}
                                     value={newTask.projectId}
                                     onChange={(e) => setNewTask({ ...newTask, projectId: e.target.value })}
-                                    className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                                    className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed"
                                     required
                                 >
                                     <option value="">Select Project</option>
@@ -2183,6 +2275,41 @@ const ProjectManagementSystem = () => {
                                     <option value="high">High Priority</option>
                                 </select>
                                 <select
+                                    value={newTask.type}
+                                    onChange={(e) => {
+                                        const type = e.target.value;
+                                        // Switching to/from Meeting reformats dueDate for the input type
+                                        // it's about to become (datetime-local vs date) - a bare date
+                                        // string re-shown in a datetime-local input (or vice versa) is
+                                        // otherwise silently rejected by the browser and shows blank.
+                                        setNewTask((prev) => ({
+                                            ...prev,
+                                            type,
+                                            dueDate: type === 'Meeting'
+                                                ? (prev.dueDate ? `${prev.dueDate}T09:00` : '')
+                                                : prev.dueDate.slice(0, 10)
+                                        }));
+                                    }}
+                                    className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                                >
+                                    <option value="Task">Task</option>
+                                    <option value="Meeting">Meeting</option>
+                                    <option value="Milestone">Milestone</option>
+                                    <option value="Review">Review</option>
+                                </select>
+                                {editingTaskId !== null && (
+                                    <select
+                                        value={newTask.status}
+                                        onChange={(e) => setNewTask({ ...newTask, status: e.target.value })}
+                                        className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                                    >
+                                        <option value="todo">To Do</option>
+                                        <option value="in-progress">In Progress</option>
+                                        <option value="blocked">Blocked</option>
+                                        <option value="completed">Completed</option>
+                                    </select>
+                                )}
+                                <select
                                     value={newTask.assignedToId}
                                     onChange={(e) => setNewTask({ ...newTask, assignedToId: e.target.value })}
                                     className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
@@ -2193,7 +2320,7 @@ const ProjectManagementSystem = () => {
                                     ))}
                                 </select>
                                 <input
-                                    type="date"
+                                    type={newTask.type === 'Meeting' ? 'datetime-local' : 'date'}
                                     value={newTask.dueDate}
                                     onChange={(e) => setNewTask({ ...newTask, dueDate: e.target.value })}
                                     className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
@@ -2210,7 +2337,7 @@ const ProjectManagementSystem = () => {
                             <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3">
                                 <button
                                     type="button"
-                                    onClick={() => setShowAddTask(false)}
+                                    onClick={closeTaskModal}
                                     disabled={savingTask}
                                     className="inline-flex items-center gap-2 bg-white text-gray-700 border border-gray-300 px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-gray-50 transition-colors disabled:opacity-50"
                                 >
@@ -2224,7 +2351,7 @@ const ProjectManagementSystem = () => {
                                     {savingTask && (
                                         <span className="h-4 w-4 rounded-full border-2 border-white/40 border-t-white animate-spin" />
                                     )}
-                                    {savingTask ? 'Adding...' : 'Add Task'}
+                                    {savingTask ? 'Saving...' : editingTaskId !== null ? 'Save Changes' : 'Add Task'}
                                 </button>
                             </div>
                         </form>
@@ -2413,13 +2540,15 @@ const ProjectManagementSystem = () => {
 const App = () => {
     return (
         <ToastProvider>
-            <AuthProvider>
-                <div className="App">
-                    <UpdateAvailableBanner />
-                    <OfflineBanner />
-                    <AuthGuard />
-                </div>
-            </AuthProvider>
+            <ConfirmProvider>
+                <AuthProvider>
+                    <div className="App">
+                        <UpdateAvailableBanner />
+                        <OfflineBanner />
+                        <AuthGuard />
+                    </div>
+                </AuthProvider>
+            </ConfirmProvider>
         </ToastProvider>
     );
 };

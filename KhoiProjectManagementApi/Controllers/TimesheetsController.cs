@@ -79,11 +79,11 @@ namespace KhoiProjectManagementApi.Controllers
         }
 
         [HttpPost("{id}/submit")]
-        public async Task<IActionResult> SubmitTimesheet(int id)
+        public async Task<IActionResult> SubmitTimesheet(int id, SubmitTimesheetDto dto)
         {
             try
             {
-                var submitted = await _timesheetService.SubmitTimesheetAsync(id, User);
+                var submitted = await _timesheetService.SubmitTimesheetAsync(id, dto.CcEmails, User);
                 if (!submitted)
                     return NotFound();
 

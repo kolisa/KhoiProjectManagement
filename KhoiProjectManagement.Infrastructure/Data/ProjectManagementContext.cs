@@ -160,6 +160,7 @@ namespace KhoiProjectManagement.Infrastructure.Data
                 e.Property(t => t.Description).HasMaxLength(1000);
                 e.Property(t => t.Status).IsRequired();
                 e.Property(t => t.Priority).IsRequired();
+                e.Property(t => t.Type).IsRequired().HasMaxLength(20).HasDefaultValue("Task");
             });
 
             modelBuilder.Entity<Tag>(e =>

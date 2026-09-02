@@ -4,6 +4,7 @@ import { http, HttpResponse } from 'msw';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { server, API_BASE_URL } from '../../test/mswServer';
 import { ToastProvider } from '../../contexts/ToastContext';
+import { ConfirmProvider } from '../../contexts/ConfirmContext';
 import ApiService from '../../services/ApiService';
 import WikiPage from './WikiPage';
 
@@ -23,7 +24,9 @@ const renderWikiPage = (props = {}) => {
   const apiService = new ApiService();
   return render(
     <ToastProvider>
-      <WikiPage apiService={apiService} user={testUser} teamMembers={[]} {...props} />
+      <ConfirmProvider>
+        <WikiPage apiService={apiService} user={testUser} teamMembers={[]} {...props} />
+      </ConfirmProvider>
     </ToastProvider>
   );
 };

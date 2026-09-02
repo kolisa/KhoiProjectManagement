@@ -4,6 +4,7 @@ import { http, HttpResponse } from 'msw';
 import { describe, expect, it } from 'vitest';
 import { server, API_BASE_URL } from '../../test/mswServer';
 import { ToastProvider } from '../../contexts/ToastContext';
+import { ConfirmProvider } from '../../contexts/ConfirmContext';
 import { formatCurrency } from '../../utils/currency';
 import ApiService from '../../services/ApiService';
 import InvoicesPage from './InvoicesPage';
@@ -15,7 +16,9 @@ const renderInvoicesPage = (user = managerUser) => {
   const apiService = new ApiService();
   render(
     <ToastProvider>
-      <InvoicesPage apiService={apiService} user={user} />
+      <ConfirmProvider>
+        <InvoicesPage apiService={apiService} user={user} />
+      </ConfirmProvider>
     </ToastProvider>
   );
   return apiService;

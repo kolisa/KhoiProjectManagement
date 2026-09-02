@@ -3,6 +3,7 @@ import React, { useState, useRef } from 'react';
 import { Upload, Download, X, Trash2 } from 'lucide-react';
 import { hasPermission } from '../../utils/permissions';
 import { useToast } from '../../contexts/ToastContext';
+import { useConfirm } from '../../contexts/ConfirmContext';
 import { reportApiError } from '../../utils/apiError';
 import { formatCurrency } from '../../utils/currency';
 import StatusBadge from '../Common/StatusBadge';
@@ -10,6 +11,7 @@ import { INVOICE_STATUS_COLORS } from './invoiceStatusColors';
 
 const InvoiceDetail = ({ apiService, user, invoice, onClose, onChanged, onDeleted }) => {
   const toast = useToast();
+  const confirm = useConfirm();
   const [uploading, setUploading] = useState(false);
   const [showTemplatePrompt, setShowTemplatePrompt] = useState(false);
   const [templateName, setTemplateName] = useState('');
@@ -69,7 +71,7 @@ const InvoiceDetail = ({ apiService, user, invoice, onClose, onChanged, onDelete
   };
 
   const handleDelete = async () => {
-    if (!window.confirm(`Delete invoice ${invoice.invoiceNumber}? This cannot be undone.`)) return;
+    if (!(await confirm(`Delete invoice ${invoice.invoiceNumber}? This cannot be undone.`, { title: 'Delete invoice', confirmText: 'Delete', danger: true }))) return;
     try {
       await apiService.deleteInvoice(invoice.id);
       toast.success('Invoice deleted.');

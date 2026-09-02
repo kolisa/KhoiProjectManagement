@@ -12,10 +12,12 @@ import LoadingSpinner from '../Common/LoadingSpinner';
 import ErrorMessage from '../Common/ErrorMessage';
 import useModalA11y from '../Common/useModalA11y';
 import { useToast } from '../../contexts/ToastContext';
+import { useConfirm } from '../../contexts/ConfirmContext';
 import { reportApiError } from '../../utils/apiError';
 
 const LibraryPage = ({ apiService, user, teamMembers = [], deepLink }) => {
   const toast = useToast();
+  const confirm = useConfirm();
   const [selectedSpace, setSelectedSpace] = useState(null);
   const [files, setFiles] = useState([]);
   const [loadingFiles, setLoadingFiles] = useState(false);
@@ -135,7 +137,7 @@ const LibraryPage = ({ apiService, user, teamMembers = [], deepLink }) => {
   };
 
   const handleDelete = async (file) => {
-    if (!window.confirm(`Delete "${file.fileName}"?`)) return;
+    if (!(await confirm(`Delete "${file.fileName}"?`, { title: 'Delete file', confirmText: 'Delete', danger: true }))) return;
     try {
       await apiService.deleteLibraryFile(file.id);
       await loadFiles(selectedSpace.id);
@@ -181,7 +183,7 @@ const LibraryPage = ({ apiService, user, teamMembers = [], deepLink }) => {
   };
 
   const handleDeleteFolder = async () => {
-    if (!window.confirm(`Delete "${selectedSpace.name}"? This only works if it's empty.`)) return;
+    if (!(await confirm(`Delete "${selectedSpace.name}"? This only works if it's empty.`, { title: 'Delete folder', confirmText: 'Delete', danger: true }))) return;
     try {
       await apiService.deleteSpace(selectedSpace.id);
       setSelectedSpace(null);

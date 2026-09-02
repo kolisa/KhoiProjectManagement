@@ -108,6 +108,7 @@ namespace KhoiProjectManagement.Application
                     Title = createTaskDto.Title,
                     Description = createTaskDto.Description,
                     Priority = createTaskDto.Priority,
+                    Type = createTaskDto.Type,
                     AssignedToId = createTaskDto.AssignedToId,
                     DueDate = createTaskDto.DueDate,
                     Status = "todo"
@@ -190,6 +191,7 @@ namespace KhoiProjectManagement.Application
                 task.Description = updateTaskDto.Description;
                 task.Status = updateTaskDto.Status;
                 task.Priority = updateTaskDto.Priority;
+                task.Type = updateTaskDto.Type;
                 task.AssignedToId = updateTaskDto.AssignedToId;
                 task.DueDate = updateTaskDto.DueDate;
 
@@ -357,6 +359,7 @@ namespace KhoiProjectManagement.Application
                 Description = task.Description,
                 Status = task.Status,
                 Priority = task.Priority,
+                Type = task.Type,
                 AssignedToId = task.AssignedToId,
                 AssignedToName = task.AssignedTo?.Name ?? "Unassigned",
                 DueDate = task.DueDate,

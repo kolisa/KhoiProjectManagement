@@ -13,9 +13,25 @@ namespace KhoiProjectManagement.UnitTests.Services
     {
         private readonly IRepository<Timesheet> _timesheetRepo = Substitute.For<IRepository<Timesheet>>();
         private readonly IRepository<TimesheetEntry> _entryRepo = Substitute.For<IRepository<TimesheetEntry>>();
+        private readonly IRepository<User> _userRepo = Substitute.For<IRepository<User>>();
+        private readonly IRepository<UserRole> _userRoleRepo = Substitute.For<IRepository<UserRole>>();
+        private readonly IRepository<RolePermission> _rolePermissionRepo = Substitute.For<IRepository<RolePermission>>();
+        private readonly INotificationService _notificationService = Substitute.For<INotificationService>();
+        private readonly IEmailService _emailService = Substitute.For<IEmailService>();
         private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
 
-        private TimesheetService CreateSut() => new(_timesheetRepo, _entryRepo, _unitOfWork);
+        public TimesheetServiceTests()
+        {
+            // No finance.manage holders by default - SubmitTimesheetAsync's own notify step then
+            // simply no-ops, which is what every test below except the CC-specific ones cares about.
+            _userRepo.Query().Returns(new List<User>().BuildMock());
+            _userRoleRepo.Query().Returns(new List<UserRole>().BuildMock());
+            _rolePermissionRepo.Query().Returns(new List<RolePermission>().BuildMock());
+        }
+
+        private TimesheetService CreateSut() => new(
+            _timesheetRepo, _entryRepo, _userRepo, _userRoleRepo, _rolePermissionRepo,
+            _notificationService, _emailService, _unitOfWork);
 
         private static ClaimsPrincipal CallerWithId(int userId, params string[] permissions)
         {
@@ -58,6 +74,22 @@ namespace KhoiProjectManagement.UnitTests.Services
 
             Assert.Single(result);
             Assert.Equal(5, result[0].Id);
+        }
+
+        [Fact]
+        public async Task GetTimesheetsAsync_WhenUserIdOmittedAndCallerCanApprove_ReturnsEveryonesTimesheets()
+        {
+            // Regression coverage: the Dashboard's "Pending Timesheets" widget and the Approvals view
+            // both call this with userId omitted expecting "everyone's" once the caller can act on
+            // them - omitted must not silently mean "just mine" for an approver the way it correctly
+            // still does for an ordinary caller with no special permission (see the test above).
+            var mine = new Timesheet { Id = 1, UserId = 1, Status = "Submitted", User = new User { Id = 1, Name = "Me" } };
+            var someoneElses = new Timesheet { Id = 2, UserId = 2, Status = "Submitted", User = new User { Id = 2, Name = "Other" } };
+            _timesheetRepo.Query().Returns(new List<Timesheet> { mine, someoneElses }.BuildMock());
+
+            var result = await CreateSut().GetTimesheetsAsync(null, "Submitted", CallerWithId(1, "timesheets.approve"));
+
+            Assert.Equal(2, result.Count);
         }
 
         [Fact]
@@ -260,7 +292,7 @@ namespace KhoiProjectManagement.UnitTests.Services
         {
             _timesheetRepo.Query().Returns(new List<Timesheet>().BuildMock());
 
-            var result = await CreateSut().SubmitTimesheetAsync(999, CallerWithId(1));
+            var result = await CreateSut().SubmitTimesheetAsync(999, new List<string>(), CallerWithId(1));
 
             Assert.False(result);
         }
@@ -272,7 +304,7 @@ namespace KhoiProjectManagement.UnitTests.Services
             _timesheetRepo.Query().Returns(new List<Timesheet> { timesheet }.BuildMock());
 
             await Assert.ThrowsAsync<UnauthorizedAccessException>(
-                () => CreateSut().SubmitTimesheetAsync(1, CallerWithId(1)));
+                () => CreateSut().SubmitTimesheetAsync(1, new List<string>(), CallerWithId(1)));
         }
 
         [Fact]
@@ -282,7 +314,7 @@ namespace KhoiProjectManagement.UnitTests.Services
             _timesheetRepo.Query().Returns(new List<Timesheet> { timesheet }.BuildMock());
 
             await Assert.ThrowsAsync<InvalidOperationException>(
-                () => CreateSut().SubmitTimesheetAsync(1, CallerWithId(1)));
+                () => CreateSut().SubmitTimesheetAsync(1, new List<string>(), CallerWithId(1)));
         }
 
         [Fact]
@@ -291,13 +323,71 @@ namespace KhoiProjectManagement.UnitTests.Services
             var timesheet = new Timesheet { Id = 1, UserId = 1, Status = "Rejected", RejectionReason = "Missing details" };
             _timesheetRepo.Query().Returns(new List<Timesheet> { timesheet }.BuildMock());
 
-            var result = await CreateSut().SubmitTimesheetAsync(1, CallerWithId(1));
+            var result = await CreateSut().SubmitTimesheetAsync(1, new List<string>(), CallerWithId(1));
 
             Assert.True(result);
             Assert.Equal("Submitted", timesheet.Status);
             Assert.Null(timesheet.RejectionReason);
             Assert.NotNull(timesheet.SubmittedAt);
             await _unitOfWork.Received(1).SaveChangesAsync();
+        }
+
+        [Fact]
+        public async Task SubmitTimesheetAsync_NotifiesEveryUserHoldingFinanceManage()
+        {
+            var timesheet = new Timesheet
+            {
+                Id = 1,
+                UserId = 1,
+                Status = "Draft",
+                User = new User { Id = 1, Name = "Naledi Dube" },
+                Entries = new List<TimesheetEntry> { new() { Hours = 4 }, new() { Hours = 3.5m } }
+            };
+            _timesheetRepo.Query().Returns(new List<Timesheet> { timesheet }.BuildMock());
+
+            var financePermission = new Permission { Id = 1, Name = "finance.manage" };
+            _rolePermissionRepo.Query().Returns(new List<RolePermission>
+            {
+                new() { RoleId = 10, PermissionId = 1, Permission = financePermission }
+            }.BuildMock());
+            _userRoleRepo.Query().Returns(new List<UserRole>
+            {
+                new() { UserId = 42, RoleId = 10 },
+                new() { UserId = 43, RoleId = 10 }
+            }.BuildMock());
+            var financeManager1 = new User { Id = 42, Name = "Thabo Moyo", Email = "thabo@khoitech.africa", IsActive = true };
+            var financeManager2 = new User { Id = 43, Name = "Kabelo Sithole", Email = "kabelo@khoitech.africa", IsActive = true };
+            _userRepo.Query().Returns(new List<User> { financeManager1, financeManager2 }.BuildMock());
+            _notificationService.IsEmailEnabledAsync(Arg.Any<int>(), NotificationTypes.TimesheetSubmitted).Returns(true);
+
+            var result = await CreateSut().SubmitTimesheetAsync(1, new List<string>(), CallerWithId(1));
+
+            Assert.True(result);
+            await _notificationService.Received(1).CreateNotificationAsync(42, NotificationTypes.TimesheetSubmitted, Arg.Any<string>(), null, null, null, null, null);
+            await _notificationService.Received(1).CreateNotificationAsync(43, NotificationTypes.TimesheetSubmitted, Arg.Any<string>(), null, null, null, null, null);
+            await _emailService.Received(1).SendTimesheetSubmittedEmailAsync("thabo@khoitech.africa", "Naledi Dube", Arg.Any<DateTime>(), Arg.Any<DateTime>(), 7.5m);
+            await _emailService.Received(1).SendTimesheetSubmittedEmailAsync("kabelo@khoitech.africa", "Naledi Dube", Arg.Any<DateTime>(), Arg.Any<DateTime>(), 7.5m);
+        }
+
+        [Fact]
+        public async Task SubmitTimesheetAsync_SendsEmailToExplicitCcAddressesWithNoInAppNotification()
+        {
+            var timesheet = new Timesheet
+            {
+                Id = 1,
+                UserId = 1,
+                Status = "Draft",
+                User = new User { Id = 1, Name = "Naledi Dube" },
+                Entries = new List<TimesheetEntry>()
+            };
+            _timesheetRepo.Query().Returns(new List<Timesheet> { timesheet }.BuildMock());
+            // No finance.manage holders configured (constructor default) - only the explicit CC should fire.
+
+            var result = await CreateSut().SubmitTimesheetAsync(1, new List<string> { "manager@khoitech.africa" }, CallerWithId(1));
+
+            Assert.True(result);
+            await _emailService.Received(1).SendTimesheetSubmittedEmailAsync("manager@khoitech.africa", "Naledi Dube", Arg.Any<DateTime>(), Arg.Any<DateTime>(), 0m);
+            await _notificationService.DidNotReceive().CreateNotificationAsync(Arg.Any<int>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<int?>(), Arg.Any<int?>(), Arg.Any<int?>(), Arg.Any<int?>(), Arg.Any<int?>());
         }
 
         // --- ApproveTimesheetAsync ---

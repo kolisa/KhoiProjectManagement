@@ -9,6 +9,7 @@ import React, { useState } from 'react';
 import { Trash2 } from 'lucide-react';
 import { hasSpaceLevel } from '../../utils/spaceLevel';
 import { useToast } from '../../contexts/ToastContext';
+import { useConfirm } from '../../contexts/ConfirmContext';
 import { reportApiError } from '../../utils/apiError';
 
 const buildTree = (comments) => {
@@ -94,6 +95,7 @@ const CommentNode = ({ comment, currentUserId, canManage, canWrite, onReply, onD
 
 const WikiComments = ({ apiService, pageId, currentUserId, myEffectiveLevel, comments, onReload }) => {
   const toast = useToast();
+  const confirm = useConfirm();
   const [newComment, setNewComment] = useState('');
 
   const canWrite = hasSpaceLevel(myEffectiveLevel, 'Write');
@@ -118,7 +120,7 @@ const WikiComments = ({ apiService, pageId, currentUserId, myEffectiveLevel, com
   };
 
   const handleDelete = async (commentId) => {
-    if (!window.confirm('Delete this comment?')) return;
+    if (!(await confirm('Delete this comment?', { title: 'Delete comment', confirmText: 'Delete', danger: true }))) return;
     try {
       await apiService.deleteWikiComment(commentId);
       await onReload();
