@@ -50,4 +50,12 @@ namespace KhoiProjectManagement.Application
     {
         public string Reason { get; set; } = string.Empty;
     }
+
+    // Optional - anyone the submitter wants CC'd alongside the finance.manage recipients this always
+    // notifies (e.g. their own manager). Plain email addresses, not tied to a registered User account,
+    // so these never go through the in-app Notification/opt-out path - see TimesheetService.
+    public class SubmitTimesheetDto
+    {
+        public List<string> CcEmails { get; set; } = new();
+    }
 }

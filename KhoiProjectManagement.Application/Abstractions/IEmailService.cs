@@ -15,6 +15,7 @@ namespace KhoiProjectManagement.Application
         Task SendNoDocumentsNudgeEmailAsync(string toEmail, string userName);
         Task SendDormantUserNudgeEmailAsync(string toEmail, string userName, int daysSinceLastLogin);
         Task SendBirthdayEmailAsync(string toEmail, string userName);
+        Task SendTimesheetSubmittedEmailAsync(string toEmail, string submitterName, DateTime periodStart, DateTime periodEnd, decimal totalHours);
 
         // Called by SendQueuedEmailsJob (Quartz) - dispatches every EmailLog row still Status=Pending
         // (i.e. every Send*EmailAsync call above except SendScheduledReportEmailAsync, which still

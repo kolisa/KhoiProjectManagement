@@ -197,6 +197,19 @@ namespace KhoiProjectManagement.Infrastructure.Services
             await EnqueueEmailAsync(toEmail, subject, body, "birthday_greeting");
         }
 
+        public async Task SendTimesheetSubmittedEmailAsync(string toEmail, string submitterName, DateTime periodStart, DateTime periodEnd, decimal totalHours)
+        {
+            var subject = $"Timesheet submitted: {submitterName} ({periodStart:MMM d} - {periodEnd:MMM d})";
+            var inner = $@"
+                <p><strong>{submitterName}</strong> submitted a timesheet for your review:</p>
+                <p><strong>Period:</strong> {periodStart:yyyy-MM-dd} to {periodEnd:yyyy-MM-dd}</p>
+                <p><strong>Total hours:</strong> {totalHours}</p>
+            ";
+            var body = EmailTemplates.Wrap("Timesheet Submitted", inner, "View Timesheets", GetFrontendUrl("?tab=timesheets"), GetFrontendUrl());
+
+            await EnqueueEmailAsync(toEmail, subject, body, "timesheet_submitted");
+        }
+
         public async Task SendScheduledReportEmailAsync(string toEmail, string reportTitle, byte[] attachmentContent, string attachmentFileName, string attachmentContentType)
         {
             // Not queued (see IEmailService's comment) - already runs off the request thread via

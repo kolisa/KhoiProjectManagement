@@ -38,4 +38,12 @@ namespace KhoiProjectManagement.Application
             RuleFor(x => x.Reason).NotEmpty().MaximumLength(1000);
         }
     }
+
+    public class SubmitTimesheetDtoValidator : AbstractValidator<SubmitTimesheetDto>
+    {
+        public SubmitTimesheetDtoValidator()
+        {
+            RuleForEach(x => x.CcEmails).EmailAddress().MaximumLength(256);
+        }
+    }
 }
