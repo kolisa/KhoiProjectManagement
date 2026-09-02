@@ -7,60 +7,53 @@ namespace KhoiProjectManagement.Application
 {
     public class ReportService : IReportService
     {
-        private readonly IRepository<Project> _projectRepo;
-        private readonly IRepository<User> _userRepo;
+        private readonly IReportStatsRepository _statsRepo;
         private readonly IRepository<ProjectTask> _taskRepo;
 
-        public ReportService(IRepository<Project> projectRepo, IRepository<User> userRepo, IRepository<ProjectTask> taskRepo)
+        public ReportService(IReportStatsRepository statsRepo, IRepository<ProjectTask> taskRepo)
         {
-            _projectRepo = projectRepo;
-            _userRepo = userRepo;
+            _statsRepo = statsRepo;
             _taskRepo = taskRepo;
         }
 
         public async Task<ProjectSummaryReportDto> GenerateProjectSummaryReportAsync()
         {
-            var projects = await _projectRepo.Query()
-                .Include(p => p.Tasks)
-                .ToListAsync();
+            var projectCounts = await _statsRepo.GetProjectTaskCountsAsync();
 
-            var projectSummaries = projects.Select(p => new ProjectSummaryItemDto
+            var projectSummaries = projectCounts.Select(p => new ProjectSummaryItemDto
             {
                 Name = p.Name,
                 Status = p.Status,
-                TasksCount = p.Tasks.Count,
-                CompletedTasks = p.Tasks.Count(t => t.Status == "completed"),
-                CompletionRate = p.Tasks.Count == 0 ? 0 : (double)p.Tasks.Count(t => t.Status == "completed") / p.Tasks.Count * 100
+                TasksCount = p.TasksCount,
+                CompletedTasks = p.CompletedTasks,
+                CompletionRate = p.TasksCount == 0 ? 0 : (double)p.CompletedTasks / p.TasksCount * 100
             }).ToList();
+
+            var totalTasks = projectCounts.Sum(p => p.TasksCount);
+            var totalCompletedTasks = projectCounts.Sum(p => p.CompletedTasks);
 
             return new ProjectSummaryReportDto
             {
                 GeneratedAt = DateTime.UtcNow,
-                TotalProjects = projects.Count,
-                ActiveProjects = projects.Count(p => p.Status == "active"),
-                OverallCompletionRate = projects.SelectMany(p => p.Tasks).Count() == 0 ? 0 :
-                    (double)projects.SelectMany(p => p.Tasks).Count(t => t.Status == "completed") /
-                    projects.SelectMany(p => p.Tasks).Count() * 100,
+                TotalProjects = projectCounts.Count,
+                ActiveProjects = projectCounts.Count(p => p.Status == "active"),
+                OverallCompletionRate = totalTasks == 0 ? 0 : (double)totalCompletedTasks / totalTasks * 100,
                 Projects = projectSummaries
             };
         }
 
         public async Task<TeamPerformanceReportDto> GenerateTeamPerformanceReportAsync()
         {
-            var users = await _userRepo.Query()
-                .Include(u => u.AssignedTasks)
-                .Where(u => u.IsActive)
-                .ToListAsync();
+            var memberCounts = await _statsRepo.GetTeamMemberTaskCountsAsync(DateTime.Now);
 
-            var teamPerformance = users.Select(u => new TeamMemberPerformanceDto
+            var teamPerformance = memberCounts.Select(u => new TeamMemberPerformanceDto
             {
                 Name = u.Name,
                 Position = u.Position,
-                AssignedTasks = u.AssignedTasks.Count,
-                CompletedTasks = u.AssignedTasks.Count(t => t.Status == "completed"),
-                OverdueTasks = u.AssignedTasks.Count(t => t.IsOverdue),
-                CompletionRate = u.AssignedTasks.Count == 0 ? 0 :
-                    (double)u.AssignedTasks.Count(t => t.Status == "completed") / u.AssignedTasks.Count * 100
+                AssignedTasks = u.AssignedTasks,
+                CompletedTasks = u.CompletedTasks,
+                OverdueTasks = u.OverdueTasks,
+                CompletionRate = u.AssignedTasks == 0 ? 0 : (double)u.CompletedTasks / u.AssignedTasks * 100
             }).ToList();
 
             return new TeamPerformanceReportDto

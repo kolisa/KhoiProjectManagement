@@ -10,12 +10,15 @@ namespace KhoiProjectManagement.UnitTests.Services
 {
     public class DashboardServiceTests
     {
-        private readonly IRepository<Project> _projectRepo = Substitute.For<IRepository<Project>>();
+        private readonly IDashboardStatsRepository _statsRepo = Substitute.For<IDashboardStatsRepository>();
         private readonly IRepository<ProjectTask> _taskRepo = Substitute.For<IRepository<ProjectTask>>();
         private readonly IRepository<DashboardStatsSnapshot> _snapshotRepo = Substitute.For<IRepository<DashboardStatsSnapshot>>();
         private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
 
-        private DashboardService CreateSut() => new(_projectRepo, _taskRepo, _snapshotRepo, _unitOfWork);
+        private DashboardService CreateSut() => new(_statsRepo, _taskRepo, _snapshotRepo, _unitOfWork);
+
+        private void SetCounts(DashboardCountsResult counts) =>
+            _statsRepo.GetCountsAsync(Arg.Any<DateTime>()).Returns(counts);
 
         private static void SetNoSnapshots(IRepository<DashboardStatsSnapshot> snapshotRepo) =>
             snapshotRepo.Query().Returns(new List<DashboardStatsSnapshot>().BuildMock());
@@ -23,20 +26,17 @@ namespace KhoiProjectManagement.UnitTests.Services
         [Fact]
         public async Task GetDashboardStatisticsAsync_ComputesCountsAcrossProjectsAndTasks()
         {
-            _projectRepo.Query().Returns(new List<Project>
+            SetCounts(new DashboardCountsResult
             {
-                new() { Id = 1, Status = "active" },
-                new() { Id = 2, Status = "active" },
-                new() { Id = 3, Status = "inactive" },
-            }.BuildMock());
-            _taskRepo.Query().Returns(new List<ProjectTask>
-            {
-                new() { Id = 1, Status = "completed", DueDate = DateTime.Now.AddDays(5) },
-                new() { Id = 2, Status = "in-progress", DueDate = DateTime.Now.AddDays(-1) }, // overdue
-                new() { Id = 3, Status = "todo", DueDate = DateTime.Now.AddDays(5) },
-                new() { Id = 4, Status = "blocked", DueDate = DateTime.Now.AddDays(-1) }, // overdue
-                new() { Id = 5, Status = "completed", DueDate = DateTime.Now.AddDays(-1) }, // completed, so not overdue
-            }.BuildMock());
+                TotalProjects = 3,
+                ActiveProjects = 2,
+                TotalTasks = 5,
+                CompletedTasks = 2,
+                InProgressTasks = 1,
+                TodoTasks = 1,
+                BlockedTasks = 1,
+                OverdueTasks = 2
+            });
             SetNoSnapshots(_snapshotRepo);
 
             var result = await CreateSut().GetDashboardStatisticsAsync();
@@ -55,8 +55,7 @@ namespace KhoiProjectManagement.UnitTests.Services
         [Fact]
         public async Task GetDashboardStatisticsAsync_WhenThereAreNoTasks_CompletionRateIsZeroNotDivideByZero()
         {
-            _projectRepo.Query().Returns(new List<Project>().BuildMock());
-            _taskRepo.Query().Returns(new List<ProjectTask>().BuildMock());
+            SetCounts(new DashboardCountsResult());
             SetNoSnapshots(_snapshotRepo);
 
             var result = await CreateSut().GetDashboardStatisticsAsync();
@@ -68,8 +67,7 @@ namespace KhoiProjectManagement.UnitTests.Services
         [Fact]
         public async Task GetDashboardStatisticsAsync_WhenNoSnapshotAtLeastSevenDaysOldExists_DeltasAreNull()
         {
-            _projectRepo.Query().Returns(new List<Project>().BuildMock());
-            _taskRepo.Query().Returns(new List<ProjectTask>().BuildMock());
+            SetCounts(new DashboardCountsResult());
             // Only a recent snapshot (3 days old) exists - too recent to serve as the 7-day baseline.
             _snapshotRepo.Query().Returns(new List<DashboardStatsSnapshot>
             {
@@ -87,16 +85,15 @@ namespace KhoiProjectManagement.UnitTests.Services
         [Fact]
         public async Task GetDashboardStatisticsAsync_WhenABaselineSnapshotExists_ComputesDeltasAgainstIt()
         {
-            _projectRepo.Query().Returns(new List<Project>
+            SetCounts(new DashboardCountsResult
             {
-                new() { Id = 1, Status = "active" },
-                new() { Id = 2, Status = "active" },
-            }.BuildMock());
-            _taskRepo.Query().Returns(new List<ProjectTask>
-            {
-                new() { Id = 1, Status = "completed", DueDate = DateTime.Now.AddDays(1) },
-                new() { Id = 2, Status = "todo", DueDate = DateTime.Now.AddDays(-1) }, // overdue
-            }.BuildMock());
+                TotalProjects = 2,
+                ActiveProjects = 2,
+                TotalTasks = 2,
+                CompletedTasks = 1,
+                TodoTasks = 1,
+                OverdueTasks = 1
+            });
             _snapshotRepo.Query().Returns(new List<DashboardStatsSnapshot>
             {
                 new() { CapturedAt = DateTime.UtcNow.AddDays(-10), ActiveProjects = 1, TotalTasks = 1, OverdueTasks = 0, CompletionRate = 100 },
@@ -114,13 +111,7 @@ namespace KhoiProjectManagement.UnitTests.Services
         [Fact]
         public async Task GetDashboardStatisticsAsync_WhenMultipleEligibleSnapshotsExist_UsesTheMostRecentOneAsBaseline()
         {
-            _projectRepo.Query().Returns(new List<Project>
-            {
-                new() { Id = 1, Status = "active" },
-                new() { Id = 2, Status = "active" },
-                new() { Id = 3, Status = "active" },
-            }.BuildMock());
-            _taskRepo.Query().Returns(new List<ProjectTask>().BuildMock());
+            SetCounts(new DashboardCountsResult { TotalProjects = 3, ActiveProjects = 3 });
             _snapshotRepo.Query().Returns(new List<DashboardStatsSnapshot>
             {
                 // Both are >= 7 days old; the 8-day-old one is the more recent (closer to today) baseline.
@@ -185,15 +176,14 @@ namespace KhoiProjectManagement.UnitTests.Services
         [Fact]
         public async Task CaptureSnapshotAsync_AddsASnapshotWithTheCurrentStatisticsAndSaves()
         {
-            _projectRepo.Query().Returns(new List<Project>
+            SetCounts(new DashboardCountsResult
             {
-                new() { Id = 1, Status = "active" },
-            }.BuildMock());
-            _taskRepo.Query().Returns(new List<ProjectTask>
-            {
-                new() { Id = 1, Status = "completed", DueDate = DateTime.Now.AddDays(1) },
-                new() { Id = 2, Status = "todo", DueDate = DateTime.Now.AddDays(1) },
-            }.BuildMock());
+                TotalProjects = 1,
+                ActiveProjects = 1,
+                TotalTasks = 2,
+                CompletedTasks = 1,
+                TodoTasks = 1
+            });
             SetNoSnapshots(_snapshotRepo);
 
             await CreateSut().CaptureSnapshotAsync();
