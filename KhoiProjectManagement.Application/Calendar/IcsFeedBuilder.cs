@@ -15,7 +15,7 @@ namespace KhoiProjectManagement.Application
             var sb = new StringBuilder();
             AppendLine(sb, "BEGIN:VCALENDAR");
             AppendLine(sb, "VERSION:2.0");
-            AppendLine(sb, "PRODID:-//Khoi Pro//Calendar//EN");
+            AppendLine(sb, "PRODID:-//KhoiHub//Calendar//EN");
             AppendLine(sb, "CALSCALE:GREGORIAN");
 
             var dtstamp = DateTime.UtcNow.ToString("yyyyMMddTHHmmssZ");

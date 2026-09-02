@@ -52,7 +52,7 @@ namespace KhoiProjectManagement.FunctionalTests
 
             var report = await client.GetFromJsonAsync<ProjectSummaryReportDto>("/api/reports/project-summary");
 
-            var summary = Assert.Single(report!.Projects.Where(p => p.Name == projectName));
+            var summary = Assert.Single(report!.Projects, p => p.Name == projectName);
             Assert.Equal("active", summary.Status);
             Assert.Equal(2, summary.TasksCount);
             Assert.Equal(1, summary.CompletedTasks);
@@ -106,7 +106,7 @@ namespace KhoiProjectManagement.FunctionalTests
 
             var report = await client.GetFromJsonAsync<TeamPerformanceReportDto>("/api/reports/team-performance");
 
-            var performance = Assert.Single(report!.TeamMembers.Where(m => m.Name == memberName));
+            var performance = Assert.Single(report!.TeamMembers, m => m.Name == memberName);
             Assert.Equal(2, performance.AssignedTasks);
             Assert.Equal(1, performance.CompletedTasks);
             Assert.Equal(1, performance.OverdueTasks);
