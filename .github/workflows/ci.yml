@@ -135,7 +135,12 @@ jobs:
         working-directory: KhoiProjectManagementApi
         run: |
           nohup dotnet run --no-launch-profile > api.log 2>&1 &
-          for i in $(seq 1 30); do
+          # 90*2s = 3min budget. Every fresh Testcontainers Postgres applies the full migration
+          # history from scratch (unlike a real deployment's incremental few), so this window's
+          # actual margin shrinks a little with every migration this repo ever adds - the previous
+          # 30*2s=60s budget was hit almost exactly (app logged "Application started" 1s after the
+          # loop gave up) once the count reached 28, not because the API failed to come up.
+          for i in $(seq 1 90); do
             curl -sf http://localhost:5278/swagger/index.html > /dev/null && exit 0
             sleep 2
           done
