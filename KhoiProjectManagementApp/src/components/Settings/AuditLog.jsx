@@ -196,6 +196,173 @@ const ErrorLogsView = ({ apiService }) => {
   );
 };
 
+const LOGIN_STATUS_COLORS = {
+  Success: 'bg-green-50 text-green-700',
+  Failed: 'bg-red-50 text-red-700',
+};
+
+const LoginsView = ({ apiService }) => {
+  const toast = useToast();
+  const [logs, setLogs] = useState(null);
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [search, setSearch] = useState('');
+
+  const load = async () => {
+    try {
+      const result = await apiService.getLoginAuditLog({
+        success: statusFilter === 'all' ? undefined : statusFilter === 'success',
+        emailContains: search.trim() || undefined,
+      });
+      setLogs(result || []);
+    } catch (err) {
+      reportApiError(toast, err, 'Could not load the login audit log.');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  };
+
+  useEffect(() => {
+    const debounce = setTimeout(load, 300);
+    return () => clearTimeout(debounce);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [statusFilter, search]);
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2">
+        <div className="relative flex-1 max-w-xs">
+          <Search className="h-3.5 w-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search email..."
+            className="w-full border border-gray-300 rounded-md pl-8 pr-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          />
+        </div>
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          className="text-sm border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        >
+          <option value="all">All attempts</option>
+          <option value="success">Success only</option>
+          <option value="failed">Failed only</option>
+        </select>
+      </div>
+
+      {logs === null ? (
+        <div className="text-sm text-gray-400">Loading...</div>
+      ) : logs.length === 0 ? (
+        <div className="text-sm text-gray-400 italic p-4 text-center">No login attempts match.</div>
+      ) : (
+        <div className="border border-gray-100 rounded-2xl overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50/60 text-xs uppercase tracking-wide text-gray-500">
+              <tr>
+                <th className="text-left px-3 py-2 font-medium">Email</th>
+                <th className="text-left px-3 py-2 font-medium">Status</th>
+                <th className="text-left px-3 py-2 font-medium">Failure Reason</th>
+                <th className="text-left px-3 py-2 font-medium">IP Address</th>
+                <th className="text-left px-3 py-2 font-medium">Timestamp</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {logs.map((log) => (
+                <tr key={log.id}>
+                  <td className="px-3 py-2 text-gray-900 truncate max-w-[220px]" title={log.emailAttempted}>{log.emailAttempted}</td>
+                  <td className="px-3 py-2">
+                    <StatusBadge status={log.success ? 'Success' : 'Failed'} colorMap={LOGIN_STATUS_COLORS} />
+                  </td>
+                  <td className="px-3 py-2 text-gray-500">{log.failureReason || '—'}</td>
+                  <td className="px-3 py-2 text-gray-500 font-mono">{log.ipAddress || '—'}</td>
+                  <td className="px-3 py-2 text-gray-500 whitespace-nowrap">{new Date(log.timestamp).toLocaleString()}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Matches the tab keys in App.jsx's nav groups (activeTab) - this app has no router, so a tab switch
+// is the closest equivalent of a "page visit".
+const TAB_LABELS = {
+  dashboard: 'Dashboard',
+  reminders: 'Reminders',
+  calendar: 'Calendar',
+  projects: 'Projects',
+  tasks: 'Tasks',
+  timesheets: 'Timesheets',
+  team: 'Team',
+  vault: 'Vault',
+  wiki: 'Wiki',
+  library: 'Library',
+  ideas: 'Ideas',
+  finance: 'Finance',
+  reports: 'Reports',
+  settings: 'Settings',
+};
+
+const PageVisitsView = ({ apiService }) => {
+  const toast = useToast();
+  const [visits, setVisits] = useState(null);
+
+  const load = async () => {
+    try {
+      const result = await apiService.getPageVisitLog({});
+      setVisits(result || []);
+    } catch (err) {
+      reportApiError(toast, err, 'Could not load the page visit log.');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  };
+
+  useEffect(() => {
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <div className="space-y-3">
+      {visits === null ? (
+        <div className="text-sm text-gray-400">Loading...</div>
+      ) : visits.length === 0 ? (
+        <div className="text-sm text-gray-400 italic p-4 text-center">No page visits recorded yet.</div>
+      ) : (
+        <div className="border border-gray-100 rounded-2xl overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50/60 text-xs uppercase tracking-wide text-gray-500">
+              <tr>
+                <th className="text-left px-3 py-2 font-medium">User</th>
+                <th className="text-left px-3 py-2 font-medium">Page</th>
+                <th className="text-left px-3 py-2 font-medium">Timestamp</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {visits.map((visit) => (
+                <tr key={visit.id}>
+                  <td className="px-3 py-2 text-gray-900">{visit.userName}</td>
+                  <td className="px-3 py-2 text-gray-700">{TAB_LABELS[visit.tabKey] || visit.tabKey}</td>
+                  <td className="px-3 py-2 text-gray-500 whitespace-nowrap">{new Date(visit.timestamp).toLocaleString()}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const VIEWS = [
+  { key: 'emails', label: 'Sent Emails' },
+  { key: 'errors', label: 'Error Logs' },
+  { key: 'logins', label: 'Logins' },
+  { key: 'pageVisits', label: 'Page Visits' },
+];
+
 const AuditLog = ({ apiService }) => {
   const [view, setView] = useState('emails');
 
@@ -206,11 +373,11 @@ const AuditLog = ({ apiService }) => {
           <ClipboardList className="h-5 w-5 mr-2 text-gray-700" />
           Audit
         </h3>
-        <p className="text-sm text-gray-500">Sent-email history and application error logs.</p>
+        <p className="text-sm text-gray-500">Sent-email history, application error logs, login attempts, and page visits.</p>
       </div>
 
       <div className="flex gap-1 border-b border-gray-100">
-        {[{ key: 'emails', label: 'Sent Emails' }, { key: 'errors', label: 'Error Logs' }].map((tab) => (
+        {VIEWS.map((tab) => (
           <button
             key={tab.key}
             onClick={() => setView(tab.key)}
@@ -223,7 +390,10 @@ const AuditLog = ({ apiService }) => {
         ))}
       </div>
 
-      {view === 'emails' ? <SentEmailsView apiService={apiService} /> : <ErrorLogsView apiService={apiService} />}
+      {view === 'emails' && <SentEmailsView apiService={apiService} />}
+      {view === 'errors' && <ErrorLogsView apiService={apiService} />}
+      {view === 'logins' && <LoginsView apiService={apiService} />}
+      {view === 'pageVisits' && <PageVisitsView apiService={apiService} />}
     </div>
   );
 };

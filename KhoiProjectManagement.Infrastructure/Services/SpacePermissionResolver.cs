@@ -26,6 +26,16 @@ namespace KhoiProjectManagement.Infrastructure.Services
             var roleIdSet = new HashSet<int>(roleIds);
             var groupIdSet = new HashSet<int>(groupIds);
 
+            // Unconditional bypass for the seeded Admin role (Role.IsSuperAdmin) - this resolver is the
+            // single choke point behind both SpacePermissionAuthorizationHandler's gate AND every list
+            // view (SpaceService.GetSpacesAsync, WikiService's list filtering, VaultService/LibraryService
+            // via RequireSpaceAccessAsync), so patching it here covers all of them without needing an
+            // admin concept anywhere else. Returns the max level, ignoring grants/inheritance entirely.
+            if (roleIdSet.Overlaps(snapshot.SuperAdminRoleIds))
+            {
+                return PermissionLevel.Manage;
+            }
+
             int? current = spaceId;
             while (current.HasValue)
             {
@@ -81,6 +91,12 @@ namespace KhoiProjectManagement.Infrastructure.Services
                 .Select(sp => new { sp.SpaceId, sp.RoleId, sp.UserId, sp.GroupId, sp.Level })
                 .ToListAsync();
 
+            var superAdminRoleIds = await _context.Roles
+                .AsNoTracking()
+                .Where(r => r.IsSuperAdmin)
+                .Select(r => r.Id)
+                .ToListAsync();
+
             var snapshot = new Snapshot
             {
                 Spaces = spaces.ToDictionary(s => s.Id, s => (s.ParentSpaceId, s.InheritPermissions)),
@@ -88,7 +104,8 @@ namespace KhoiProjectManagement.Infrastructure.Services
                     .GroupBy(g => g.SpaceId)
                     .ToDictionary(
                         group => group.Key,
-                        group => group.Select(g => (g.RoleId, g.UserId, g.GroupId, g.Level)).ToList())
+                        group => group.Select(g => (g.RoleId, g.UserId, g.GroupId, g.Level)).ToList()),
+                SuperAdminRoleIds = new HashSet<int>(superAdminRoleIds)
             };
 
             _cache.Set(CacheKey, snapshot, CacheDuration);
@@ -99,6 +116,7 @@ namespace KhoiProjectManagement.Infrastructure.Services
         {
             public Dictionary<int, (int? ParentSpaceId, bool InheritPermissions)> Spaces { get; set; } = new();
             public Dictionary<int, List<(int? RoleId, int? UserId, int? GroupId, PermissionLevel Level)>> GrantsBySpaceId { get; set; } = new();
+            public HashSet<int> SuperAdminRoleIds { get; set; } = new();
         }
     }
 }

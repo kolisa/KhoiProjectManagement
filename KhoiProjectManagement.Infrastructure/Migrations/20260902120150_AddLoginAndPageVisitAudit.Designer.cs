@@ -3,6 +3,7 @@ using System;
 using KhoiProjectManagement.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace KhoiProjectManagement.Infrastructure.Migrations
 {
     [DbContext(typeof(ProjectManagementContext))]
-    partial class ProjectManagementContextModelSnapshot : ModelSnapshot
+    [Migration("20260902120150_AddLoginAndPageVisitAudit")]
+    partial class AddLoginAndPageVisitAudit
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1553,9 +1556,6 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
-                    b.Property<bool>("IsSuperAdmin")
-                        .HasColumnType("boolean");
-
                     b.Property<bool>("IsSystemRole")
                         .HasColumnType("boolean");
 
@@ -1573,7 +1573,6 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
                         {
                             Id = 1,
                             CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            IsSuperAdmin = true,
                             IsSystemRole = true,
                             Name = "Admin"
                         },
@@ -1581,7 +1580,6 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
                         {
                             Id = 2,
                             CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            IsSuperAdmin = false,
                             IsSystemRole = true,
                             Name = "Manager"
                         },
@@ -1589,7 +1587,6 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
                         {
                             Id = 3,
                             CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            IsSuperAdmin = false,
                             IsSystemRole = true,
                             Name = "Member"
                         });

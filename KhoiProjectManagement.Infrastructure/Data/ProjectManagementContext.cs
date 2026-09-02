@@ -48,6 +48,8 @@ namespace KhoiProjectManagement.Infrastructure.Data
 
         public DbSet<RefreshToken> RefreshTokens { get; set; }
         public DbSet<PasswordResetToken> PasswordResetTokens { get; set; }
+        public DbSet<LoginAuditLog> LoginAuditLogs { get; set; }
+        public DbSet<PageVisitLog> PageVisitLogs { get; set; }
 
         public DbSet<VaultEntry> VaultEntries { get; set; }
         public DbSet<VaultAuditLog> VaultAuditLogs { get; set; }
@@ -236,6 +238,18 @@ namespace KhoiProjectManagement.Infrastructure.Data
                 e.Property(a => a.ActorNameSnapshot).IsRequired().HasMaxLength(200);
                 e.Property(a => a.Action).IsRequired().HasMaxLength(50);
                 e.Property(a => a.Details).HasMaxLength(500);
+            });
+
+            modelBuilder.Entity<LoginAuditLog>(e =>
+            {
+                e.Property(a => a.EmailAttempted).IsRequired().HasMaxLength(256);
+                e.Property(a => a.FailureReason).HasMaxLength(200);
+                e.Property(a => a.IpAddress).HasMaxLength(45);
+            });
+
+            modelBuilder.Entity<PageVisitLog>(e =>
+            {
+                e.Property(a => a.TabKey).IsRequired().HasMaxLength(50);
             });
 
             modelBuilder.Entity<ReportExportHistory>(e =>
@@ -481,6 +495,18 @@ namespace KhoiProjectManagement.Infrastructure.Data
                 .HasOne(a => a.ActorUser)
                 .WithMany()
                 .HasForeignKey(a => a.ActorUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<LoginAuditLog>()
+                .HasOne(a => a.User)
+                .WithMany()
+                .HasForeignKey(a => a.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<PageVisitLog>()
+                .HasOne(a => a.User)
+                .WithMany()
+                .HasForeignKey(a => a.UserId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<ReportExportHistory>()
@@ -946,7 +972,7 @@ namespace KhoiProjectManagement.Infrastructure.Data
             );
 
             modelBuilder.Entity<Role>().HasData(
-                new Role { Id = 1, Name = "Admin", IsSystemRole = true, CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc) },
+                new Role { Id = 1, Name = "Admin", IsSystemRole = true, IsSuperAdmin = true, CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc) },
                 new Role { Id = 2, Name = "Manager", IsSystemRole = true, CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc) },
                 new Role { Id = 3, Name = "Member", IsSystemRole = true, CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc) }
             );

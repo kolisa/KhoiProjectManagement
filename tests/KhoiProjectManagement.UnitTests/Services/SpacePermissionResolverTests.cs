@@ -110,6 +110,22 @@ namespace KhoiProjectManagement.UnitTests.Services
         }
 
         [Fact]
+        public async Task ResolveEffectiveLevelAsync_WhenCallerHoldsSuperAdminRole_ReturnsManageIgnoringGrantsAndBoundaries()
+        {
+            _context.Roles.Add(new Role { Id = 99, Name = "SuperAdminRole", IsSystemRole = true, IsSuperAdmin = true });
+            _context.Spaces.Add(new Space { Id = 1, Name = "Root", CreatedBy = 1, InheritPermissions = true });
+            _context.Spaces.Add(new Space { Id = 2, Name = "Locked Child", ParentSpaceId = 1, CreatedBy = 1, InheritPermissions = false });
+            await _context.SaveChangesAsync();
+
+            // No SpacePermission grants anywhere, and a locked (non-inheriting) child - would deny for
+            // anyone else (see the boundary/root-with-no-grant tests above), but a superadmin role short-
+            // circuits before the tree walk even starts.
+            var result = await CreateSut().ResolveEffectiveLevelAsync(2, userId: 1, roleIds: new[] { 99 }, groupIds: Array.Empty<int>());
+
+            Assert.Equal(PermissionLevel.Manage, result);
+        }
+
+        [Fact]
         public async Task ResolveEffectiveLevelAsync_CachesSnapshot_UntilInvalidated()
         {
             _context.Spaces.Add(new Space { Id = 1, Name = "Root", CreatedBy = 1 });

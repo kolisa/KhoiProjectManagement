@@ -18,11 +18,14 @@ namespace KhoiProjectManagement.Application
         private readonly IRepository<UserRole> _userRoleRepo;
         private readonly IRepository<UserGroup> _userGroupRepo;
         private readonly IRepository<RolePermission> _rolePermissionRepo;
+        private readonly IRepository<Role> _roleRepo;
         private readonly IRepository<User> _userRepo;
         private readonly IRepository<PasswordResetToken> _passwordResetTokenRepo;
         private readonly IUnitOfWork _unitOfWork;
         private readonly IUserService _userService;
         private readonly IEmailService _emailService;
+        private readonly ILoginAuditService _loginAuditService;
+        private readonly ICurrentRequestContext _requestContext;
         private readonly IConfiguration _configuration;
         private readonly ILogger<AuthService> _logger;
 
@@ -31,11 +34,14 @@ namespace KhoiProjectManagement.Application
             IRepository<UserRole> userRoleRepo,
             IRepository<UserGroup> userGroupRepo,
             IRepository<RolePermission> rolePermissionRepo,
+            IRepository<Role> roleRepo,
             IRepository<User> userRepo,
             IRepository<PasswordResetToken> passwordResetTokenRepo,
             IUnitOfWork unitOfWork,
             IUserService userService,
             IEmailService emailService,
+            ILoginAuditService loginAuditService,
+            ICurrentRequestContext requestContext,
             IConfiguration configuration,
             ILogger<AuthService> logger)
         {
@@ -43,21 +49,27 @@ namespace KhoiProjectManagement.Application
             _userRoleRepo = userRoleRepo;
             _userGroupRepo = userGroupRepo;
             _rolePermissionRepo = rolePermissionRepo;
+            _roleRepo = roleRepo;
             _userRepo = userRepo;
             _passwordResetTokenRepo = passwordResetTokenRepo;
             _unitOfWork = unitOfWork;
             _userService = userService;
             _emailService = emailService;
+            _loginAuditService = loginAuditService;
+            _requestContext = requestContext;
             _configuration = configuration;
             _logger = logger;
         }
 
         public async Task<LoginResponseDto?> LoginAsync(string email, string password)
         {
+            var ipAddress = _requestContext.RemoteIpAddress;
+
             var isValid = await _userService.ValidateUserCredentialsAsync(email, password);
             if (!isValid)
             {
                 _logger.LogWarning("Login failed for {Email} - invalid credentials", email);
+                await _loginAuditService.LogAsync(null, email, success: false, "Invalid credentials", ipAddress);
                 return null;
             }
 
@@ -65,10 +77,12 @@ namespace KhoiProjectManagement.Application
             if (user == null)
             {
                 _logger.LogWarning("Login failed for {Email} - user not found after credential check", email);
+                await _loginAuditService.LogAsync(null, email, success: false, "User not found", ipAddress);
                 return null;
             }
 
             await _userService.UpdateLastLoginAsync(user.Id);
+            await _loginAuditService.LogAsync(user.Id, email, success: true, null, ipAddress);
             _logger.LogInformation("User {UserId} ({Email}) logged in", user.Id, email);
 
             if (user.MustChangePassword)
@@ -224,16 +238,16 @@ namespace KhoiProjectManagement.Application
 
         private async Task<LoginResponseDto> IssueTokensAsync(TeamMemberDto user)
         {
-            var (permissions, roleIds, groupIds) = await GetPermissionsAndRoleIdsAsync(user.Id);
-            var accessToken = GenerateAccessToken(user, permissions, roleIds, groupIds);
+            var (permissions, roleIds, groupIds, isSuperAdmin) = await GetPermissionsAndRoleIdsAsync(user.Id);
+            var accessToken = GenerateAccessToken(user, permissions, roleIds, groupIds, isSuperAdmin);
             var rawRefreshToken = GenerateRawRefreshToken();
-            var refreshTokenExpiryDays = int.Parse(_configuration["Jwt:RefreshTokenExpiryDays"] ?? "7");
+            var refreshTokenExpiryMinutes = int.Parse(_configuration["Jwt:RefreshTokenExpiryMinutes"] ?? "30");
 
             _refreshTokenRepo.Add(new RefreshToken
             {
                 UserId = user.Id,
                 TokenHash = Hash(rawRefreshToken),
-                ExpiresAt = DateTime.UtcNow.AddDays(refreshTokenExpiryDays)
+                ExpiresAt = DateTime.UtcNow.AddMinutes(refreshTokenExpiryMinutes)
             });
             await _unitOfWork.SaveChangesAsync();
 
@@ -249,7 +263,7 @@ namespace KhoiProjectManagement.Application
             };
         }
 
-        private async Task<(List<string> Permissions, List<int> RoleIds, List<int> GroupIds)> GetPermissionsAndRoleIdsAsync(int userId)
+        private async Task<(List<string> Permissions, List<int> RoleIds, List<int> GroupIds, bool IsSuperAdmin)> GetPermissionsAndRoleIdsAsync(int userId)
         {
             var roleIds = await _userRoleRepo.Query()
                 .Where(ur => ur.UserId == userId)
@@ -267,10 +281,13 @@ namespace KhoiProjectManagement.Application
                 .Distinct()
                 .ToListAsync();
 
-            return (permissions, roleIds, groupIds);
+            var isSuperAdmin = await _roleRepo.Query()
+                .AnyAsync(r => roleIds.Contains(r.Id) && r.IsSuperAdmin);
+
+            return (permissions, roleIds, groupIds, isSuperAdmin);
         }
 
-        private string GenerateAccessToken(TeamMemberDto user, List<string> permissions, List<int> roleIds, List<int> groupIds)
+        private string GenerateAccessToken(TeamMemberDto user, List<string> permissions, List<int> roleIds, List<int> groupIds, bool isSuperAdmin)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
             var key = Encoding.UTF8.GetBytes(_configuration["Jwt:SecretKey"]!);
@@ -285,6 +302,10 @@ namespace KhoiProjectManagement.Application
             claims.AddRange(roleIds.Select(id => new Claim("roleId", id.ToString())));
             claims.AddRange(groupIds.Select(id => new Claim("groupId", id.ToString())));
             claims.AddRange(permissions.Select(p => new Claim("permission", p)));
+            if (isSuperAdmin)
+            {
+                claims.Add(new Claim("superadmin", "true"));
+            }
 
             var accessTokenExpiryMinutes = int.Parse(_configuration["Jwt:AccessTokenExpiryMinutes"] ?? "15");
 
