@@ -1,4 +1,4 @@
-﻿# Khoi Pro - Frontend
+﻿# KhoiHub - Frontend
 
 A modern React-based project management system frontend built with Tailwind CSS and Lucide React icons.
 

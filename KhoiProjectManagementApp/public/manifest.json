@@ -1,6 +1,6 @@
 {
-  "short_name": "Khoi Pro",
-  "name": "Khoi - Project Management System",
+  "short_name": "KhoiHub",
+  "name": "KhoiHub - Project Management System",
   "icons": [
     {
       "src": "favicon.png",
@@ -20,6 +20,6 @@
   ],
   "start_url": ".",
   "display": "standalone",
-  "theme_color": "#5952D2",
+  "theme_color": "#5D4AA4",
   "background_color": "#ffffff"
 }

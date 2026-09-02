@@ -6,7 +6,6 @@ import React, { useState } from 'react';
 import { CheckCircle, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { NetworkError } from '../../services/ApiService';
 import { useAuth } from '../../contexts/AuthContext';
-import khoiLogo from '../../assets/khoi-logo.png';
 
 const LoginForm = ({ onForgotPassword, onMustChangePassword }) => {
     const [email, setEmail] = useState('');
@@ -57,8 +56,8 @@ const LoginForm = ({ onForgotPassword, onMustChangePassword }) => {
                 <div className="absolute -bottom-40 -left-24 h-[480px] w-[480px] rounded-full bg-blue-400/20 blur-3xl" />
 
                 <div className="relative flex items-center gap-3">
-                    <img src={khoiLogo} alt="Khoi" className="h-8 w-auto brightness-0 invert" />
-                    <span className="text-white text-lg font-bold tracking-tight">Khoi Pro</span>
+                    <div className="h-9 w-9 rounded-lg bg-white flex items-center justify-center text-blue-700 font-bold text-base flex-shrink-0">K</div>
+                    <span className="text-white text-lg font-bold tracking-tight">KhoiHub</span>
                 </div>
 
                 <div className="relative max-w-md">
@@ -85,14 +84,17 @@ const LoginForm = ({ onForgotPassword, onMustChangePassword }) => {
                     </div>
                 </div>
 
-                <p className="relative text-blue-200/50 text-xs">&copy; 2026 Khoi. All rights reserved.</p>
+                <p className="relative text-blue-200/50 text-xs">&copy; 2026 KhoiHub. All rights reserved.</p>
             </div>
 
             {/* Form panel */}
             <div className="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-8 py-12">
                 <div className="max-w-sm w-full">
                     <div className="lg:hidden flex flex-col items-center mb-8">
-                        <img src={khoiLogo} alt="Khoi" className="h-10 w-auto mb-3" />
+                        <div className="flex items-center gap-2.5">
+                            <div className="h-10 w-10 rounded-xl bg-blue-600 flex items-center justify-center text-white font-bold text-lg flex-shrink-0">K</div>
+                            <span className="text-gray-900 text-xl font-bold tracking-tight">KhoiHub</span>
+                        </div>
                     </div>
 
                     <div className="relative bg-white rounded-[20px] border border-gray-100 shadow-[0_2px_4px_rgba(16,24,40,0.04),0_20px_48px_-12px_rgba(16,24,40,0.14)] p-8 sm:p-10">
@@ -101,7 +103,7 @@ const LoginForm = ({ onForgotPassword, onMustChangePassword }) => {
                             <Lock className="h-5 w-5 text-blue-600" />
                         </div>
                         <h2 className="text-[26px] font-bold text-gray-900 tracking-tight">
-                            Sign in to Khoi Pro
+                            Sign in to KhoiHub
                         </h2>
                         <p className="mt-1.5 text-sm text-gray-500">
                             Enter your credentials to access the project management system
@@ -148,7 +150,7 @@ const LoginForm = ({ onForgotPassword, onMustChangePassword }) => {
                                         onChange={(e) => setRememberMe(e.target.checked)}
                                         className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                                     />
-                                    Remember me for 30 days
+                                    Remember me for 30 minutes
                                 </label>
                                 <button
                                     type="button"
