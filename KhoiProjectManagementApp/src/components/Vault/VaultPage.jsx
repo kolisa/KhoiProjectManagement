@@ -9,6 +9,7 @@ import ManageAccessModal from '../Spaces/ManageAccessModal';
 import { hasSpaceLevel } from '../../utils/spaceLevel';
 import { hasPermission } from '../../utils/permissions';
 import { useToast } from '../../contexts/ToastContext';
+import { useConfirm } from '../../contexts/ConfirmContext';
 import { reportApiError } from '../../utils/apiError';
 import useModalA11y from '../Common/useModalA11y';
 
@@ -73,6 +74,7 @@ const NewVaultCategoryModal = ({ parentId, parentSpaceName, name, onNameChange, 
 
 const VaultPage = ({ apiService, user, teamMembers = [] }) => {
   const toast = useToast();
+  const confirm = useConfirm();
   const [selectedSpace, setSelectedSpace] = useState(null);
   const [entries, setEntries] = useState([]);
   const [loadingEntries, setLoadingEntries] = useState(false);
@@ -176,7 +178,7 @@ const VaultPage = ({ apiService, user, teamMembers = [] }) => {
   };
 
   const handleDeleteCategory = async () => {
-    if (!window.confirm(`Delete "${selectedSpace.name}"? This only works if it's empty.`)) return;
+    if (!(await confirm(`Delete "${selectedSpace.name}"? This only works if it's empty.`, { title: 'Delete category', confirmText: 'Delete', danger: true }))) return;
     try {
       await apiService.deleteSpace(selectedSpace.id);
       setSelectedSpace(null);

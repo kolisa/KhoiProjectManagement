@@ -8,6 +8,7 @@ import ManageAccessModal from '../Spaces/ManageAccessModal';
 import { hasSpaceLevel } from '../../utils/spaceLevel';
 import { hasPermission } from '../../utils/permissions';
 import { useToast } from '../../contexts/ToastContext';
+import { useConfirm } from '../../contexts/ConfirmContext';
 import { reportApiError } from '../../utils/apiError';
 import useModalA11y from '../Common/useModalA11y';
 
@@ -74,6 +75,7 @@ const NewWikiSpaceModal = ({ parentId, parentSpaceName, name, onNameChange, crea
 
 const WikiPage = ({ apiService, user, teamMembers = [], deepLink }) => {
   const toast = useToast();
+  const confirm = useConfirm();
   const [selectedSpace, setSelectedSpace] = useState(null);
   const [treeKey, setTreeKey] = useState(0);
   const [showManageAccess, setShowManageAccess] = useState(false);
@@ -249,7 +251,7 @@ const WikiPage = ({ apiService, user, teamMembers = [], deepLink }) => {
   };
 
   const handleDeleteSpace = async () => {
-    if (!window.confirm(`Delete "${selectedSpace.name}"? This only works if it's empty.`)) return;
+    if (!(await confirm(`Delete "${selectedSpace.name}"? This only works if it's empty.`, { title: 'Delete space', confirmText: 'Delete', danger: true }))) return;
     try {
       await apiService.deleteSpace(selectedSpace.id);
       setSelectedSpace(null);

@@ -4,13 +4,15 @@ import { http, HttpResponse } from 'msw';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { server, API_BASE_URL } from '../../test/mswServer';
 import { ToastProvider } from '../../contexts/ToastContext';
+import { ConfirmProvider } from '../../contexts/ConfirmContext';
 import ApiService from '../../services/ApiService';
 import IdeasPage from './IdeasPage';
 
 // IdeasPage is a plain, separately-exported container (unlike the Wiki/Vault-style tabs that only
 // render inside App.jsx's AuthGuard) - it can be rendered directly with a real ApiService instance
-// (so MSW intercepts its actual fetch() calls, same as App.test.jsx) wrapped only in ToastProvider,
-// since handleCreate calls useToast().success(...) on a successful submit.
+// (so MSW intercepts its actual fetch() calls, same as App.test.jsx) wrapped in ToastProvider (since
+// handleCreate calls useToast().success(...) on a successful submit) and ConfirmProvider (IdeaDetail's
+// delete-attachment/convert-to-project actions use useConfirm() instead of window.confirm()).
 
 const managerUser = { id: 1, name: 'Manager Mel', permissions: ['ideas.manage'] };
 const plainUser = { id: 2, name: 'Contributor Cam', permissions: [] };
@@ -35,7 +37,9 @@ const sampleIdeas = [
 const renderIdeasPage = ({ apiService = new ApiService(), user = managerUser } = {}) =>
   render(
     <ToastProvider>
-      <IdeasPage apiService={apiService} user={user} />
+      <ConfirmProvider>
+        <IdeasPage apiService={apiService} user={user} />
+      </ConfirmProvider>
     </ToastProvider>
   );
 

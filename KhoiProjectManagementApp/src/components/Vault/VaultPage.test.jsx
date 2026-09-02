@@ -4,6 +4,7 @@ import { http, HttpResponse } from 'msw';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { server, API_BASE_URL } from '../../test/mswServer';
 import { ToastProvider } from '../../contexts/ToastContext';
+import { ConfirmProvider } from '../../contexts/ConfirmContext';
 import ApiService from '../../services/ApiService';
 import VaultPage from './VaultPage';
 
@@ -32,7 +33,9 @@ const testUser = { id: 1, name: 'Test Admin', email: 'admin@khoitech.africa', pe
 const renderVaultPage = (props = {}) =>
   render(
     <ToastProvider>
-      <VaultPage apiService={new ApiService()} user={testUser} teamMembers={[]} {...props} />
+      <ConfirmProvider>
+        <VaultPage apiService={new ApiService()} user={testUser} teamMembers={[]} {...props} />
+      </ConfirmProvider>
     </ToastProvider>
   );
 

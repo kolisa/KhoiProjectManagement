@@ -6,6 +6,7 @@ import useModalA11y from '../Common/useModalA11y';
 import { hasPermission } from '../../utils/permissions';
 import InvoiceDetail from './InvoiceDetail';
 import { useToast } from '../../contexts/ToastContext';
+import { useConfirm } from '../../contexts/ConfirmContext';
 import { reportApiError } from '../../utils/apiError';
 import { formatCurrency } from '../../utils/currency';
 import { validateInvoice, hasErrors } from '../../utils/validation';
@@ -144,6 +145,7 @@ const InvoiceFormModal = ({ title, templates, onSave, onClose }) => {
 
 const InvoicesPage = ({ apiService, user }) => {
   const toast = useToast();
+  const confirm = useConfirm();
   const [invoices, setInvoices] = useState(null);
   const [templates, setTemplates] = useState([]);
   const [error, setError] = useState(null);
@@ -192,7 +194,7 @@ const InvoicesPage = ({ apiService, user }) => {
   };
 
   const handleDeleteTemplate = async (template) => {
-    if (!window.confirm(`Delete template "${template.name}"?`)) return;
+    if (!(await confirm(`Delete template "${template.name}"?`, { title: 'Delete template', confirmText: 'Delete', danger: true }))) return;
     try {
       await apiService.deleteInvoiceTemplate(template.id);
       await load();

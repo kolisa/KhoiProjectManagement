@@ -5,6 +5,7 @@ import { hasPermission } from '../../utils/permissions';
 import { formatFileSize } from '../../utils/formatFileSize';
 import IdeaAttachmentAnnotations from './IdeaAttachmentAnnotations';
 import { useToast } from '../../contexts/ToastContext';
+import { useConfirm } from '../../contexts/ConfirmContext';
 import { reportApiError } from '../../utils/apiError';
 import StatusBadge from '../Common/StatusBadge';
 
@@ -21,6 +22,7 @@ const IDEA_STATUS_COLORS = {
 
 const IdeaDetail = ({ apiService, user, ideaId, onClose, onChanged }) => {
   const toast = useToast();
+  const confirm = useConfirm();
   const [idea, setIdea] = useState(null);
   const [comments, setComments] = useState([]);
   const [attachments, setAttachments] = useState([]);
@@ -110,7 +112,7 @@ const IdeaDetail = ({ apiService, user, ideaId, onClose, onChanged }) => {
   };
 
   const handleDeleteAttachment = async (attachmentId) => {
-    if (!window.confirm('Delete this file?')) return;
+    if (!(await confirm('Delete this file?', { title: 'Delete attachment', confirmText: 'Delete', danger: true }))) return;
     try {
       await apiService.deleteIdeaAttachment(attachmentId);
       const result = await apiService.getIdeaAttachments(ideaId);
@@ -133,7 +135,7 @@ const IdeaDetail = ({ apiService, user, ideaId, onClose, onChanged }) => {
   };
 
   const handleConvert = async () => {
-    if (!window.confirm(`Convert "${idea.title}" into a project?`)) return;
+    if (!(await confirm(`Convert "${idea.title}" into a project?`, { title: 'Convert idea', confirmText: 'Convert' }))) return;
     setConverting(true);
     try {
       await apiService.convertIdeaToProject(ideaId);

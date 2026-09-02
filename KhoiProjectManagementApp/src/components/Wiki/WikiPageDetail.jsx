@@ -11,10 +11,12 @@ import ShareButton from '../Common/ShareButton';
 import { hasSpaceLevel } from '../../utils/spaceLevel';
 import { createWikiHubConnection, HubConnectionState } from '../../services/wikiHub';
 import { useToast } from '../../contexts/ToastContext';
+import { useConfirm } from '../../contexts/ConfirmContext';
 import { reportApiError } from '../../utils/apiError';
 
 const WikiPageDetail = ({ apiService, pageId, myEffectiveLevel, currentUserId, onDeleted, onAddSubPage }) => {
   const toast = useToast();
+  const confirm = useConfirm();
   const [page, setPage] = useState(null);
   const [comments, setComments] = useState([]);
   const [error, setError] = useState(null);
@@ -93,7 +95,7 @@ const WikiPageDetail = ({ apiService, pageId, myEffectiveLevel, currentUserId, o
   };
 
   const handleDeleteAnchoredComment = async (commentId) => {
-    if (!window.confirm('Delete this comment?')) return;
+    if (!(await confirm('Delete this comment?', { title: 'Delete comment', confirmText: 'Delete', danger: true }))) return;
     try {
       await apiService.deleteWikiComment(commentId);
       await reloadComments();
@@ -139,7 +141,7 @@ const WikiPageDetail = ({ apiService, pageId, myEffectiveLevel, currentUserId, o
   };
 
   const handleDelete = async () => {
-    if (!window.confirm('Delete this page?')) return;
+    if (!(await confirm('Delete this page?', { title: 'Delete page', confirmText: 'Delete', danger: true }))) return;
     try {
       await apiService.deleteWikiPage(pageId);
       toast.success('Page deleted.');

@@ -3,10 +3,12 @@ import React, { useState, useEffect } from 'react';
 import { Eye, EyeOff, Clock, Trash2, Edit3, X } from 'lucide-react';
 import { hasSpaceLevel } from '../../utils/spaceLevel';
 import { useToast } from '../../contexts/ToastContext';
+import { useConfirm } from '../../contexts/ConfirmContext';
 import { reportApiError } from '../../utils/apiError';
 
 const VaultEntryDetail = ({ apiService, entryId, myEffectiveLevel, onClose, onEdit, onDeleted }) => {
   const toast = useToast();
+  const confirm = useConfirm();
   const [entry, setEntry] = useState(null);
   // Reserved for the initial load only - a full-panel error is the right call when there's nothing
   // else to show, but a failed reveal/audit-log/delete on an already-loaded entry must not blank out
@@ -56,7 +58,7 @@ const VaultEntryDetail = ({ apiService, entryId, myEffectiveLevel, onClose, onEd
   };
 
   const handleDelete = async () => {
-    if (!window.confirm('Delete this vault entry?')) return;
+    if (!(await confirm('Delete this vault entry?', { title: 'Delete vault entry', confirmText: 'Delete', danger: true }))) return;
     try {
       await apiService.deleteVaultEntry(entryId);
       toast.success('Vault entry deleted.');
