@@ -337,6 +337,13 @@ class ApiService {
     });
   }
 
+  async updateTask(id, dto) {
+    return await this.request(`/tasks/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(dto),
+    });
+  }
+
   async updateTaskStatus(id, status) {
     return await this.request(`/tasks/${id}/status`, {
       method: 'PUT',
@@ -1097,14 +1104,51 @@ class ApiService {
     });
   }
 
-  // Timesheets (flat, ownership-based - see plan Phase 10). Only the dashboard widget consumes these
-  // today; there's no dedicated Timesheets tab/UI yet.
+  // Timesheets (flat, ownership-based - see plan Phase 10). userId/status omitted returns the
+  // caller's own; an approver (timesheets.approve/view_all) omitting userId gets everyone's instead -
+  // see TimesheetService.GetTimesheetsAsync.
   async getTimesheets(userId, status) {
     const params = new URLSearchParams();
     if (userId) params.append('userId', userId);
     if (status) params.append('status', status);
     const query = params.toString();
     return await this.request(`/timesheets${query ? `?${query}` : ''}`);
+  }
+
+  async getTimesheet(id) {
+    return await this.request(`/timesheets/${id}`);
+  }
+
+  async createTimesheet(dto) {
+    return await this.request('/timesheets', {
+      method: 'POST',
+      body: JSON.stringify(dto),
+    });
+  }
+
+  async updateTimesheet(id, dto) {
+    return await this.request(`/timesheets/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(dto),
+    });
+  }
+
+  async submitTimesheet(id, ccEmails = []) {
+    return await this.request(`/timesheets/${id}/submit`, {
+      method: 'POST',
+      body: JSON.stringify({ ccEmails }),
+    });
+  }
+
+  async approveTimesheet(id) {
+    return await this.request(`/timesheets/${id}/approve`, { method: 'POST' });
+  }
+
+  async rejectTimesheet(id, reason) {
+    return await this.request(`/timesheets/${id}/reject`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    });
   }
 
   // Invoices (flat, finance.view/finance.manage - see plan Phase 8)

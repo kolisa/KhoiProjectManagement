@@ -108,6 +108,21 @@ export const validateInvoice = ({ invoiceNumber, clientName, issueDate, dueDate,
   return errors;
 };
 
+// CreateTimesheetDto/UpdateTimesheetDto rules.
+export const validateTimesheet = ({ periodStart, periodEnd, entries }) => {
+  const errors = {};
+  validateRequired(errors, 'periodStart', periodStart, 'Period start');
+  validateRequired(errors, 'periodEnd', periodEnd, 'Period end');
+  if (!isEmpty(periodStart) && !isEmpty(periodEnd) && new Date(periodEnd) < new Date(periodStart)) {
+    errors.periodEnd = 'Period end must not be before period start.';
+  }
+  (entries || []).forEach((e, i) => {
+    if (isEmpty(e.entryDate)) errors[`entries.${i}.entryDate`] = 'Entry date is required.';
+    if (!(Number(e.hours) > 0) || Number(e.hours) > 24) errors[`entries.${i}.hours`] = 'Hours must be greater than 0 and no more than 24.';
+  });
+  return errors;
+};
+
 // CreateIdeaDto rules.
 export const validateIdea = ({ title, description }) => {
   const errors = {};
