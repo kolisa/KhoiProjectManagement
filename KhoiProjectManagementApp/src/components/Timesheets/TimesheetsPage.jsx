@@ -7,6 +7,7 @@ import { reportApiError } from '../../utils/apiError';
 import useModalA11y from '../Common/useModalA11y';
 import StatusBadge from '../Common/StatusBadge';
 import TimesheetDetail from './TimesheetDetail';
+import { formatDuration } from './duration';
 
 const STATUS_COLORS = {
   Submitted: 'bg-[#EEEEFF] text-[#4131B0]',
@@ -69,6 +70,20 @@ const TimesheetsPage = ({ apiService, user }) => {
     setShowNew(false);
     setSelected('new');
   };
+
+  if (selected) {
+    return (
+      <TimesheetDetail
+        apiService={apiService}
+        user={user}
+        timesheet={selected === 'new' ? null : selected}
+        initialPeriod={selected === 'new' ? newPeriod : undefined}
+        projects={projects}
+        onClose={() => setSelected(null)}
+        onChanged={load}
+      />
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -133,7 +148,7 @@ const TimesheetsPage = ({ apiService, user }) => {
                     <td className="px-4 py-3 text-gray-900 whitespace-nowrap">
                       {new Date(t.periodStart).toLocaleDateString()} - {new Date(t.periodEnd).toLocaleDateString()}
                     </td>
-                    <td className="px-4 py-3 text-gray-900">{t.totalHours}h</td>
+                    <td className="px-4 py-3 text-gray-900">{formatDuration(t.totalHours)}</td>
                     <td className="px-4 py-3"><StatusBadge status={t.status} colorMap={STATUS_COLORS} /></td>
                     <td className="px-4 py-3 text-right text-blue-600 font-medium">View</td>
                   </tr>
@@ -176,18 +191,6 @@ const TimesheetsPage = ({ apiService, user }) => {
             </form>
           </div>
         </div>
-      )}
-
-      {selected && (
-        <TimesheetDetail
-          apiService={apiService}
-          user={user}
-          timesheet={selected === 'new' ? null : selected}
-          initialPeriod={selected === 'new' ? newPeriod : undefined}
-          projects={projects}
-          onClose={() => setSelected(null)}
-          onChanged={load}
-        />
       )}
     </div>
   );
