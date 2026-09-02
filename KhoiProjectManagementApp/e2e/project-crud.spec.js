@@ -19,10 +19,6 @@ test.describe('Project CRUD', () => {
   });
 
   test('creates a project, edits it, then deletes it', async ({ page }) => {
-    // window.confirm() (delete) and window.alert() (success messages) both need an explicit accept -
-    // Playwright dismisses dialogs by default, which would make confirm() return false.
-    page.on('dialog', (dialog) => dialog.accept());
-
     const projectName = `E2E Project ${Date.now()}`;
     const updatedName = `${projectName} (edited)`;
 
@@ -51,9 +47,12 @@ test.describe('Project CRUD', () => {
     await expect(page.getByRole('heading', { name: updatedName })).toBeVisible();
     await expect(page.getByRole('heading', { name: projectName, exact: true })).not.toBeVisible();
 
-    // Delete it via the trash icon on that (now renamed) card.
+    // Delete it via the trash icon on that (now renamed) card - this opens the app's own confirm
+    // modal (ConfirmContext), not a native window.confirm(), so it needs an explicit click rather
+    // than Playwright's dialog auto-handling.
     card = page.locator('div', { has: page.getByRole('heading', { name: updatedName }) }).last();
     await card.getByRole('button').last().click();
+    await page.getByRole('dialog', { name: /delete project/i }).getByRole('button', { name: /^delete$/i }).click();
 
     await expect(page.getByRole('heading', { name: updatedName })).not.toBeVisible();
   });
