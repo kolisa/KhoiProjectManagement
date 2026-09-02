@@ -1,18 +1,18 @@
 namespace KhoiProjectManagement.Infrastructure.Services
 {
     // Shared branded HTML shell for every outbound email - keeps the visual design in one place
-    // instead of duplicated inline markup per Send*EmailAsync method. Brand color (#0000D3) matches
-    // the app's Tailwind blue-600 override in KhoiProjectManagementApp/tailwind.config.js. Stays
-    // table-based with fully inline styles throughout (no <style> block, no webfonts, no CSS Grid/
-    // Flexbox) since Outlook's Word rendering engine ignores most of that - this is deliberately the
-    // lowest-common-denominator approach every mainstream email client renders consistently.
+    // instead of duplicated inline markup per Send*EmailAsync method. Brand color (#5D4AA4) matches
+    // the app's Tailwind blue-600/primary-600 override in KhoiProjectManagementApp/tailwind.config.js.
+    // Stays table-based with fully inline styles throughout (no <style> block, no webfonts, no CSS
+    // Grid/Flexbox) since Outlook's Word rendering engine ignores most of that - this is deliberately
+    // the lowest-common-denominator approach every mainstream email client renders consistently.
     internal static class EmailTemplates
     {
-        private const string BrandColor = "#0000D3";
-        private const string BrandColorDark = "#00009e";
+        private const string BrandColor = "#5D4AA4";
+        private const string BrandColorDark = "#4B3A8C";
         private const string FontStack = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
 
-        // appBaseUrl drives the small "Open Khoi Pro" footer link shown on every email regardless of
+        // appBaseUrl drives the small "Open KhoiHub" footer link shown on every email regardless of
         // whether that particular email also has its own specific ctaUrl (e.g. a task-assignment email's
         // CTA jumps straight to the Tasks tab; the footer link is just "open the app" as a fallback).
         public static string Wrap(string headline, string bodyHtml, string? ctaText = null, string? ctaUrl = null, string? appBaseUrl = null)
@@ -35,7 +35,7 @@ namespace KhoiProjectManagement.Infrastructure.Services
 
             var footerAppLink = string.IsNullOrEmpty(appBaseUrl)
                 ? string.Empty
-                : $@"<a href=""{appBaseUrl}"" style=""color: {BrandColorDark}; text-decoration: none; font-weight: 600;"">Open Khoi Pro</a> &middot; ";
+                : $@"<a href=""{appBaseUrl}"" style=""color: {BrandColorDark}; text-decoration: none; font-weight: 600;"">Open KhoiHub</a> &middot; ";
 
             return $@"
 <!DOCTYPE html>
@@ -53,7 +53,7 @@ namespace KhoiProjectManagement.Infrastructure.Services
                                         <span style=""color: #ffffff; font-size: 16px; font-weight: 800; line-height: 32px;"">K</span>
                                     </td>
                                     <td style=""padding-left: 12px; vertical-align: middle;"">
-                                        <span style=""color: #ffffff; font-size: 17px; font-weight: 700; letter-spacing: 0.01em;"">Khoi Pro</span>
+                                        <span style=""color: #ffffff; font-size: 17px; font-weight: 700; letter-spacing: 0.01em;"">KhoiHub</span>
                                     </td>
                                 </tr>
                             </table>
@@ -71,7 +71,7 @@ namespace KhoiProjectManagement.Infrastructure.Services
                     <tr>
                         <td style=""padding: 18px 32px; background-color: #f9fafb; border-top: 1px solid #eef0f3;"">
                             <p style=""margin: 0; color: #9ca3af; font-size: 12px; line-height: 1.6;"">
-                                {footerAppLink}Khoi Pro &mdash; Project Management System. This is an automated message, please do not reply.
+                                {footerAppLink}KhoiHub &mdash; Project Management System. This is an automated message, please do not reply.
                             </p>
                         </td>
                     </tr>

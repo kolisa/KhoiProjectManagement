@@ -1,4 +1,4 @@
-# Khoi Pro
+# KhoiHub
 
 A full-stack company system-of-record: ASP.NET Core 10 Web API + PostgreSQL backend, React 18 +
 Tailwind frontend. See [CLAUDE.md](CLAUDE.md) for the full architecture writeup.

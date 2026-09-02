@@ -7,36 +7,44 @@ module.exports = {
         extend: {
             // Every button/link/badge in this app is built with Tailwind's built-in `blue-*` classes
             // (bg-blue-600, hover:bg-blue-700, text-blue-600, etc.) - overriding the scale here rebrands
-            // the entire app to Khoi's design-system accent. 600/700 are pinned to the exact values from
-            // the "Khoi Pro app UI redesign" spec (accent oklch(0.52 0.19 280) / hover oklch(0.45 0.19 280)
-            // -> #5952D2 / #483BBA); the rest of the scale sweeps the same oklch hue (280) at fixed chroma
-            // 0.19, tapering chroma toward the light/dark ends the way the spec's own tint colors do, so
-            // every stop stays in-gamut and reads as one consistent family (50 lightest, 900 darkest).
+            // the entire app to KhoiHub's design-system accent. 100/400/600/700 are pinned to the exact
+            // values from the "KhoiHub Clean Corporate Purple" palette (Lavender #EEE9FF / Primary Light
+            // #7B68C4 / Primary #5D4AA4 / Primary Dark #4B3A8C); the remaining stops (50/200/300/500/
+            // 800/900) are linearly interpolated/extrapolated between those four anchors in RGB space so
+            // every stop stays a consistent family (50 lightest, 900 darkest).
             colors: {
                 blue: {
-                    50: '#F3F4FF',
-                    100: '#E2E5FF',
-                    200: '#C5CAFF',
-                    300: '#A2A8FF',
-                    400: '#8080FC',
-                    500: '#6C68EA',
-                    600: '#5952D2',
-                    700: '#483BBA',
-                    800: '#382A98',
-                    900: '#261A71',
+                    50: '#F7F5FF',
+                    100: '#EEE9FF',
+                    200: '#C8BEEB',
+                    300: '#A193D8',
+                    400: '#7B68C4',
+                    500: '#6C59B4',
+                    600: '#5D4AA4',
+                    700: '#4B3A8C',
+                    800: '#392A74',
+                    900: '#271A5C',
                 },
                 primary: {
-                    50: '#F3F4FF',
-                    100: '#E2E5FF',
-                    200: '#C5CAFF',
-                    300: '#A2A8FF',
-                    400: '#8080FC',
-                    500: '#6C68EA',
-                    600: '#5952D2',
-                    700: '#483BBA',
-                    800: '#382A98',
-                    900: '#261A71',
-                }
+                    50: '#F7F5FF',
+                    100: '#EEE9FF',
+                    200: '#C8BEEB',
+                    300: '#A193D8',
+                    400: '#7B68C4',
+                    500: '#6C59B4',
+                    600: '#5D4AA4',
+                    700: '#4B3A8C',
+                    800: '#392A74',
+                    900: '#271A5C',
+                },
+                // Named tokens from the same palette, available for future use - not yet retrofitted
+                // onto the existing ad hoc bg-green-50/bg-red-50/bg-amber-50 status badges across the app.
+                accent: {
+                    teal: '#1FA7A0',
+                },
+                success: '#22A06B',
+                warning: '#F4B740',
+                danger: '#E45D5D',
             },
             fontFamily: {
                 sans: ['"Instrument Sans"', 'Helvetica', 'Arial', 'system-ui', 'sans-serif'],

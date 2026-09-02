@@ -29,7 +29,7 @@ describe('App (LoginForm / AuthGuard)', () => {
   it('renders the login form when no user is authenticated', async () => {
     render(<App />);
 
-    expect(await screen.findByText(/sign in to khoi pro/i)).toBeInTheDocument();
+    expect(await screen.findByText(/sign in to khoihub/i)).toBeInTheDocument();
     expect(screen.getByPlaceholderText(/email address/i)).toBeInTheDocument();
     expect(screen.getByPlaceholderText(/^password$/i)).toBeInTheDocument();
   });
@@ -41,7 +41,7 @@ describe('App (LoginForm / AuthGuard)', () => {
     );
     const user = userEvent.setup();
     render(<App />);
-    await screen.findByText(/sign in to khoi pro/i);
+    await screen.findByText(/sign in to khoihub/i);
 
     await user.type(screen.getByPlaceholderText(/email address/i), 'wrong@khoitech.africa');
     await user.type(screen.getByPlaceholderText(/^password$/i), 'wrong-password');
@@ -59,7 +59,7 @@ describe('App (LoginForm / AuthGuard)', () => {
     server.use(http.post(`${API_BASE_URL}/auth/login`, () => HttpResponse.error()));
     const user = userEvent.setup();
     render(<App />);
-    await screen.findByText(/sign in to khoi pro/i);
+    await screen.findByText(/sign in to khoihub/i);
 
     await user.type(screen.getByPlaceholderText(/email address/i), 'admin@khoitech.africa');
     await user.type(screen.getByPlaceholderText(/^password$/i), 'admin123');
@@ -85,7 +85,7 @@ describe('App (LoginForm / AuthGuard)', () => {
 
     const user = userEvent.setup();
     render(<App />);
-    await screen.findByText(/sign in to khoi pro/i);
+    await screen.findByText(/sign in to khoihub/i);
 
     await user.type(screen.getByPlaceholderText(/email address/i), 'admin@khoitech.africa');
     await user.type(screen.getByPlaceholderText(/^password$/i), 'admin123');
@@ -93,7 +93,7 @@ describe('App (LoginForm / AuthGuard)', () => {
 
     await waitFor(() => expect(screen.getByRole('heading', { name: /good (morning|afternoon|evening)/i })).toBeInTheDocument());
     // Login form must be gone, not just the dashboard heading present alongside it.
-    expect(screen.queryByText(/sign in to khoi pro/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/sign in to khoihub/i)).not.toBeInTheDocument();
   });
 });
 
@@ -118,7 +118,7 @@ describe('App > Projects tab data loading', () => {
 
     const user = userEvent.setup();
     render(<App />);
-    await screen.findByText(/sign in to khoi pro/i);
+    await screen.findByText(/sign in to khoihub/i);
     await user.type(screen.getByPlaceholderText(/email address/i), 'admin@khoitech.africa');
     await user.type(screen.getByPlaceholderText(/^password$/i), 'admin123');
     await user.click(screen.getByRole('button', { name: /sign in/i }));
@@ -201,7 +201,7 @@ describe('App > Edit project', () => {
 
     const user = userEvent.setup();
     render(<App />);
-    await screen.findByText(/sign in to khoi pro/i);
+    await screen.findByText(/sign in to khoihub/i);
     await user.type(screen.getByPlaceholderText(/email address/i), 'admin@khoitech.africa');
     await user.type(screen.getByPlaceholderText(/^password$/i), 'admin123');
     await user.click(screen.getByRole('button', { name: /sign in/i }));

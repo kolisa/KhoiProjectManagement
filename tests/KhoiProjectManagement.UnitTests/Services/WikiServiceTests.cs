@@ -156,6 +156,34 @@ namespace KhoiProjectManagement.UnitTests.Services
         }
 
         [Fact]
+        public async Task GetPagesAsync_WithMultiplePages_EachGetsItsOwnLatestVersionNotMixedUp()
+        {
+            // Regression test for the batched (single round-trip) latest-version lookup: proves the
+            // grouping-by-page logic correctly matches each page to its own latest version, not some
+            // other page's, when multiple pages each have multiple versions.
+            SetAuthorizationResult(succeeds: true);
+            var pageA = new WikiPage { Id = 1, Title = "Page A", SpaceId = 10, SortOrder = 1, IsActive = true };
+            var pageB = new WikiPage { Id = 2, Title = "Page B", SpaceId = 10, SortOrder = 2, IsActive = true };
+            _pageRepo.Query().Returns(new List<WikiPage> { pageA, pageB }.BuildMock());
+
+            var aLatest = new DateTime(2026, 3, 1, 0, 0, 0, DateTimeKind.Utc);
+            var bLatest = new DateTime(2026, 5, 1, 0, 0, 0, DateTimeKind.Utc);
+            _versionRepo.Query().Returns(new List<WikiPageVersion>
+            {
+                new() { WikiPageId = 1, VersionNumber = 1, EditedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc) },
+                new() { WikiPageId = 1, VersionNumber = 2, EditedAt = aLatest },
+                new() { WikiPageId = 2, VersionNumber = 1, EditedAt = new DateTime(2026, 2, 1, 0, 0, 0, DateTimeKind.Utc) },
+                new() { WikiPageId = 2, VersionNumber = 2, EditedAt = new DateTime(2026, 4, 1, 0, 0, 0, DateTimeKind.Utc) },
+                new() { WikiPageId = 2, VersionNumber = 3, EditedAt = bLatest },
+            }.BuildMock());
+
+            var result = await CreateSut().GetPagesAsync(10, null, CallerWithId(1));
+
+            Assert.Equal(aLatest, result.Single(p => p.Id == 1).UpdatedAt);
+            Assert.Equal(bLatest, result.Single(p => p.Id == 2).UpdatedAt);
+        }
+
+        [Fact]
         public async Task GetPagesAsync_WhenCallerLacksSpaceAccess_ThrowsUnauthorized()
         {
             SetAuthorizationResult(succeeds: false);

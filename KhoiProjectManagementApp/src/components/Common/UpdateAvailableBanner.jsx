@@ -15,7 +15,7 @@ const UpdateAvailableBanner = () => {
     <div className="bg-blue-50 border-b border-blue-200 px-4 py-2 text-center text-sm text-blue-800 flex items-center justify-center gap-3">
       <span className="flex items-center gap-2">
         <RefreshCw className="h-4 w-4" />
-        A new version of Khoi Pro is available.
+        A new version of KhoiHub is available.
       </span>
       <button
         onClick={() => window.location.reload()}

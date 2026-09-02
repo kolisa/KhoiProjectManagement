@@ -30,6 +30,8 @@ namespace KhoiProjectManagementApi.Extensions
             services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
             services.AddScoped<IUnitOfWork, UnitOfWork>();
             services.AddScoped<IWikiSearchRepository, WikiSearchRepository>();
+            services.AddScoped<IDashboardStatsRepository, DashboardStatsRepository>();
+            services.AddScoped<IReportStatsRepository, ReportStatsRepository>();
 
             // Request validation - every AbstractValidator<T> in Application/Validators/ is picked up
             // automatically by assembly scan; ValidationActionFilter (registered in Program.cs) resolves
@@ -121,9 +123,11 @@ namespace KhoiProjectManagementApi.Extensions
             services.AddScoped<IRoleService, RoleService>();
             services.AddScoped<IGroupService, GroupService>();
 
-            // Admin-only Audit section (sent emails + error logs)
+            // Admin-only Audit section (sent emails + error logs + logins + page visits)
             services.AddScoped<IEmailLogService, EmailLogService>();
             services.AddScoped<ILogFileService, LogFileService>();
+            services.AddScoped<ILoginAuditService, LoginAuditService>();
+            services.AddScoped<IPageVisitService, PageVisitService>();
 
             // Timesheets (flat, ownership-based)
             services.AddScoped<ITimesheetService, TimesheetService>();

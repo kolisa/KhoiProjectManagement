@@ -1,5 +1,5 @@
 // src/utils/currency.js
-// Single source of truth for money formatting - this app is South African (see Khoi Pro), so every
+// Single source of truth for money formatting - this app is South African (see KhoiHub), so every
 // amount is Rand, never a locale-default currency symbol.
 export const formatCurrency = (amount, { decimals = 2 } = {}) => {
   const n = Number(amount) || 0;

@@ -1,3 +1,4 @@
+using System.IdentityModel.Tokens.Jwt;
 using KhoiProjectManagement.Application.Abstractions;
 using KhoiProjectManagement.Application;
 using KhoiProjectManagement.Domain;
@@ -16,11 +17,14 @@ namespace KhoiProjectManagement.UnitTests.Services
         private readonly IRepository<UserRole> _userRoleRepo = Substitute.For<IRepository<UserRole>>();
         private readonly IRepository<UserGroup> _userGroupRepo = Substitute.For<IRepository<UserGroup>>();
         private readonly IRepository<RolePermission> _rolePermissionRepo = Substitute.For<IRepository<RolePermission>>();
+        private readonly IRepository<Role> _roleRepo = CreateDefaultRoleRepo();
         private readonly IRepository<User> _userRepo = Substitute.For<IRepository<User>>();
         private readonly IRepository<PasswordResetToken> _passwordResetTokenRepo = Substitute.For<IRepository<PasswordResetToken>>();
         private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
         private readonly IUserService _userService = Substitute.For<IUserService>();
         private readonly IEmailService _emailService = Substitute.For<IEmailService>();
+        private readonly ILoginAuditService _loginAuditService = Substitute.For<ILoginAuditService>();
+        private readonly ICurrentRequestContext _requestContext = Substitute.For<ICurrentRequestContext>();
         private readonly ILogger<AuthService> _logger = Substitute.For<ILogger<AuthService>>();
 
         private static IConfiguration Config() => new ConfigurationBuilder()
@@ -30,14 +34,21 @@ namespace KhoiProjectManagement.UnitTests.Services
                 ["Jwt:Issuer"] = "TestIssuer",
                 ["Jwt:Audience"] = "TestAudience",
                 ["Jwt:AccessTokenExpiryMinutes"] = "15",
-                ["Jwt:RefreshTokenExpiryDays"] = "7",
+                ["Jwt:RefreshTokenExpiryMinutes"] = "30",
                 ["App:FrontendBaseUrl"] = "http://localhost:3000"
             })
             .Build();
 
         private AuthService CreateSut() => new(
-            _refreshTokenRepo, _userRoleRepo, _userGroupRepo, _rolePermissionRepo, _userRepo, _passwordResetTokenRepo,
-            _unitOfWork, _userService, _emailService, Config(), _logger);
+            _refreshTokenRepo, _userRoleRepo, _userGroupRepo, _rolePermissionRepo, _roleRepo, _userRepo, _passwordResetTokenRepo,
+            _unitOfWork, _userService, _emailService, _loginAuditService, _requestContext, Config(), _logger);
+
+        private static IRepository<Role> CreateDefaultRoleRepo()
+        {
+            var repo = Substitute.For<IRepository<Role>>();
+            repo.Query().Returns(new List<Role>().BuildMock());
+            return repo;
+        }
 
         private static TeamMemberDto SampleUser(int id = 1, bool mustChangePassword = false) => new()
         {
@@ -74,6 +85,43 @@ namespace KhoiProjectManagement.UnitTests.Services
             Assert.Equal(user.Id, result.User.Id);
             await _userService.Received(1).UpdateLastLoginAsync(user.Id);
             _refreshTokenRepo.Received(1).Add(Arg.Is<RefreshToken>(rt => rt.UserId == user.Id));
+            await _loginAuditService.Received(1).LogAsync(user.Id, user.Email, true, Arg.Is<string?>(s => s == null), Arg.Any<string?>());
+        }
+
+        [Fact]
+        public async Task LoginAsync_WhenUserHoldsSuperAdminRole_IncludesSuperAdminClaim()
+        {
+            var user = SampleUser();
+            _userService.ValidateUserCredentialsAsync(user.Email, "correct-password").Returns(true);
+            _userService.GetUserByEmailAsync(user.Email).Returns(user);
+            _userRoleRepo.Query().Returns(new List<UserRole> { new() { UserId = user.Id, RoleId = 1 } }.BuildMock());
+            _userGroupRepo.Query().Returns(new List<UserGroup>().BuildMock());
+            _rolePermissionRepo.Query().Returns(new List<RolePermission>().BuildMock());
+            _roleRepo.Query().Returns(new List<Role> { new() { Id = 1, Name = "Admin", IsSystemRole = true, IsSuperAdmin = true } }.BuildMock());
+
+            var sut = CreateSut();
+            var result = await sut.LoginAsync(user.Email, "correct-password");
+
+            var jwt = new JwtSecurityTokenHandler().ReadJwtToken(result!.Token);
+            Assert.Contains(jwt.Claims, c => c.Type == "superadmin" && c.Value == "true");
+        }
+
+        [Fact]
+        public async Task LoginAsync_WhenUserHoldsOnlyNonSuperAdminRoles_OmitsSuperAdminClaim()
+        {
+            var user = SampleUser();
+            _userService.ValidateUserCredentialsAsync(user.Email, "correct-password").Returns(true);
+            _userService.GetUserByEmailAsync(user.Email).Returns(user);
+            _userRoleRepo.Query().Returns(new List<UserRole> { new() { UserId = user.Id, RoleId = 3 } }.BuildMock());
+            _userGroupRepo.Query().Returns(new List<UserGroup>().BuildMock());
+            _rolePermissionRepo.Query().Returns(new List<RolePermission>().BuildMock());
+            _roleRepo.Query().Returns(new List<Role> { new() { Id = 1, Name = "Admin", IsSystemRole = true, IsSuperAdmin = true } }.BuildMock());
+
+            var sut = CreateSut();
+            var result = await sut.LoginAsync(user.Email, "correct-password");
+
+            var jwt = new JwtSecurityTokenHandler().ReadJwtToken(result!.Token);
+            Assert.DoesNotContain(jwt.Claims, c => c.Type == "superadmin");
         }
 
         [Fact]
@@ -107,6 +155,7 @@ namespace KhoiProjectManagement.UnitTests.Services
             Assert.Null(result);
             _refreshTokenRepo.DidNotReceive().Add(Arg.Any<RefreshToken>());
             await _userService.DidNotReceive().UpdateLastLoginAsync(Arg.Any<int>());
+            await _loginAuditService.Received(1).LogAsync(Arg.Is<int?>(i => i == null), Arg.Is<string>(s => s == "nobody@khoitech.africa"), false, Arg.Any<string?>(), Arg.Any<string?>());
         }
 
         [Fact]
@@ -121,6 +170,7 @@ namespace KhoiProjectManagement.UnitTests.Services
             var result = await sut.LoginAsync("ghost@khoitech.africa", "pw");
 
             Assert.Null(result);
+            await _loginAuditService.Received(1).LogAsync(Arg.Is<int?>(i => i == null), Arg.Is<string>(s => s == "ghost@khoitech.africa"), false, Arg.Any<string?>(), Arg.Any<string?>());
         }
 
         [Fact]

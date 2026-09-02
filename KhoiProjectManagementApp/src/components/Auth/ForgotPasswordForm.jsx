@@ -2,7 +2,6 @@
 import React, { useState } from 'react';
 import { Mail, ArrowLeft, CheckCircle2 } from 'lucide-react';
 import ApiService from '../../services/ApiService';
-import khoiLogo from '../../assets/khoi-logo.png';
 
 const ForgotPasswordForm = ({ onBackToLogin }) => {
     const [email, setEmail] = useState('');
@@ -37,8 +36,8 @@ const ForgotPasswordForm = ({ onBackToLogin }) => {
                 <div className="absolute -bottom-40 -left-24 h-[480px] w-[480px] rounded-full bg-blue-400/20 blur-3xl" />
 
                 <div className="relative flex items-center gap-3">
-                    <img src={khoiLogo} alt="Khoi" className="h-8 w-auto brightness-0 invert" />
-                    <span className="text-white text-lg font-bold tracking-tight">Khoi Pro</span>
+                    <div className="h-9 w-9 rounded-lg bg-white flex items-center justify-center text-blue-700 font-bold text-base flex-shrink-0">K</div>
+                    <span className="text-white text-lg font-bold tracking-tight">KhoiHub</span>
                 </div>
 
                 <div className="relative max-w-md">
@@ -50,14 +49,17 @@ const ForgotPasswordForm = ({ onBackToLogin }) => {
                     </p>
                 </div>
 
-                <p className="relative text-blue-200/50 text-xs">&copy; 2026 Khoi. All rights reserved.</p>
+                <p className="relative text-blue-200/50 text-xs">&copy; 2026 KhoiHub. All rights reserved.</p>
             </div>
 
             {/* Form panel */}
             <div className="flex-1 flex items-center justify-center bg-gray-50 px-4 sm:px-6 lg:px-8 py-12">
                 <div className="max-w-sm w-full">
                     <div className="lg:hidden flex flex-col items-center mb-8">
-                        <img src={khoiLogo} alt="Khoi" className="h-10 w-auto mb-3" />
+                        <div className="flex items-center gap-2.5">
+                            <div className="h-10 w-10 rounded-xl bg-blue-600 flex items-center justify-center text-white font-bold text-lg flex-shrink-0">K</div>
+                            <span className="text-gray-900 text-xl font-bold tracking-tight">KhoiHub</span>
+                        </div>
                     </div>
 
                     <div className="text-center lg:text-left">

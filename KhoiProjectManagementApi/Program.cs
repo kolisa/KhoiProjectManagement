@@ -40,7 +40,7 @@ try
     builder.Services.AddEndpointsApiExplorer();
     builder.Services.AddSwaggerGen(c =>
     {
-        c.SwaggerDoc("v1", new() { Title = "Project Management API", Version = "v1" });
+        c.SwaggerDoc("v1", new() { Title = "KhoiHub API", Version = "v1" });
         c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.OpenApiSecurityScheme
         {
             Description = "JWT Authorization header using the Bearer scheme",

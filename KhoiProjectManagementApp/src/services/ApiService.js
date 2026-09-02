@@ -51,7 +51,8 @@ export const onSessionExpired = (handler) => {
 };
 
 // "Remember me" decides where tokens live, not how long the backend considers the refresh token
-// valid (that's Jwt:RefreshTokenExpiryDays, 30 days server-side regardless). Checked -> localStorage,
+// valid (that's Jwt:RefreshTokenExpiryMinutes, 30 minutes server-side regardless - kept short
+// deliberately for security). Checked -> localStorage,
 // so the session survives closing the browser entirely. Unchecked -> sessionStorage, cleared the
 // moment the tab/browser closes, same as any "don't remember me on this device" login. The flag
 // itself always lives in localStorage (small, non-sensitive) so a fresh tab knows which storage to
@@ -484,6 +485,31 @@ class ApiService {
     if (take != null) params.set('take', take);
     const qs = params.toString();
     return await this.request(`/audit/error-logs${qs ? `?${qs}` : ''}`);
+  }
+
+  async getLoginAuditLog({ take, success, emailContains } = {}) {
+    const params = new URLSearchParams();
+    if (take != null) params.set('take', take);
+    if (success != null) params.set('success', success);
+    if (emailContains) params.set('emailContains', emailContains);
+    const qs = params.toString();
+    return await this.request(`/audit/logins${qs ? `?${qs}` : ''}`);
+  }
+
+  async getPageVisitLog({ take, userId, tabKey } = {}) {
+    const params = new URLSearchParams();
+    if (take != null) params.set('take', take);
+    if (userId != null) params.set('userId', userId);
+    if (tabKey) params.set('tabKey', tabKey);
+    const qs = params.toString();
+    return await this.request(`/audit/page-visits${qs ? `?${qs}` : ''}`);
+  }
+
+  async logPageVisit(tabKey) {
+    return await this.request('/audit/page-visits', {
+      method: 'POST',
+      body: JSON.stringify({ tabKey }),
+    });
   }
 
   // Reports

@@ -187,6 +187,10 @@ const ProjectManagementSystem = () => {
 
     useEffect(() => {
         localStorage.setItem('khoi_last_tab', activeTab);
+        // Audit trail of tab visits for admins (Settings > Audit > Page Visits) - best-effort, must
+        // never disrupt navigation if it fails.
+        apiService.logPageVisit(activeTab).catch(() => {});
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [activeTab]);
 
     // Consume the share link's query string once so a later manual refresh doesn't keep re-forcing
@@ -923,7 +927,7 @@ const ProjectManagementSystem = () => {
             <aside className="hidden md:flex w-64 flex-shrink-0 flex-col bg-blue-800 h-screen sticky top-0 overflow-y-auto">
                 <div className="flex items-center gap-2.5 h-16 px-5 border-b border-white/10 flex-shrink-0">
                     <div className="h-9 w-9 rounded-lg bg-white flex items-center justify-center text-blue-700 font-bold text-base flex-shrink-0">K</div>
-                    <span className="text-base font-bold text-white tracking-tight">Khoi Pro</span>
+                    <span className="text-base font-bold text-white tracking-tight">KhoiHub</span>
                 </div>
 
                 <nav className="flex-1 py-3">
@@ -956,7 +960,7 @@ const ProjectManagementSystem = () => {
                     <div className="flex justify-between items-center h-16 px-4 sm:px-6">
                         <div className="flex items-center md:hidden">
                             <div className="h-8 w-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0 mr-2">K</div>
-                            <span className="text-lg font-bold text-gray-900 tracking-tight">Khoi Pro</span>
+                            <span className="text-lg font-bold text-gray-900 tracking-tight">KhoiHub</span>
                         </div>
 
                         <div className="hidden md:block flex-1 max-w-md">
@@ -1117,7 +1121,7 @@ const ProjectManagementSystem = () => {
                         <div className="relative w-72 max-w-[80%] h-full bg-blue-800 shadow-xl overflow-y-auto animate-slide-up">
                             <div className="flex items-center gap-2.5 h-16 px-5 border-b border-white/10">
                                 <div className="h-9 w-9 rounded-lg bg-white flex items-center justify-center text-blue-700 font-bold text-base flex-shrink-0">K</div>
-                                <span className="text-base font-bold text-white tracking-tight">Khoi Pro</span>
+                                <span className="text-base font-bold text-white tracking-tight">KhoiHub</span>
                             </div>
                             <nav className="py-3">
                                 {renderNavGroups((key) => { setActiveTab(key); setMobileMenuOpen(false); })}

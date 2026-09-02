@@ -103,10 +103,10 @@ namespace KhoiProjectManagement.Infrastructure.Services
 
         public async Task SendPasswordResetEmailAsync(string toEmail, string userName, string resetLink)
         {
-            var subject = "Reset your Khoi Pro password";
+            var subject = "Reset your KhoiHub password";
             var inner = $@"
                 <p>Hi {userName},</p>
-                <p>We received a request to reset your Khoi Pro password. Click the button below to choose a new one. This link expires in 1 hour.</p>
+                <p>We received a request to reset your KhoiHub password. Click the button below to choose a new one. This link expires in 1 hour.</p>
                 <p>If you didn't request this, you can safely ignore this email - your password won't be changed.</p>
             ";
             var body = EmailTemplates.Wrap("Reset Your Password", inner, "Reset Password", resetLink, GetFrontendUrl());
@@ -116,24 +116,24 @@ namespace KhoiProjectManagement.Infrastructure.Services
 
         public async Task SendTemporaryPasswordEmailAsync(string toEmail, string userName, string tempPassword)
         {
-            var subject = "Your Khoi Pro account";
+            var subject = "Your KhoiHub account";
             var inner = $@"
                 <p>Hi {userName},</p>
-                <p>An account has been created for you on Khoi Pro. Here's your temporary password:</p>
+                <p>An account has been created for you on KhoiHub. Here's your temporary password:</p>
                 <p style=""font-size: 18px; font-weight: 600; letter-spacing: 0.05em; background: #f3f4f6; padding: 10px 14px; border-radius: 8px; display: inline-block;"">{tempPassword}</p>
                 <p>Log in with this password and you'll be asked to choose your own before you can continue.</p>
             ";
-            var body = EmailTemplates.Wrap("Welcome to Khoi Pro", inner, "Log In", GetFrontendUrl(), GetFrontendUrl());
+            var body = EmailTemplates.Wrap("Welcome to KhoiHub", inner, "Log In", GetFrontendUrl(), GetFrontendUrl());
 
             await EnqueueEmailAsync(toEmail, subject, body, "temp_password");
         }
 
         public async Task SendLoginReminderEmailAsync(string toEmail, string userName, int daysSinceInvite)
         {
-            var subject = "Finish setting up your Khoi Pro account";
+            var subject = "Finish setting up your KhoiHub account";
             var inner = $@"
                 <p>Hi {userName},</p>
-                <p>Your Khoi Pro account was set up {daysSinceInvite} day{(daysSinceInvite == 1 ? "" : "s")} ago, but you haven't logged in yet to choose your own password.</p>
+                <p>Your KhoiHub account was set up {daysSinceInvite} day{(daysSinceInvite == 1 ? "" : "s")} ago, but you haven't logged in yet to choose your own password.</p>
                 <p>If you've lost your temporary password, use &ldquo;Forgot password&rdquo; on the login screen to get a new link.</p>
             ";
             var body = EmailTemplates.Wrap("Your account is waiting for you", inner, "Log In Now", GetFrontendUrl(), GetFrontendUrl());
@@ -174,7 +174,7 @@ namespace KhoiProjectManagement.Infrastructure.Services
 
         public async Task SendDormantUserNudgeEmailAsync(string toEmail, string userName, int daysSinceLastLogin)
         {
-            var subject = "We miss you on Khoi Pro";
+            var subject = "We miss you on KhoiHub";
             var inner = $@"
                 <p>Hi {userName},</p>
                 <p>It's been {daysSinceLastLogin} days since you last logged in. Your projects and tasks are still waiting for you.</p>
@@ -190,9 +190,9 @@ namespace KhoiProjectManagement.Infrastructure.Services
             var subject = $"Happy Birthday, {userName}! ";
             var inner = $@"
                 <p>Hi {userName},</p>
-                <p>Wishing you a very happy birthday from all of us at Khoi Pro! Hope you have a fantastic day.</p>
+                <p>Wishing you a very happy birthday from all of us at KhoiHub! Hope you have a fantastic day.</p>
             ";
-            var body = EmailTemplates.Wrap("Happy Birthday!", inner, "Open Khoi Pro", GetFrontendUrl(), GetFrontendUrl());
+            var body = EmailTemplates.Wrap("Happy Birthday!", inner, "Open KhoiHub", GetFrontendUrl(), GetFrontendUrl());
 
             await EnqueueEmailAsync(toEmail, subject, body, "birthday_greeting");
         }

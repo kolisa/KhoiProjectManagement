@@ -7,18 +7,18 @@ namespace KhoiProjectManagement.Application
 {
     public class DashboardService : IDashboardService
     {
-        private readonly IRepository<Project> _projectRepo;
+        private readonly IDashboardStatsRepository _statsRepo;
         private readonly IRepository<ProjectTask> _taskRepo;
         private readonly IRepository<DashboardStatsSnapshot> _snapshotRepo;
         private readonly IUnitOfWork _unitOfWork;
 
         public DashboardService(
-            IRepository<Project> projectRepo,
+            IDashboardStatsRepository statsRepo,
             IRepository<ProjectTask> taskRepo,
             IRepository<DashboardStatsSnapshot> snapshotRepo,
             IUnitOfWork unitOfWork)
         {
-            _projectRepo = projectRepo;
+            _statsRepo = statsRepo;
             _taskRepo = taskRepo;
             _snapshotRepo = snapshotRepo;
             _unitOfWork = unitOfWork;
@@ -26,17 +26,16 @@ namespace KhoiProjectManagement.Application
 
         public async Task<DashboardStatisticsDto> GetDashboardStatisticsAsync()
         {
-            var projects = await _projectRepo.Query().ToListAsync();
-            var tasks = await _taskRepo.Query().ToListAsync();
+            var counts = await _statsRepo.GetCountsAsync(DateTime.Now);
 
-            var totalProjects = projects.Count;
-            var activeProjects = projects.Count(p => p.Status == "active");
-            var totalTasks = tasks.Count;
-            var completedTasks = tasks.Count(t => t.Status == "completed");
-            var inProgressTasks = tasks.Count(t => t.Status == "in-progress");
-            var todoTasks = tasks.Count(t => t.Status == "todo");
-            var blockedTasks = tasks.Count(t => t.Status == "blocked");
-            var overdueTasks = tasks.Count(t => t.IsOverdue);
+            var totalProjects = counts.TotalProjects;
+            var activeProjects = counts.ActiveProjects;
+            var totalTasks = counts.TotalTasks;
+            var completedTasks = counts.CompletedTasks;
+            var inProgressTasks = counts.InProgressTasks;
+            var todoTasks = counts.TodoTasks;
+            var blockedTasks = counts.BlockedTasks;
+            var overdueTasks = counts.OverdueTasks;
             var completionRate = totalTasks == 0 ? 0 : (double)completedTasks / totalTasks * 100;
 
             var sevenDaysAgo = DateTime.UtcNow.AddDays(-7);

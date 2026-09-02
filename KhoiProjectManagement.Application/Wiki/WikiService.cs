@@ -91,10 +91,19 @@ namespace KhoiProjectManagement.Application
                 .ThenBy(w => w.Title)
                 .ToListAsync();
 
+            // One batched query for every page's latest version instead of one round-trip per page.
+            var pageIds = pages.Select(p => p.Id).ToList();
+            var latestVersions = await _versionRepo.Query()
+                .Where(v => pageIds.Contains(v.WikiPageId))
+                .GroupBy(v => v.WikiPageId)
+                .Select(g => g.OrderByDescending(v => v.VersionNumber).First())
+                .ToListAsync();
+            var latestByPageId = latestVersions.ToDictionary(v => v.WikiPageId);
+
             var result = new List<WikiPageSummaryDto>();
             foreach (var page in pages)
             {
-                var latestVersion = await GetLatestVersionAsync(page.Id);
+                latestByPageId.TryGetValue(page.Id, out var latestVersion);
                 result.Add(new WikiPageSummaryDto
                 {
                     Id = page.Id,

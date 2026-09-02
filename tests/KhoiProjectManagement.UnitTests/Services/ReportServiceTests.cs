@@ -10,16 +10,15 @@ namespace KhoiProjectManagement.UnitTests.Services
 {
     public class ReportServiceTests
     {
-        private readonly IRepository<Project> _projectRepo = Substitute.For<IRepository<Project>>();
-        private readonly IRepository<User> _userRepo = Substitute.For<IRepository<User>>();
+        private readonly IReportStatsRepository _statsRepo = Substitute.For<IReportStatsRepository>();
         private readonly IRepository<ProjectTask> _taskRepo = Substitute.For<IRepository<ProjectTask>>();
 
-        private ReportService CreateSut() => new(_projectRepo, _userRepo, _taskRepo);
+        private ReportService CreateSut() => new(_statsRepo, _taskRepo);
 
         [Fact]
         public async Task GenerateProjectSummaryReportAsync_WhenNoProjects_ReturnsZeroedTotalsWithoutDividingByZero()
         {
-            _projectRepo.Query().Returns(new List<Project>().BuildMock());
+            _statsRepo.GetProjectTaskCountsAsync().Returns(new List<ProjectTaskCountsResult>());
 
             var result = await CreateSut().GenerateProjectSummaryReportAsync();
 
@@ -32,40 +31,10 @@ namespace KhoiProjectManagement.UnitTests.Services
         [Fact]
         public async Task GenerateProjectSummaryReportAsync_ComputesPerProjectAndOverallCompletionRates()
         {
-            var alpha = new Project
-            {
-                Id = 1,
-                Name = "Alpha",
-                Status = "active",
-                Tasks = new List<ProjectTask>
-                {
-                    new() { Status = "completed" },
-                    new() { Status = "completed" },
-                    new() { Status = "todo" },
-                    new() { Status = "in-progress" },
-                }
-            };
-            var beta = new Project
-            {
-                Id = 2,
-                Name = "Beta",
-                Status = "completed",
-                Tasks = new List<ProjectTask>
-                {
-                    new() { Status = "completed" },
-                    new() { Status = "completed" },
-                    new() { Status = "completed" },
-                    new() { Status = "completed" },
-                }
-            };
-            var gamma = new Project
-            {
-                Id = 3,
-                Name = "Gamma - no tasks",
-                Status = "active",
-                Tasks = new List<ProjectTask>()
-            };
-            _projectRepo.Query().Returns(new List<Project> { alpha, beta, gamma }.BuildMock());
+            var alpha = new ProjectTaskCountsResult { Name = "Alpha", Status = "active", TasksCount = 4, CompletedTasks = 2 };
+            var beta = new ProjectTaskCountsResult { Name = "Beta", Status = "completed", TasksCount = 4, CompletedTasks = 4 };
+            var gamma = new ProjectTaskCountsResult { Name = "Gamma - no tasks", Status = "active", TasksCount = 0, CompletedTasks = 0 };
+            _statsRepo.GetProjectTaskCountsAsync().Returns(new List<ProjectTaskCountsResult> { alpha, beta, gamma });
 
             var result = await CreateSut().GenerateProjectSummaryReportAsync();
 
@@ -94,39 +63,18 @@ namespace KhoiProjectManagement.UnitTests.Services
             Assert.Equal(75, result.OverallCompletionRate);
         }
 
-        [Fact]
-        public async Task GenerateTeamPerformanceReportAsync_OnlyIncludesActiveUsers()
-        {
-            var active = new User { Id = 1, Name = "Active User", IsActive = true, AssignedTasks = new List<ProjectTask>() };
-            var inactive = new User { Id = 2, Name = "Inactive User", IsActive = false, AssignedTasks = new List<ProjectTask>() };
-            _userRepo.Query().Returns(new List<User> { active, inactive }.BuildMock());
-
-            var result = await CreateSut().GenerateTeamPerformanceReportAsync();
-
-            Assert.Single(result.TeamMembers);
-            Assert.Equal("Active User", result.TeamMembers[0].Name);
-        }
+        // "Only active users appear" is now enforced by IReportStatsRepository's SQL (WHERE "IsActive" =
+        // true), not by ReportService in-memory filtering - covered by ReportsControllerTests
+        // (FunctionalTests, real Postgres) instead of a mocked unit test here, since mocking the repo to
+        // return only the active user would just assert the mock returns what it was told to return.
 
         [Fact]
         public async Task GenerateTeamPerformanceReportAsync_ComputesAssignedCompletedOverdueAndCompletionRate()
         {
-            var user = new User
+            _statsRepo.GetTeamMemberTaskCountsAsync(Arg.Any<DateTime>()).Returns(new List<TeamMemberTaskCountsResult>
             {
-                Id = 1,
-                Name = "Jane",
-                Position = "Engineer",
-                IsActive = true,
-                AssignedTasks = new List<ProjectTask>
-                {
-                    new() { Status = "completed", DueDate = DateTime.UtcNow.AddDays(-30) },
-                    new() { Status = "completed", DueDate = DateTime.UtcNow.AddDays(30) },
-                    // Not completed and past due => overdue.
-                    new() { Status = "todo", DueDate = DateTime.UtcNow.AddDays(-30) },
-                    // Not completed but due in the future => not overdue.
-                    new() { Status = "in-progress", DueDate = DateTime.UtcNow.AddDays(30) },
-                }
-            };
-            _userRepo.Query().Returns(new List<User> { user }.BuildMock());
+                new() { Name = "Jane", Position = "Engineer", AssignedTasks = 4, CompletedTasks = 2, OverdueTasks = 1 }
+            });
 
             var result = await CreateSut().GenerateTeamPerformanceReportAsync();
 
@@ -142,8 +90,10 @@ namespace KhoiProjectManagement.UnitTests.Services
         [Fact]
         public async Task GenerateTeamPerformanceReportAsync_WhenUserHasNoAssignedTasks_CompletionRateIsZero()
         {
-            var user = new User { Id = 1, Name = "Idle", IsActive = true, AssignedTasks = new List<ProjectTask>() };
-            _userRepo.Query().Returns(new List<User> { user }.BuildMock());
+            _statsRepo.GetTeamMemberTaskCountsAsync(Arg.Any<DateTime>()).Returns(new List<TeamMemberTaskCountsResult>
+            {
+                new() { Name = "Idle" }
+            });
 
             var result = await CreateSut().GenerateTeamPerformanceReportAsync();
 

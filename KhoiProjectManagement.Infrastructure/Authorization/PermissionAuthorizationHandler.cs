@@ -14,6 +14,15 @@ namespace KhoiProjectManagement.Infrastructure.Authorization
 
         protected override Task HandleRequirementAsync(AuthorizationHandlerContext context, PermissionRequirement requirement)
         {
+            // Unconditional bypass for the seeded Admin role (Role.IsSuperAdmin, carried as a JWT claim
+            // at login) - covers every flat [Authorize(Policy="resource.action")] gate regardless of
+            // that role's actual RolePermission grants, so admin access can't be edited away.
+            if (context.User.HasClaim("superadmin", "true"))
+            {
+                context.Succeed(requirement);
+                return Task.CompletedTask;
+            }
+
             if (context.User.HasClaim("permission", requirement.Permission))
             {
                 context.Succeed(requirement);
