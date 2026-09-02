@@ -10,6 +10,11 @@ namespace KhoiProjectManagement.Application
         public static readonly string[] Valid = { "todo", "in-progress", "blocked", "completed" };
     }
 
+    internal static class TaskTypeRule
+    {
+        public static readonly string[] Valid = { "Task", "Meeting", "Milestone", "Review" };
+    }
+
     public class CreateTaskDtoValidator : AbstractValidator<CreateTaskDto>
     {
         public CreateTaskDtoValidator()
@@ -19,6 +24,8 @@ namespace KhoiProjectManagement.Application
             RuleFor(x => x.Description).MaximumLength(4000);
             RuleFor(x => x.Priority).Must(p => PriorityRule.Valid.Contains(p))
                 .WithMessage($"Priority must be one of: {string.Join(", ", PriorityRule.Valid)}");
+            RuleFor(x => x.Type).Must(t => TaskTypeRule.Valid.Contains(t))
+                .WithMessage($"Type must be one of: {string.Join(", ", TaskTypeRule.Valid)}");
             RuleFor(x => x.AssignedToId).GreaterThan(0).When(x => x.AssignedToId.HasValue);
         }
     }
@@ -33,6 +40,8 @@ namespace KhoiProjectManagement.Application
                 .WithMessage($"Status must be one of: {string.Join(", ", TaskStatusRule.Valid)}");
             RuleFor(x => x.Priority).Must(p => PriorityRule.Valid.Contains(p))
                 .WithMessage($"Priority must be one of: {string.Join(", ", PriorityRule.Valid)}");
+            RuleFor(x => x.Type).Must(t => TaskTypeRule.Valid.Contains(t))
+                .WithMessage($"Type must be one of: {string.Join(", ", TaskTypeRule.Valid)}");
             RuleFor(x => x.AssignedToId).GreaterThan(0).When(x => x.AssignedToId.HasValue);
         }
     }
