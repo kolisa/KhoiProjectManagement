@@ -1,6 +1,6 @@
 // src/components/Timesheets/TimesheetsPage.jsx
-import React, { useState, useEffect, useCallback } from 'react';
-import { Clock, Plus } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { Clock, Plus, Upload } from 'lucide-react';
 import { hasPermission } from '../../utils/permissions';
 import { useToast } from '../../contexts/ToastContext';
 import { reportApiError } from '../../utils/apiError';
@@ -8,6 +8,7 @@ import useModalA11y from '../Common/useModalA11y';
 import StatusBadge from '../Common/StatusBadge';
 import TimesheetDetail from './TimesheetDetail';
 import { formatDuration } from './duration';
+import { parseTimesheetCsv } from './timesheetImport';
 
 const STATUS_COLORS = {
   Submitted: 'bg-[#EEEEFF] text-[#4131B0]',
@@ -37,6 +38,11 @@ const TimesheetsPage = ({ apiService, user }) => {
   const [error, setError] = useState(null);
   const [selected, setSelected] = useState(null); // a TimesheetDto, or 'new', or null
   const [newPeriod, setNewPeriod] = useState(defaultPeriod);
+  // Set only when 'new' was reached via Upload rather than the New Timesheet modal - pre-fills
+  // TimesheetDetail's grid instead of starting empty. Cleared whenever the detail view closes so a
+  // later plain "New Timesheet" doesn't accidentally reuse a stale upload.
+  const [uploadedDraft, setUploadedDraft] = useState(null);
+  const fileInputRef = useRef(null);
 
   const [showNew, setShowNew] = useState(false);
   const closeNewModal = () => {
@@ -44,6 +50,30 @@ const TimesheetsPage = ({ apiService, user }) => {
     setNewPeriod(defaultPeriod());
   };
   const newModalRef = useModalA11y(closeNewModal);
+
+  const handleUploadClick = () => fileInputRef.current?.click();
+
+  const handleFileSelected = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // reset so re-selecting the same file re-fires onChange
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      const { periodStart, periodEnd, entries, warnings } = parseTimesheetCsv(text, projects);
+      if (warnings.length > 0) {
+        toast.info(`Imported ${entries.length} row${entries.length === 1 ? '' : 's'}, ${warnings.length} skipped or flagged - review before saving.`);
+      }
+      setUploadedDraft({
+        periodStart: periodStart || defaultPeriod().periodStart,
+        periodEnd: periodEnd || defaultPeriod().periodEnd,
+        entries,
+      });
+      setSelected('new');
+    } catch (err) {
+      toast.error(err.message || "Couldn't read that file as a timesheet.");
+    }
+  };
 
   const load = useCallback(async () => {
     try {
@@ -68,7 +98,13 @@ const TimesheetsPage = ({ apiService, user }) => {
   const handleCreateNew = (e) => {
     e.preventDefault();
     setShowNew(false);
+    setUploadedDraft(null);
     setSelected('new');
+  };
+
+  const closeDetail = () => {
+    setSelected(null);
+    setUploadedDraft(null);
   };
 
   if (selected) {
@@ -77,9 +113,10 @@ const TimesheetsPage = ({ apiService, user }) => {
         apiService={apiService}
         user={user}
         timesheet={selected === 'new' ? null : selected}
-        initialPeriod={selected === 'new' ? newPeriod : undefined}
+        initialPeriod={selected === 'new' ? (uploadedDraft ? { periodStart: uploadedDraft.periodStart, periodEnd: uploadedDraft.periodEnd } : newPeriod) : undefined}
+        initialEntries={selected === 'new' ? uploadedDraft?.entries : undefined}
         projects={projects}
-        onClose={() => setSelected(null)}
+        onClose={closeDetail}
         onChanged={load}
       />
     );
@@ -95,13 +132,23 @@ const TimesheetsPage = ({ apiService, user }) => {
           </h2>
           <p className="text-gray-600">Log your hours per period and submit them for approval</p>
         </div>
-        <button
-          onClick={() => setShowNew(true)}
-          className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors"
-        >
-          <Plus className="h-4 w-4" />
-          New Timesheet
-        </button>
+        <div className="flex items-center gap-2.5">
+          <input ref={fileInputRef} type="file" accept=".csv" onChange={handleFileSelected} className="hidden" />
+          <button
+            onClick={handleUploadClick}
+            className="inline-flex items-center gap-2 bg-white text-gray-700 border border-gray-300 px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-gray-50 transition-colors"
+          >
+            <Upload className="h-4 w-4" />
+            Upload Timesheet
+          </button>
+          <button
+            onClick={() => setShowNew(true)}
+            className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors"
+          >
+            <Plus className="h-4 w-4" />
+            New Timesheet
+          </button>
+        </div>
       </div>
 
       {canApprove && (
