@@ -48,8 +48,10 @@ const formatTime = (date) => {
 // warranted the full page, matching how Wiki/Vault swap their list for a detail view). `timesheet`
 // is either a full TimesheetDto (existing) or null (a brand-new one - PeriodStart/End were already
 // collected by the caller before this opens, passed in via `initialPeriod`). `onClose` navigates back
-// to the list rather than closing anything.
-const TimesheetDetail = ({ apiService, user, timesheet, initialPeriod, projects, onClose, onChanged }) => {
+// to the list rather than closing anything. `initialEntries` (isNew only) pre-fills the grid from an
+// uploaded CSV instead of starting empty - already in this component's own entry shape, built by
+// timesheetImport.js, so it needs no extra normalization beyond the manually-typed default below.
+const TimesheetDetail = ({ apiService, user, timesheet, initialPeriod, initialEntries, projects, onClose, onChanged }) => {
   const toast = useToast();
   const isNew = !timesheet;
   const isOwn = isNew || timesheet.userId === user?.id;
@@ -57,22 +59,24 @@ const TimesheetDetail = ({ apiService, user, timesheet, initialPeriod, projects,
   const canApprove = !isOwn && timesheet?.status === 'Submitted' && hasPermission(user?.permissions, 'timesheets.approve');
 
   const [entries, setEntries] = useState(
-    (timesheet?.entries || []).map((e) => {
-      const parsed = e.entryDate ? new Date(e.entryDate) : null;
-      return {
-        entryDate: (e.entryDate || '').slice(0, 10),
-        entryTime: parsed && hasTimeComponent(parsed)
-          ? `${String(parsed.getUTCHours()).padStart(2, '0')}:${String(parsed.getUTCMinutes()).padStart(2, '0')}`
-          : '',
-        projectId: e.projectId ? String(e.projectId) : '',
-        // Kept alongside projectId purely for the read-only display below - the API already gives us
-        // the name, so there's no need to cross-reference the `projects` list (which also wouldn't
-        // reliably contain every project an entry could reference, e.g. an archived one).
-        projectName: e.projectName || '',
-        description: e.description || '',
-        hours: String(e.hours)
-      };
-    }) || []
+    isNew && initialEntries?.length
+      ? initialEntries
+      : (timesheet?.entries || []).map((e) => {
+        const parsed = e.entryDate ? new Date(e.entryDate) : null;
+        return {
+          entryDate: (e.entryDate || '').slice(0, 10),
+          entryTime: parsed && hasTimeComponent(parsed)
+            ? `${String(parsed.getUTCHours()).padStart(2, '0')}:${String(parsed.getUTCMinutes()).padStart(2, '0')}`
+            : '',
+          projectId: e.projectId ? String(e.projectId) : '',
+          // Kept alongside projectId purely for the read-only display below - the API already gives us
+          // the name, so there's no need to cross-reference the `projects` list (which also wouldn't
+          // reliably contain every project an entry could reference, e.g. an archived one).
+          projectName: e.projectName || '',
+          description: e.description || '',
+          hours: String(e.hours)
+        };
+      }) || []
   );
   const [saving, setSaving] = useState(false);
   const [showSubmitPrompt, setShowSubmitPrompt] = useState(false);
