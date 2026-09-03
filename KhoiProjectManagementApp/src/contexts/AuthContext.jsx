@@ -1,9 +1,20 @@
 // src/contexts/AuthContext.js
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import { Clock } from 'lucide-react';
 import ApiService, { onSessionExpired, getStoredToken } from '../services/ApiService';
 import { useToast } from './ToastContext';
+import useModalA11y from '../components/Common/useModalA11y';
 
 const AuthContext = createContext();
+
+// Auto-logout after this many minutes of no mouse/keyboard/scroll/touch activity - deliberately
+// matches Jwt:AccessTokenExpiryMinutes (appsettings.json) so a fully idle session and its access
+// token both lapse around the same time, not two independently-chosen numbers. The last
+// WARNING_SECONDS of that window show a countdown modal offering to stay signed in before the
+// logout actually happens, rather than logging the user out with no warning mid-idle.
+const IDLE_TIMEOUT_MINUTES = 15;
+const WARNING_SECONDS = 60;
+const ACTIVITY_EVENTS = ['mousemove', 'mousedown', 'keydown', 'scroll', 'touchstart'];
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
@@ -63,15 +74,81 @@ export const AuthProvider = ({ children }) => {
         throw new Error('Login failed');
     };
 
-    const logout = async () => {
+    // preserveLastTab: an explicit, deliberate logout always starts fresh at the dashboard next time -
+    // only an auto-logout (session expiry via the 401 handler above, or the idle-timeout below)
+    // preserves the last-active tab for restoration after the user logs back in.
+    const logout = async (preserveLastTab = false) => {
         const apiService = new ApiService();
         setUser(null);
-        // An explicit, deliberate logout always starts fresh at the dashboard next time - only an
-        // auto-logout (session expiry, handled separately in ApiService's 401 handler) preserves the
-        // last-active tab for restoration after the user logs back in.
-        localStorage.removeItem('khoi_last_tab');
+        if (!preserveLastTab) {
+            localStorage.removeItem('khoi_last_tab');
+        }
         await apiService.logout();
     };
+
+    // ---- Idle timeout: auto-logout after IDLE_TIMEOUT_MINUTES of no activity ----
+    const [idleWarningSecondsLeft, setIdleWarningSecondsLeft] = useState(null); // null = warning not showing
+    const idleTimerRef = useRef(null);
+    const warningTimerRef = useRef(null);
+    const countdownIntervalRef = useRef(null);
+
+    const clearIdleTimers = () => {
+        clearTimeout(idleTimerRef.current);
+        clearTimeout(warningTimerRef.current);
+        clearInterval(countdownIntervalRef.current);
+    };
+
+    const resetIdleTimer = () => {
+        clearIdleTimers();
+        setIdleWarningSecondsLeft(null);
+        if (!user) return;
+
+        const idleMs = IDLE_TIMEOUT_MINUTES * 60 * 1000;
+        const warningMs = WARNING_SECONDS * 1000;
+
+        warningTimerRef.current = setTimeout(() => {
+            setIdleWarningSecondsLeft(WARNING_SECONDS);
+            countdownIntervalRef.current = setInterval(() => {
+                setIdleWarningSecondsLeft((prev) => (prev !== null && prev > 1 ? prev - 1 : 0));
+            }, 1000);
+        }, idleMs - warningMs);
+
+        idleTimerRef.current = setTimeout(async () => {
+            clearIdleTimers();
+            setIdleWarningSecondsLeft(null);
+            await logout(true);
+            toast.info("You've been signed out after a period of inactivity.");
+        }, idleMs);
+    };
+
+    useEffect(() => {
+        if (!user) {
+            clearIdleTimers();
+            setIdleWarningSecondsLeft(null);
+            return;
+        }
+
+        // Throttled - mousemove alone can fire dozens of times a second, and every reset just needs
+        // to happen within about a second of real activity, not on every pixel of movement.
+        let lastReset = 0;
+        const handleActivity = () => {
+            const now = Date.now();
+            if (now - lastReset < 1000) return;
+            lastReset = now;
+            resetIdleTimer();
+        };
+
+        resetIdleTimer();
+        ACTIVITY_EVENTS.forEach((evt) => window.addEventListener(evt, handleActivity));
+
+        return () => {
+            clearIdleTimers();
+            ACTIVITY_EVENTS.forEach((evt) => window.removeEventListener(evt, handleActivity));
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user]);
+
+    const idleModalRef = useModalA11y(() => resetIdleTimer());
 
     const value = {
         user,
@@ -80,7 +157,53 @@ export const AuthProvider = ({ children }) => {
         loading
     };
 
-    return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+    return (
+        <AuthContext.Provider value={value}>
+            {children}
+            {idleWarningSecondsLeft !== null && (
+                <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-[120]">
+                    <div
+                        ref={idleModalRef}
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="idle-timeout-title"
+                        aria-describedby="idle-timeout-message"
+                        tabIndex={-1}
+                        className="bg-white rounded-2xl shadow-xl max-w-sm w-full outline-none"
+                    >
+                        <div className="px-6 pt-6 pb-2 flex items-start gap-3">
+                            <div className="bg-amber-50 rounded-lg p-2 flex-shrink-0">
+                                <Clock className="h-5 w-5 text-amber-600" />
+                            </div>
+                            <div className="min-w-0">
+                                <h3 id="idle-timeout-title" className="text-base font-semibold text-gray-900">Still there?</h3>
+                                <p id="idle-timeout-message" className="text-sm text-gray-600 mt-1">
+                                    You've been inactive for a while. For security, you'll be signed out in{' '}
+                                    <span className="font-semibold tabular-nums">{idleWarningSecondsLeft}s</span> unless you stay signed in.
+                                </p>
+                            </div>
+                        </div>
+                        <div className="px-6 py-4 flex justify-end gap-3 mt-2">
+                            <button
+                                type="button"
+                                onClick={() => logout()}
+                                className="inline-flex items-center gap-2 bg-white text-gray-700 border border-gray-300 px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-gray-50 transition-colors"
+                            >
+                                Log out now
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => resetIdleTimer()}
+                                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-[10px] text-sm font-semibold shadow-sm transition-colors text-white bg-blue-600 hover:bg-blue-700"
+                            >
+                                Stay signed in
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </AuthContext.Provider>
+    );
 };
 
 export const useAuth = () => {
