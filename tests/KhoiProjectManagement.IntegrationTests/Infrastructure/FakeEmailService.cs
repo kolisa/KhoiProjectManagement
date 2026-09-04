@@ -57,6 +57,12 @@ namespace KhoiProjectManagement.IntegrationTests.Infrastructure
         public Task SendTimesheetSubmittedEmailAsync(string toEmail, string submitterName, DateTime periodStart, DateTime periodEnd, decimal totalHours) =>
             Record(nameof(SendTimesheetSubmittedEmailAsync), toEmail);
 
+        public Task SendBroadcastEmailAsync(string toEmail, string subject, string bodyHtml) =>
+            Record(nameof(SendBroadcastEmailAsync), toEmail);
+
+        public Task SendSystemOverviewEmailAsync(string toEmail, string userName) =>
+            Record(nameof(SendSystemOverviewEmailAsync), toEmail);
+
         public Task DispatchPendingEmailsAsync() => Task.CompletedTask;
 
         private Task Record(string method, string toEmail)

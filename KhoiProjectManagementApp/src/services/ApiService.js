@@ -425,6 +425,14 @@ class ApiService {
     });
   }
 
+  // Admin broadcast email (email.broadcast) - see CommunicationsController
+  async sendBroadcastEmail({ subject, body, roleIds }) {
+    return await this.request('/communications/broadcast', {
+      method: 'POST',
+      body: JSON.stringify({ subject, body, roleIds }),
+    });
+  }
+
   async updateRole(roleId, dto) {
     return await this.request(`/roles/${roleId}`, {
       method: 'PUT',

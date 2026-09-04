@@ -968,7 +968,8 @@ namespace KhoiProjectManagement.Infrastructure.Data
                 new Permission { Id = 23, Resource = "reminders", Action = "view_all", Name = "reminders.view_all", Description = "View and filter every user's reminders" },
                 new Permission { Id = 24, Resource = "reminders", Action = "manage", Name = "reminders.manage", Description = "Assign a reminder to another user, bulk-act on any reminder" },
                 new Permission { Id = 25, Resource = "groups", Action = "manage", Name = "groups.manage", Description = "Create groups and manage their membership" },
-                new Permission { Id = 26, Resource = "audit", Action = "view", Name = "audit.view", Description = "View sent-email history and application error logs" }
+                new Permission { Id = 26, Resource = "audit", Action = "view", Name = "audit.view", Description = "View sent-email history and application error logs" },
+                new Permission { Id = 27, Resource = "email", Action = "broadcast", Name = "email.broadcast", Description = "Send a broadcast email to users filtered by role" }
             );
 
             modelBuilder.Entity<Role>().HasData(
@@ -979,7 +980,7 @@ namespace KhoiProjectManagement.Infrastructure.Data
 
             // Admin: all permissions.
             modelBuilder.Entity<RolePermission>().HasData(
-                Enumerable.Range(1, 26).Select(permissionId => new RolePermission { RoleId = 1, PermissionId = permissionId }).ToArray()
+                Enumerable.Range(1, 27).Select(permissionId => new RolePermission { RoleId = 1, PermissionId = permissionId }).ToArray()
             );
 
             // Manager: projects.create/edit, tasks.delete, attachments.delete, notifications.check_overdue,

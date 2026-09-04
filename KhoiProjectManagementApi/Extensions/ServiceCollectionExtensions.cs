@@ -123,6 +123,9 @@ namespace KhoiProjectManagementApi.Extensions
             services.AddScoped<IRoleService, RoleService>();
             services.AddScoped<IGroupService, GroupService>();
 
+            // Admin broadcast email (flat, role-targeted)
+            services.AddScoped<IBroadcastEmailService, BroadcastEmailService>();
+
             // Admin-only Audit section (sent emails + error logs + logins + page visits)
             services.AddScoped<IEmailLogService, EmailLogService>();
             services.AddScoped<ILogFileService, LogFileService>();
