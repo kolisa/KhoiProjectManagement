@@ -22,8 +22,7 @@
     "SmtpPort": 587,
     "SmtpUsername": "REPLACE_ME@gmail.com",
     "SmtpPassword": "REPLACE_ME_APP_PASSWORD",
-    "FromAddress": "REPLACE_ME@gmail.com",
-    "FromName": "KhoiHub"
+    "FromAddress": "REPLACE_ME@gmail.com"
   },
 
   "Cors": {
