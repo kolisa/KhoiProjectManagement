@@ -15,6 +15,10 @@ namespace KhoiProjectManagement.Application
         private readonly IRepository<LibraryFile> _libraryFileRepo;
         private readonly IRepository<LibraryFileVersion> _libraryFileVersionRepo;
         private readonly IRepository<ProjectUser> _projectUserRepo;
+        private readonly IRepository<Timesheet> _timesheetRepo;
+        private readonly IRepository<WikiPage> _wikiPageRepo;
+        private readonly IRepository<Idea> _ideaRepo;
+        private readonly IRepository<Reminder> _reminderRepo;
         private readonly IUnitOfWork _unitOfWork;
         private readonly IEmailService _emailService;
         private readonly IConfiguration _configuration;
@@ -27,6 +31,10 @@ namespace KhoiProjectManagement.Application
             IRepository<LibraryFile> libraryFileRepo,
             IRepository<LibraryFileVersion> libraryFileVersionRepo,
             IRepository<ProjectUser> projectUserRepo,
+            IRepository<Timesheet> timesheetRepo,
+            IRepository<WikiPage> wikiPageRepo,
+            IRepository<Idea> ideaRepo,
+            IRepository<Reminder> reminderRepo,
             IUnitOfWork unitOfWork,
             IEmailService emailService,
             IConfiguration configuration)
@@ -38,6 +46,10 @@ namespace KhoiProjectManagement.Application
             _libraryFileRepo = libraryFileRepo;
             _libraryFileVersionRepo = libraryFileVersionRepo;
             _projectUserRepo = projectUserRepo;
+            _timesheetRepo = timesheetRepo;
+            _wikiPageRepo = wikiPageRepo;
+            _ideaRepo = ideaRepo;
+            _reminderRepo = reminderRepo;
             _unitOfWork = unitOfWork;
             _emailService = emailService;
             _configuration = configuration;
@@ -197,7 +209,11 @@ namespace KhoiProjectManagement.Application
         public async Task CheckInactiveUsersAsync()
         {
             var thresholdDays = int.Parse(_configuration["Notifications:LoginReminderThresholdDays"] ?? "3");
-            var repeatDays = int.Parse(_configuration["Notifications:LoginReminderRepeatDays"] ?? "7");
+            // Defaults to once a day (not the 7-day-repeat pattern the other Check*Async methods in
+            // this file use) - a user who's never logged in at all should hear about it every time this
+            // job runs, not go silent for a week, since there's no other signal (no notification bell
+            // they'd see) telling them the account is still waiting.
+            var repeatDays = int.Parse(_configuration["Notifications:LoginReminderRepeatDays"] ?? "1");
             var cutoff = DateTime.UtcNow.AddDays(-thresholdDays);
 
             // MustChangePassword alone (not LastLoginAt) is the right single signal - it stays true
@@ -296,6 +312,65 @@ namespace KhoiProjectManagement.Application
                     {
                         // The in-app notification already saved - a failed send must not stop the loop.
                     }
+                }
+            }
+        }
+
+        // The 6 areas checked here are deliberately the ones every regular active user can freely try
+        // with no special permission - see EmailService.TrackedFeatures' comment for why Vault/Finance/
+        // Calendar-management/Reports are left out. Called by SystemOverviewEmailJob on its own
+        // admin-configurable schedule (see SystemOverviewEmailSettings) - no Notification/dedup row and
+        // no IsEmailEnabledAsync gate, matching this email's existing behavior as a standing scheduled
+        // broadcast rather than an activity-triggered nudge.
+        public async Task SendSystemOverviewEmailsAsync()
+        {
+            var weekStart = DateTime.UtcNow.AddDays(-7);
+            var weekEnd = DateTime.UtcNow;
+
+            // Fully-onboarded only - CheckInactiveUsersAsync already reminds anyone still MustChangePassword
+            // daily, so this email would otherwise double-message that exact population.
+            var users = await _userRepo.Query()
+                .Where(u => u.IsActive && !u.MustChangePassword)
+                .ToListAsync();
+
+            foreach (var user in users)
+            {
+                var unusedFeatureKeys = new List<string>();
+                if (!await _taskRepo.Query().AnyAsync(t => t.AssignedToId == user.Id)) unusedFeatureKeys.Add("tasks");
+                if (!await _timesheetRepo.Query().AnyAsync(t => t.UserId == user.Id)) unusedFeatureKeys.Add("timesheets");
+                if (!await _wikiPageRepo.Query().AnyAsync(w => w.CreatedBy == user.Id)) unusedFeatureKeys.Add("wiki");
+                if (!await _libraryFileVersionRepo.Query().AnyAsync(v => v.UploadedBy == user.Id)) unusedFeatureKeys.Add("library");
+                if (!await _ideaRepo.Query().AnyAsync(i => i.SubmittedBy == user.Id)) unusedFeatureKeys.Add("ideas");
+                if (!await _reminderRepo.Query().AnyAsync(r => r.CreatedBy == user.Id || r.AssignedToId == user.Id)) unusedFeatureKeys.Add("reminders");
+
+                var tasksCompleted = 0;
+                var tasksOpen = 0;
+                var projectsActive = 0;
+                var libraryUploads = 0;
+                if (unusedFeatureKeys.Count == 0)
+                {
+                    // Only worth computing for the "used everything" branch - the nudge branch doesn't
+                    // use these at all.
+                    tasksCompleted = await _taskRepo.Query()
+                        .CountAsync(t => t.AssignedToId == user.Id && t.CompletedAt != null && t.CompletedAt >= weekStart && t.CompletedAt <= weekEnd);
+                    tasksOpen = await _taskRepo.Query()
+                        .CountAsync(t => t.AssignedToId == user.Id && t.Status != "completed");
+                    projectsActive = await _projectUserRepo.Query()
+                        .Include(pu => pu.Project)
+                        .CountAsync(pu => pu.UserId == user.Id && pu.Project.Status == "active");
+                    libraryUploads = await _libraryFileVersionRepo.Query()
+                        .CountAsync(v => v.UploadedBy == user.Id && v.UploadedAt >= weekStart && v.UploadedAt <= weekEnd);
+                }
+
+                try
+                {
+                    await _emailService.SendSystemOverviewEmailAsync(
+                        user.Email, user.Name, unusedFeatureKeys, tasksCompleted, tasksOpen, projectsActive, libraryUploads);
+                }
+                catch
+                {
+                    // Already logged to EmailLog by EmailService - intentionally swallowed, matching
+                    // every other loop in this file.
                 }
             }
         }

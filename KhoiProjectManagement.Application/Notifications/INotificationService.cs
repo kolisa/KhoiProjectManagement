@@ -21,6 +21,12 @@ namespace KhoiProjectManagement.Application
         // frequent redeploys (see WeeklyDigestJob wiring in Program.cs).
         Task GenerateWeeklyDigestsAsync();
 
+        // Personalizes the weekly system-overview email per user: points out specifically the areas
+        // (of 6 tracked, permission-free ones) they haven't tried yet, or - if they've tried all of
+        // them - sends a short highlights email instead. See EmailService.SendSystemOverviewEmailAsync.
+        // Called by SystemOverviewEmailJob on its own admin-configurable schedule; no dedup here.
+        Task SendSystemOverviewEmailsAsync();
+
         // Nudges users who have never created a LibraryFile or uploaded a LibraryFileVersion, once
         // they're past Notifications:NoDocumentsThresholdDays since account creation. Deduped via
         // Notifications:NoDocumentsRepeatDays.

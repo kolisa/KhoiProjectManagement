@@ -60,7 +60,7 @@ namespace KhoiProjectManagement.IntegrationTests.Infrastructure
         public Task SendBroadcastEmailAsync(string toEmail, string subject, string bodyHtml) =>
             Record(nameof(SendBroadcastEmailAsync), toEmail);
 
-        public Task SendSystemOverviewEmailAsync(string toEmail, string userName) =>
+        public Task SendSystemOverviewEmailAsync(string toEmail, string userName, IReadOnlyList<string> unusedFeatureKeys, int tasksCompletedThisWeek, int tasksOpen, int activeProjects, int libraryUploadsThisWeek) =>
             Record(nameof(SendSystemOverviewEmailAsync), toEmail);
 
         public Task DispatchPendingEmailsAsync() => Task.CompletedTask;
