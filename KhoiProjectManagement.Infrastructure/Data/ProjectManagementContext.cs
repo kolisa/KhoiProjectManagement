@@ -107,6 +107,10 @@ namespace KhoiProjectManagement.Infrastructure.Data
         // Postgres database, shared across instances by construction (see ServiceCollectionExtensions).
         public DbSet<DataProtectionKey> DataProtectionKeys { get; set; }
 
+        // Single-row table (Id=1, seeded below) - the weekly system-overview email's on/off switch and
+        // day/time, admin-editable from Settings > System Overview Email (see SystemOverviewEmailSettings).
+        public DbSet<SystemOverviewEmailSettings> SystemOverviewEmailSettings { get; set; }
+
         protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
         {
             // Postgres' timestamptz columns require DateTime values to be UTC-kinded. Several DateTime
@@ -388,6 +392,12 @@ namespace KhoiProjectManagement.Infrastructure.Data
                 .WithMany()
                 .HasForeignKey(a => a.UploadedBy)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<SystemOverviewEmailSettings>()
+                .HasOne(s => s.UpdatedByUser)
+                .WithMany()
+                .HasForeignKey(s => s.UpdatedByUserId)
+                .OnDelete(DeleteBehavior.SetNull);
 
             // Space nests under itself - permission checks walk this chain upward (see
             // ISpacePermissionResolver). Restrict, not Cascade: deleting a parent Space should not
@@ -969,7 +979,8 @@ namespace KhoiProjectManagement.Infrastructure.Data
                 new Permission { Id = 24, Resource = "reminders", Action = "manage", Name = "reminders.manage", Description = "Assign a reminder to another user, bulk-act on any reminder" },
                 new Permission { Id = 25, Resource = "groups", Action = "manage", Name = "groups.manage", Description = "Create groups and manage their membership" },
                 new Permission { Id = 26, Resource = "audit", Action = "view", Name = "audit.view", Description = "View sent-email history and application error logs" },
-                new Permission { Id = 27, Resource = "email", Action = "broadcast", Name = "email.broadcast", Description = "Send a broadcast email to users filtered by role" }
+                new Permission { Id = 27, Resource = "email", Action = "broadcast", Name = "email.broadcast", Description = "Send a broadcast email to users filtered by role" },
+                new Permission { Id = 28, Resource = "email", Action = "manage_overview", Name = "email.manage_overview", Description = "Configure the weekly system-overview email's on/off switch and schedule" }
             );
 
             modelBuilder.Entity<Role>().HasData(
@@ -980,7 +991,7 @@ namespace KhoiProjectManagement.Infrastructure.Data
 
             // Admin: all permissions.
             modelBuilder.Entity<RolePermission>().HasData(
-                Enumerable.Range(1, 27).Select(permissionId => new RolePermission { RoleId = 1, PermissionId = permissionId }).ToArray()
+                Enumerable.Range(1, 28).Select(permissionId => new RolePermission { RoleId = 1, PermissionId = permissionId }).ToArray()
             );
 
             // Manager: projects.create/edit, tasks.delete, attachments.delete, notifications.check_overdue,
@@ -1016,6 +1027,13 @@ namespace KhoiProjectManagement.Infrastructure.Data
                 new UserRole { UserId = 4, RoleId = 3, JoinedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc) }, // member
                 new UserRole { UserId = 5, RoleId = 3, JoinedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc) }, // member
                 new UserRole { UserId = 6, RoleId = 3, JoinedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc) }  // member
+            );
+
+            // Single row - matches the schedule the weekly system-overview email shipped with
+            // (every Friday 10am) so existing behavior is unchanged until an admin edits it from
+            // Settings > System Overview Email.
+            modelBuilder.Entity<SystemOverviewEmailSettings>().HasData(
+                new SystemOverviewEmailSettings { Id = 1, Enabled = true, DayOfWeek = DayOfWeek.Friday, Hour = 10, Minute = 0, UpdatedAtUtc = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc), UpdatedByUserId = null }
             );
         }
     }

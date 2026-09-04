@@ -31,6 +31,7 @@ const PermissionsManagement = lazy(() => import('./components/Settings/Permissio
 const GroupsManagement = lazy(() => import('./components/Settings/GroupsManagement'));
 const AuditLog = lazy(() => import('./components/Settings/AuditLog'));
 const BroadcastEmail = lazy(() => import('./components/Settings/BroadcastEmail'));
+const SystemOverviewEmailSettings = lazy(() => import('./components/Settings/SystemOverviewEmailSettings'));
 import OrgChartTree from './components/Team/OrgChartTree';
 const IdeasPage = lazy(() => import('./components/Ideas/IdeasPage'));
 const InvoicesPage = lazy(() => import('./components/Finance/InvoicesPage'));
@@ -1994,6 +1995,9 @@ const ProjectManagementSystem = () => {
                             )}
                             {hasPermission(user?.permissions, 'email.broadcast') && (
                                 <BroadcastEmail apiService={apiService} />
+                            )}
+                            {hasPermission(user?.permissions, 'email.manage_overview') && (
+                                <SystemOverviewEmailSettings apiService={apiService} />
                             )}
                         </div>
                     </Suspense>

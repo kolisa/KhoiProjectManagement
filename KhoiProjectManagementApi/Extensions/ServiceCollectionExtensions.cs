@@ -126,6 +126,11 @@ namespace KhoiProjectManagementApi.Extensions
             // Admin broadcast email (flat, role-targeted)
             services.AddScoped<IBroadcastEmailService, BroadcastEmailService>();
 
+            // Weekly system-overview email's on/off switch + schedule (DB-backed, admin-editable) and
+            // the port that applies a change to the live Quartz scheduler immediately.
+            services.AddScoped<ISystemOverviewEmailSettingsService, SystemOverviewEmailSettingsService>();
+            services.AddScoped<IJobRescheduler, KhoiProjectManagement.Quartz.JobRescheduler>();
+
             // Admin-only Audit section (sent emails + error logs + logins + page visits)
             services.AddScoped<IEmailLogService, EmailLogService>();
             services.AddScoped<ILogFileService, LogFileService>();

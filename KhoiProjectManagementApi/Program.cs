@@ -1,3 +1,5 @@
+using KhoiProjectManagement.Application;
+using KhoiProjectManagement.Application.Abstractions;
 using KhoiProjectManagement.Infrastructure;
 using KhoiProjectManagement.Infrastructure.Data;
 using KhoiProjectManagement.Quartz;
@@ -159,27 +161,15 @@ try
             .StartAt(firstRecurrence)
             .WithSimpleSchedule(s => s.WithIntervalInHours(24).RepeatForever()));
 
-        // The one genuinely calendar-based trigger in this file (every other job above uses an
-        // hourly/daily WithSimpleSchedule with the real cadence enforced inside the service instead -
-        // see WeeklyDigestJob's comment) - "every Friday at 10am" is exactly what Quartz's cron
-        // trigger is for. Both the on/off switch and the schedule itself are config-driven
-        // (SystemOverviewEmail:Enabled/CronSchedule in appsettings.json) rather than hardcoded, same
-        // spirit as Notifications:WeeklyDigestRepeatDays above - an admin can retime or disable this
-        // without a code change. Cron format is seconds minutes hours day-of-month month day-of-week.
-        // DoNothing on misfire is deliberate: if the scheduler was down at the scheduled time (a
-        // deploy, a restart), skip straight to the next occurrence rather than firing late or
-        // double-sending on next boot - this is a standing "welcome tour" email, not something that
-        // must eventually fire no matter what. No boot-time TriggerJob call either (unlike the daily
-        // jobs above) - this shouldn't fire on every dev/deploy restart.
-        if (builder.Configuration.GetValue("SystemOverviewEmail:Enabled", true))
-        {
-            var systemOverviewCron = builder.Configuration["SystemOverviewEmail:CronSchedule"] ?? "0 0 10 ? * FRI";
-            q.AddJob<SystemOverviewEmailJob>(opts => opts.WithIdentity(systemOverviewJobKey));
-            q.AddTrigger(opts => opts
-                .ForJob(systemOverviewJobKey)
-                .WithIdentity("SystemOverviewEmail-trigger")
-                .WithCronSchedule(systemOverviewCron, x => x.WithMisfireHandlingInstructionDoNothing()));
-        }
+        // The one genuinely calendar-based job in this file (every other job above uses an hourly/daily
+        // WithSimpleSchedule with the real cadence enforced inside the service instead - see
+        // WeeklyDigestJob's comment) - "every Friday at 10am"-style scheduling is exactly what Quartz's
+        // cron trigger is for. Registered durably with NO trigger here: its on/off switch and day/time
+        // are DB-backed and admin-editable from Settings > System Overview Email (see
+        // SystemOverviewEmailSettings/JobRescheduler), not appsettings.json, so the actual trigger is
+        // applied below, once the scheduler is up and the DB is readable. StoreDurably lets the job
+        // exist with no trigger attached (the "disabled" state) without Quartz removing it.
+        q.AddJob<SystemOverviewEmailJob>(opts => opts.WithIdentity(systemOverviewJobKey).StoreDurably());
     });
     builder.Services.AddQuartzHostedService(opts => opts.WaitForJobsToComplete = true);
 
@@ -247,6 +237,16 @@ try
         // "check immediately on boot" behavior deliberately and exactly once.
         var schedulerFactory = scope.ServiceProvider.GetRequiredService<ISchedulerFactory>();
         var scheduler = await schedulerFactory.GetScheduler();
+
+        // Brings the live SystemOverviewEmail trigger in sync with whatever is currently stored in the
+        // DB (the seeded default, or an admin's saved change from Settings > System Overview Email) -
+        // unconditional (not gated by App:AutoMigrateOnStartup above) since the settings row must
+        // already exist on a skip-migration boot too. Deliberately not a TriggerJob call like the ones
+        // below - this only (re)applies the trigger's schedule, it never fires the job itself.
+        var systemOverviewSettings = await scope.ServiceProvider.GetRequiredService<ISystemOverviewEmailSettingsService>().GetAsync();
+        await scope.ServiceProvider.GetRequiredService<IJobRescheduler>().ApplySystemOverviewEmailScheduleAsync(
+            systemOverviewSettings.Enabled, systemOverviewSettings.DayOfWeek, systemOverviewSettings.Hour, systemOverviewSettings.Minute);
+
         await scheduler.TriggerJob(overdueJobKey);
         await scheduler.TriggerJob(reminderJobKey);
         await scheduler.TriggerJob(dashboardSnapshotJobKey);

@@ -21,8 +21,9 @@ namespace KhoiProjectManagement.Application
         // every other Send*EmailAsync here - still wrapped in the same branded EmailTemplates shell.
         Task SendBroadcastEmailAsync(string toEmail, string subject, string bodyHtml);
 
-        // Sent every Friday 10am by SystemOverviewEmailJob (Quartz) - a standing "what this system is
-        // and how to use it" tour, not tied to any particular user action.
+        // Sent by SystemOverviewEmailJob (Quartz) on the admin-configurable schedule (see
+        // SystemOverviewEmailSettings/Settings > System Overview Email) - a standing "what this system
+        // is and how to use it" tour, not tied to any particular user action.
         Task SendSystemOverviewEmailAsync(string toEmail, string userName);
 
         // Called by SendQueuedEmailsJob (Quartz) - dispatches every EmailLog row still Status=Pending
