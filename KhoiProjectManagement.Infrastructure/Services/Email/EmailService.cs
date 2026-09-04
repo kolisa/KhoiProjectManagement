@@ -16,6 +16,9 @@ namespace KhoiProjectManagement.Infrastructure.Services
         // sudden burst can't make one run take unboundedly long - the next run picks up the rest.
         private const int MaxDispatchBatchSize = 50;
 
+        // The "From" display name every recipient's mail client shows - see SendAndRecordAsync.
+        private const string FromDisplayName = "KhoiHub";
+
         private readonly IConfiguration _configuration;
         private readonly ProjectManagementContext _context;
         private readonly ILogger<EmailService> _logger;
@@ -309,7 +312,10 @@ namespace KhoiProjectManagement.Infrastructure.Services
                     ?? throw new InvalidOperationException("Email:SmtpHost is not configured.");
 
                 var message = new MimeMessage();
-                message.From.Add(new MailboxAddress(_configuration["Email:FromName"], fromAddress));
+                // Hardcoded, not read from Email:FromName - the brand name shouldn't be able to drift
+                // from what every template already says (see EmailTemplates' "KhoiHub" wordmark) just
+                // because a deployment's environment-variable config says something stale.
+                message.From.Add(new MailboxAddress(FromDisplayName, fromAddress));
                 message.To.Add(new MailboxAddress("", log.ToEmail));
                 message.Subject = log.Subject;
 
