@@ -16,17 +16,15 @@ namespace KhoiProjectManagement.UnitTests.Services
         private readonly IRepository<Space> _spaceRepo = Substitute.For<IRepository<Space>>();
         private readonly IRepository<SpacePermission> _spacePermissionRepo = Substitute.For<IRepository<SpacePermission>>();
         private readonly IRepository<User> _userRepo = Substitute.For<IRepository<User>>();
-        private readonly IRepository<VaultEntry> _vaultEntryRepo = Substitute.For<IRepository<VaultEntry>>();
-        private readonly IRepository<WikiPage> _wikiPageRepo = Substitute.For<IRepository<WikiPage>>();
-        private readonly IRepository<LibraryFile> _libraryFileRepo = Substitute.For<IRepository<LibraryFile>>();
         private readonly IRepository<UserRole> _userRoleRepo = Substitute.For<IRepository<UserRole>>();
         private readonly IRepository<UserGroup> _userGroupRepo = Substitute.For<IRepository<UserGroup>>();
+        private readonly ISpaceDeletionBlockersRepository _deletionBlockersRepo = Substitute.For<ISpaceDeletionBlockersRepository>();
         private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
         private readonly ISpacePermissionResolver _resolver = Substitute.For<ISpacePermissionResolver>();
 
         private SpaceService CreateSut() => new(
-            _projectRepo, _spaceRepo, _spacePermissionRepo, _userRepo, _vaultEntryRepo, _wikiPageRepo,
-            _libraryFileRepo, _userRoleRepo, _userGroupRepo, _unitOfWork, _resolver);
+            _projectRepo, _spaceRepo, _spacePermissionRepo, _userRepo, _userRoleRepo, _userGroupRepo,
+            _deletionBlockersRepo, _unitOfWork, _resolver);
 
         private void SetUpExistingSpaceWithNoGrants(int spaceId)
         {
@@ -82,6 +80,46 @@ namespace KhoiProjectManagement.UnitTests.Services
             Assert.Null(added.UserId);
             Assert.Null(added.RoleId);
             Assert.Equal(PermissionLevel.Write, added.Level);
+        }
+
+        [Fact]
+        public async Task DeleteSpaceAsync_WhenTheSpaceDoesNotExist_ReturnsFalseWithoutCheckingBlockers()
+        {
+            _spaceRepo.FindAsync(1).Returns((Space?)null);
+
+            var result = await CreateSut().DeleteSpaceAsync(1);
+
+            Assert.False(result);
+            await _deletionBlockersRepo.DidNotReceive().HasBlockingChildrenAsync(Arg.Any<int>());
+            await _unitOfWork.DidNotReceive().SaveChangesAsync();
+        }
+
+        [Fact]
+        public async Task DeleteSpaceAsync_WhenSomethingStillReferencesTheSpace_ThrowsAndDoesNotSave()
+        {
+            var space = new Space { Id = 1, Name = "Test Space", IsActive = true, CreatedBy = 1 };
+            _spaceRepo.FindAsync(1).Returns(space);
+            _deletionBlockersRepo.HasBlockingChildrenAsync(1).Returns(true);
+
+            await Assert.ThrowsAsync<InvalidOperationException>(() => CreateSut().DeleteSpaceAsync(1));
+
+            Assert.True(space.IsActive);
+            await _unitOfWork.DidNotReceive().SaveChangesAsync();
+        }
+
+        [Fact]
+        public async Task DeleteSpaceAsync_WhenNothingReferencesTheSpace_SoftDeletesItInOneCombinedCheck()
+        {
+            var space = new Space { Id = 1, Name = "Test Space", IsActive = true, CreatedBy = 1 };
+            _spaceRepo.FindAsync(1).Returns(space);
+            _deletionBlockersRepo.HasBlockingChildrenAsync(1).Returns(false);
+
+            var result = await CreateSut().DeleteSpaceAsync(1);
+
+            Assert.True(result);
+            Assert.False(space.IsActive);
+            await _deletionBlockersRepo.Received(1).HasBlockingChildrenAsync(1);
+            await _unitOfWork.Received(1).SaveChangesAsync();
         }
     }
 }

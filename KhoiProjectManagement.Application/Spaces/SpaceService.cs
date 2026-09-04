@@ -14,11 +14,9 @@ namespace KhoiProjectManagement.Application
         private readonly IRepository<Space> _spaceRepo;
         private readonly IRepository<SpacePermission> _spacePermissionRepo;
         private readonly IRepository<User> _userRepo;
-        private readonly IRepository<VaultEntry> _vaultEntryRepo;
-        private readonly IRepository<WikiPage> _wikiPageRepo;
-        private readonly IRepository<LibraryFile> _libraryFileRepo;
         private readonly IRepository<UserRole> _userRoleRepo;
         private readonly IRepository<UserGroup> _userGroupRepo;
+        private readonly ISpaceDeletionBlockersRepository _deletionBlockersRepo;
         private readonly IUnitOfWork _unitOfWork;
         private readonly ISpacePermissionResolver _resolver;
 
@@ -27,11 +25,9 @@ namespace KhoiProjectManagement.Application
             IRepository<Space> spaceRepo,
             IRepository<SpacePermission> spacePermissionRepo,
             IRepository<User> userRepo,
-            IRepository<VaultEntry> vaultEntryRepo,
-            IRepository<WikiPage> wikiPageRepo,
-            IRepository<LibraryFile> libraryFileRepo,
             IRepository<UserRole> userRoleRepo,
             IRepository<UserGroup> userGroupRepo,
+            ISpaceDeletionBlockersRepository deletionBlockersRepo,
             IUnitOfWork unitOfWork,
             ISpacePermissionResolver resolver)
         {
@@ -39,11 +35,9 @@ namespace KhoiProjectManagement.Application
             _spaceRepo = spaceRepo;
             _spacePermissionRepo = spacePermissionRepo;
             _userRepo = userRepo;
-            _vaultEntryRepo = vaultEntryRepo;
-            _wikiPageRepo = wikiPageRepo;
-            _libraryFileRepo = libraryFileRepo;
             _userRoleRepo = userRoleRepo;
             _userGroupRepo = userGroupRepo;
+            _deletionBlockersRepo = deletionBlockersRepo;
             _unitOfWork = unitOfWork;
             _resolver = resolver;
         }
@@ -69,20 +63,24 @@ namespace KhoiProjectManagement.Application
                     CreatedBy = createdByUserId
                 };
                 _spaceRepo.Add(rootSpace);
-                await _unitOfWork.SaveChangesAsync();
+                // Not saved yet - added to the same unit of work as projectSpace below, so a brand-new
+                // root Space, the new project Space, and the Project's own SpaceId update all commit in
+                // one round trip instead of three. Assigning via the ParentSpace/Space navigation
+                // properties (not the *Id FK columns directly) is what lets EF Core resolve those FKs
+                // itself during this single SaveChangesAsync, even though rootSpace/projectSpace don't
+                // have real database-assigned Ids yet at the point they're referenced here.
             }
 
             var projectSpace = new Space
             {
                 Name = project.Name,
-                ParentSpaceId = rootSpace.Id,
+                ParentSpace = rootSpace,
                 SpaceType = SpaceType.ProjectSpace,
                 CreatedBy = createdByUserId
             };
             _spaceRepo.Add(projectSpace);
-            await _unitOfWork.SaveChangesAsync();
+            project.Space = projectSpace;
 
-            project.SpaceId = projectSpace.Id;
             await _unitOfWork.SaveChangesAsync();
 
             _resolver.InvalidateCache();
@@ -114,6 +112,7 @@ namespace KhoiProjectManagement.Application
         public async Task<List<SpaceDto>> GetSpacesAsync(int? parentSpaceId, ClaimsPrincipal caller)
         {
             var spaces = await _spaceRepo.Query()
+                .AsNoTracking()
                 .Include(s => s.Creator)
                 .Where(s => s.IsActive && s.ParentSpaceId == parentSpaceId)
                 .OrderBy(s => s.Name)
@@ -134,7 +133,7 @@ namespace KhoiProjectManagement.Application
 
         public async Task<SpaceDto?> GetSpaceByIdAsync(int id, ClaimsPrincipal caller)
         {
-            var space = await _spaceRepo.Query().Include(s => s.Creator).FirstOrDefaultAsync(s => s.Id == id);
+            var space = await _spaceRepo.Query().AsNoTracking().Include(s => s.Creator).FirstOrDefaultAsync(s => s.Id == id);
             if (space == null)
                 return null;
 
@@ -212,11 +211,9 @@ namespace KhoiProjectManagement.Application
             if (space == null)
                 return false;
 
-            var hasChildren = await _spaceRepo.Query().AnyAsync(s => s.ParentSpaceId == id);
-            var hasVaultEntries = await _vaultEntryRepo.Query().AnyAsync(v => v.SpaceId == id);
-            var hasWikiPages = await _wikiPageRepo.Query().AnyAsync(w => w.SpaceId == id);
-            var hasLibraryFiles = await _libraryFileRepo.Query().AnyAsync(f => f.SpaceId == id);
-            if (hasChildren || hasVaultEntries || hasWikiPages || hasLibraryFiles)
+            // One round trip instead of four separate AnyAsync calls (one per table) - see
+            // ISpaceDeletionBlockersRepository.
+            if (await _deletionBlockersRepo.HasBlockingChildrenAsync(id))
             {
                 throw new InvalidOperationException("Cannot delete a Space that still has child Spaces, entries, pages, or files - move or remove them first.");
             }
@@ -230,6 +227,7 @@ namespace KhoiProjectManagement.Application
         public async Task<List<SpacePermissionDto>> GetSpacePermissionsAsync(int spaceId)
         {
             var grants = await _spacePermissionRepo.Query()
+                .AsNoTracking()
                 .Include(sp => sp.Role)
                 .Include(sp => sp.User)
                 .Include(sp => sp.Group)
@@ -251,7 +249,10 @@ namespace KhoiProjectManagement.Application
 
         public async Task<int> GetSpaceGranteeCountAsync(int spaceId)
         {
-            var grants = await _spacePermissionRepo.Query().Where(sp => sp.SpaceId == spaceId).ToListAsync();
+            // Read-only, results never mutated - the union of direct/role/group grantee user ids below
+            // (Concat+Distinct, not a SQL UNION - the three sources come from three different tables no
+            // single IRepository<T> spans) only ever reads from this list.
+            var grants = await _spacePermissionRepo.Query().AsNoTracking().Where(sp => sp.SpaceId == spaceId).ToListAsync();
 
             var directUserIds = grants.Where(g => g.UserId.HasValue).Select(g => g.UserId!.Value);
 

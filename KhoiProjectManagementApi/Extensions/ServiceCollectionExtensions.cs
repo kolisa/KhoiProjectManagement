@@ -32,6 +32,7 @@ namespace KhoiProjectManagementApi.Extensions
             services.AddScoped<IWikiSearchRepository, WikiSearchRepository>();
             services.AddScoped<IDashboardStatsRepository, DashboardStatsRepository>();
             services.AddScoped<IReportStatsRepository, ReportStatsRepository>();
+            services.AddScoped<ISpaceDeletionBlockersRepository, SpaceDeletionBlockersRepository>();
 
             // Request validation - every AbstractValidator<T> in Application/Validators/ is picked up
             // automatically by assembly scan; ValidationActionFilter (registered in Program.cs) resolves
