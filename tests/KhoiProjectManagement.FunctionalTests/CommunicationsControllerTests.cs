@@ -6,7 +6,8 @@ using Xunit;
 
 namespace KhoiProjectManagement.FunctionalTests
 {
-    // CommunicationsController is gated by a single class-level [Authorize(Policy = "email.broadcast")].
+    // CommunicationsController: broadcast (email.broadcast) and system-overview-email-settings
+    // (email.manage_overview) are independently gated per-action, not by a shared class-level policy.
     [Collection("Api")]
     public class CommunicationsControllerTests
     {
@@ -57,6 +58,68 @@ namespace KhoiProjectManagement.FunctionalTests
                 subject = "Missing roles",
                 body = "Should fail validation.",
                 roleIds = Array.Empty<int>()
+            });
+
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        }
+
+        [Fact]
+        public async Task GetSystemOverviewEmailSettings_AsMemberWithoutPermission_Returns403()
+        {
+            var client = await _fixture.Factory.CreateClient().AuthenticateAsAsync(SeededUsers.Member);
+
+            var response = await client.GetAsync("/api/communications/system-overview-email-settings");
+
+            Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+        }
+
+        [Fact]
+        public async Task GetSystemOverviewEmailSettings_AsAdmin_ReturnsTheSeededDefault()
+        {
+            var client = await _fixture.Factory.CreateClient().AuthenticateAsAsync(SeededUsers.Admin);
+
+            var response = await client.GetAsync("/api/communications/system-overview-email-settings");
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            var settings = await response.Content.ReadFromJsonAsync<SystemOverviewEmailSettingsDto>();
+            Assert.True(settings!.Enabled);
+            Assert.Equal(DayOfWeek.Friday, settings.DayOfWeek);
+            Assert.Equal(10, settings.Hour);
+        }
+
+        [Fact]
+        public async Task UpdateSystemOverviewEmailSettings_AsAdmin_PersistsAndReturnsTheChange()
+        {
+            var client = await _fixture.Factory.CreateClient().AuthenticateAsAsync(SeededUsers.Admin);
+
+            var response = await client.PutAsJsonAsync("/api/communications/system-overview-email-settings", new
+            {
+                enabled = false,
+                dayOfWeek = DayOfWeek.Monday,
+                hour = 9,
+                minute = 15
+            });
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            var settings = await response.Content.ReadFromJsonAsync<SystemOverviewEmailSettingsDto>();
+            Assert.False(settings!.Enabled);
+            Assert.Equal(DayOfWeek.Monday, settings.DayOfWeek);
+            Assert.Equal(9, settings.Hour);
+            Assert.Equal(15, settings.Minute);
+            Assert.Equal("Kolisa Mjobo", settings.UpdatedByUserName);
+        }
+
+        [Fact]
+        public async Task UpdateSystemOverviewEmailSettings_WithAnOutOfRangeHour_Returns400()
+        {
+            var client = await _fixture.Factory.CreateClient().AuthenticateAsAsync(SeededUsers.Admin);
+
+            var response = await client.PutAsJsonAsync("/api/communications/system-overview-email-settings", new
+            {
+                enabled = true,
+                dayOfWeek = DayOfWeek.Friday,
+                hour = 25,
+                minute = 0
             });
 
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);

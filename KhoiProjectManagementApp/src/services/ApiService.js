@@ -433,6 +433,18 @@ class ApiService {
     });
   }
 
+  // Weekly system-overview email's on/off switch + schedule (email.manage_overview)
+  async getSystemOverviewEmailSettings() {
+    return await this.request('/communications/system-overview-email-settings');
+  }
+
+  async updateSystemOverviewEmailSettings({ enabled, dayOfWeek, hour, minute }) {
+    return await this.request('/communications/system-overview-email-settings', {
+      method: 'PUT',
+      body: JSON.stringify({ enabled, dayOfWeek, hour, minute }),
+    });
+  }
+
   async updateRole(roleId, dto) {
     return await this.request(`/roles/${roleId}`, {
       method: 'PUT',
