@@ -15,7 +15,7 @@ namespace KhoiProjectManagement.IntegrationTests.Infrastructure
         private readonly ConcurrentQueue<SentEmail> _sent = new();
         public IReadOnlyCollection<SentEmail> SentEmails => _sent.ToArray();
 
-        public Task SendTaskAssignmentEmailAsync(string toEmail, string taskTitle, string projectName) =>
+        public Task SendTaskAssignmentEmailAsync(string toEmail, string taskTitle, string projectName, DateTime dueDate, string priority) =>
             Record(nameof(SendTaskAssignmentEmailAsync), toEmail);
 
         public Task SendOverdueTaskEmailAsync(string toEmail, string taskTitle, DateTime dueDate) =>
