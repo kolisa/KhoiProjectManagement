@@ -1,5 +1,7 @@
 // src/services/ApiService.js
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://localhost:7148/api';
+// Exported so App.jsx's page-visit-duration pagehide handler can build the same request URL for a
+// keepalive fetch() outside this class - request() itself doesn't expose the keepalive option.
+export const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://localhost:7148/api';
 
 // Plain JSON requests get a fairly generous bound - long enough to tolerate a genuinely slow (not
 // just laggy) connection without the caller's loading spinner spinning forever with no way out.
@@ -529,6 +531,13 @@ class ApiService {
     return await this.request('/audit/page-visits', {
       method: 'POST',
       body: JSON.stringify({ tabKey }),
+    });
+  }
+
+  async recordPageVisitDuration(id, durationSeconds) {
+    return await this.request(`/audit/page-visits/${id}/duration`, {
+      method: 'PATCH',
+      body: JSON.stringify({ durationSeconds }),
     });
   }
 
