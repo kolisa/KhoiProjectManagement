@@ -42,6 +42,10 @@ namespace KhoiProjectManagement.UnitTests.Services
             new Repository<LibraryFile>(_context),
             new Repository<LibraryFileVersion>(_context),
             new Repository<ProjectUser>(_context),
+            new Repository<Timesheet>(_context),
+            new Repository<WikiPage>(_context),
+            new Repository<Idea>(_context),
+            new Repository<Reminder>(_context),
             Substitute.For<IUnitOfWork>(),
             Substitute.For<IEmailService>(),
             new ConfigurationBuilder().Build());

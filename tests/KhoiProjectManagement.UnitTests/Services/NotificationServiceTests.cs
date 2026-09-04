@@ -18,6 +18,10 @@ namespace KhoiProjectManagement.UnitTests.Services
         private readonly IRepository<LibraryFile> _libraryFileRepo = Substitute.For<IRepository<LibraryFile>>();
         private readonly IRepository<LibraryFileVersion> _libraryFileVersionRepo = Substitute.For<IRepository<LibraryFileVersion>>();
         private readonly IRepository<ProjectUser> _projectUserRepo = Substitute.For<IRepository<ProjectUser>>();
+        private readonly IRepository<Timesheet> _timesheetRepo = Substitute.For<IRepository<Timesheet>>();
+        private readonly IRepository<WikiPage> _wikiPageRepo = Substitute.For<IRepository<WikiPage>>();
+        private readonly IRepository<Idea> _ideaRepo = Substitute.For<IRepository<Idea>>();
+        private readonly IRepository<Reminder> _reminderRepo = Substitute.For<IRepository<Reminder>>();
         private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
         private readonly IEmailService _emailService = Substitute.For<IEmailService>();
 
@@ -42,6 +46,7 @@ namespace KhoiProjectManagement.UnitTests.Services
             return new NotificationService(
                 _notificationRepo, _preferenceRepo, _taskRepo, _userRepo,
                 _libraryFileRepo, _libraryFileVersionRepo, _projectUserRepo,
+                _timesheetRepo, _wikiPageRepo, _ideaRepo, _reminderRepo,
                 _unitOfWork, _emailService, config);
         }
 
@@ -198,6 +203,85 @@ namespace KhoiProjectManagement.UnitTests.Services
             await CreateSut().GenerateWeeklyDigestsAsync();
 
             _notificationRepo.DidNotReceive().Add(Arg.Any<Notification>());
+        }
+
+        // SendSystemOverviewEmailsAsync - see EmailService.TrackedFeatures for the 6 tracked keys.
+        private void SetUpNoUsage(User user)
+        {
+            _userRepo.Query().Returns(new List<User> { user }.BuildMock());
+            _taskRepo.Query().Returns(new List<ProjectTask>().BuildMock());
+            _timesheetRepo.Query().Returns(new List<Timesheet>().BuildMock());
+            _wikiPageRepo.Query().Returns(new List<WikiPage>().BuildMock());
+            _libraryFileVersionRepo.Query().Returns(new List<LibraryFileVersion>().BuildMock());
+            _ideaRepo.Query().Returns(new List<Idea>().BuildMock());
+            _reminderRepo.Query().Returns(new List<Reminder>().BuildMock());
+        }
+
+        [Fact]
+        public async Task SendSystemOverviewEmailsAsync_WhenNothingUsed_SendsTheFullUnusedList()
+        {
+            var user = OnboardedUser(1);
+            SetUpNoUsage(user);
+
+            await CreateSut().SendSystemOverviewEmailsAsync();
+
+            await _emailService.Received(1).SendSystemOverviewEmailAsync(
+                user.Email, user.Name,
+                Arg.Is<IReadOnlyList<string>>(keys => keys.Count == 6 &&
+                    keys.Contains("tasks") && keys.Contains("timesheets") && keys.Contains("wiki") &&
+                    keys.Contains("library") && keys.Contains("ideas") && keys.Contains("reminders")),
+                Arg.Any<int>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<int>());
+        }
+
+        [Fact]
+        public async Task SendSystemOverviewEmailsAsync_WhenSomeAreasUsed_SendsOnlyTheUnusedSubset()
+        {
+            var user = OnboardedUser(1);
+            SetUpNoUsage(user);
+            _taskRepo.Query().Returns(new List<ProjectTask> { new() { AssignedToId = 1 } }.BuildMock());
+            _timesheetRepo.Query().Returns(new List<Timesheet> { new() { UserId = 1 } }.BuildMock());
+
+            await CreateSut().SendSystemOverviewEmailsAsync();
+
+            await _emailService.Received(1).SendSystemOverviewEmailAsync(
+                user.Email, user.Name,
+                Arg.Is<IReadOnlyList<string>>(keys => keys.Count == 4 &&
+                    !keys.Contains("tasks") && !keys.Contains("timesheets")),
+                Arg.Any<int>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<int>());
+        }
+
+        [Fact]
+        public async Task SendSystemOverviewEmailsAsync_WhenEverythingTrackedIsUsed_SendsHighlightsWithAnEmptyUnusedList()
+        {
+            var user = OnboardedUser(1);
+            _userRepo.Query().Returns(new List<User> { user }.BuildMock());
+            _taskRepo.Query().Returns(new List<ProjectTask> { new() { AssignedToId = 1, Status = "completed", CompletedAt = DateTime.UtcNow.AddDays(-1) } }.BuildMock());
+            _timesheetRepo.Query().Returns(new List<Timesheet> { new() { UserId = 1 } }.BuildMock());
+            _wikiPageRepo.Query().Returns(new List<WikiPage> { new() { CreatedBy = 1 } }.BuildMock());
+            _libraryFileVersionRepo.Query().Returns(new List<LibraryFileVersion> { new() { UploadedBy = 1, UploadedAt = DateTime.UtcNow.AddDays(-1) } }.BuildMock());
+            _ideaRepo.Query().Returns(new List<Idea> { new() { SubmittedBy = 1 } }.BuildMock());
+            _reminderRepo.Query().Returns(new List<Reminder> { new() { CreatedBy = 1, AssignedToId = 1 } }.BuildMock());
+            _projectUserRepo.Query().Returns(new List<ProjectUser>().BuildMock());
+
+            await CreateSut().SendSystemOverviewEmailsAsync();
+
+            await _emailService.Received(1).SendSystemOverviewEmailAsync(
+                user.Email, user.Name,
+                Arg.Is<IReadOnlyList<string>>(keys => keys.Count == 0),
+                1, Arg.Any<int>(), Arg.Any<int>(), 1);
+        }
+
+        [Fact]
+        public async Task SendSystemOverviewEmailsAsync_SkipsUsersStillMustChangePassword()
+        {
+            var user = OnboardedUser(1);
+            user.MustChangePassword = true;
+            _userRepo.Query().Returns(new List<User>().BuildMock()); // the service's own query filters MustChangePassword
+
+            await CreateSut().SendSystemOverviewEmailsAsync();
+
+            await _emailService.DidNotReceive().SendSystemOverviewEmailAsync(
+                Arg.Any<string>(), Arg.Any<string>(), Arg.Any<IReadOnlyList<string>>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<int>());
         }
 
         [Fact]

@@ -22,9 +22,11 @@ namespace KhoiProjectManagement.Application
         Task SendBroadcastEmailAsync(string toEmail, string subject, string bodyHtml);
 
         // Sent by SystemOverviewEmailJob (Quartz) on the admin-configurable schedule (see
-        // SystemOverviewEmailSettings/Settings > System Overview Email) - a standing "what this system
-        // is and how to use it" tour, not tied to any particular user action.
-        Task SendSystemOverviewEmailAsync(string toEmail, string userName);
+        // SystemOverviewEmailSettings/Settings > System Overview Email). Personalized by
+        // NotificationService.SendSystemOverviewEmailsAsync: unusedFeatureKeys non-empty renders a
+        // "try these" nudge for just those areas; empty (the user has touched everything tracked)
+        // renders a short weekly-highlights email from the stats params instead.
+        Task SendSystemOverviewEmailAsync(string toEmail, string userName, IReadOnlyList<string> unusedFeatureKeys, int tasksCompletedThisWeek, int tasksOpen, int activeProjects, int libraryUploadsThisWeek);
 
         // Called by SendQueuedEmailsJob (Quartz) - dispatches every EmailLog row still Status=Pending
         // (i.e. every Send*EmailAsync call above except SendScheduledReportEmailAsync, which still

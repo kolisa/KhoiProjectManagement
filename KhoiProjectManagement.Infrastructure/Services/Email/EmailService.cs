@@ -115,7 +115,13 @@ namespace KhoiProjectManagement.Infrastructure.Services
             var inner = $@"
                 <p>Hi {userName},</p>
                 <p>An account has been created for you on KhoiHub. Here's your temporary password:</p>
-                <p style=""font-size: 18px; font-weight: 600; letter-spacing: 0.05em; background: #f3f4f6; padding: 10px 14px; border-radius: 8px; display: inline-block;"">{tempPassword}</p>
+                <table role=""presentation"" width=""100%"" cellpadding=""0"" cellspacing=""0"" style=""margin: 6px 0 18px;"">
+                    <tr>
+                        <td style=""background-color: #f1effb; border-radius: 10px; padding: 20px 16px; text-align: center;"">
+                            <span style=""font-size: 24px; font-weight: 700; letter-spacing: 0.1em; color: #111827;"">{tempPassword}</span>
+                        </td>
+                    </tr>
+                </table>
                 <p>Log in with this password and you'll be asked to choose your own before you can continue.</p>
             ";
             var body = EmailTemplates.Wrap("Welcome", "Welcome to KhoiHub", inner, "Log In", GetFrontendUrl(), GetFrontendUrl());
@@ -125,13 +131,14 @@ namespace KhoiProjectManagement.Infrastructure.Services
 
         public async Task SendLoginReminderEmailAsync(string toEmail, string userName, int daysSinceInvite)
         {
-            var subject = "Finish setting up your KhoiHub account";
+            var subject = "Is something stopping you from logging in?";
             var inner = $@"
                 <p>Hi {userName},</p>
                 <p>Your KhoiHub account was set up {daysSinceInvite} day{(daysSinceInvite == 1 ? "" : "s")} ago, but you haven't logged in yet to choose your own password.</p>
+                <p>If something's making that difficult - a lost temporary password, a question about how the system works, anything at all - please contact your administrator so they can help.</p>
                 <p>If you've lost your temporary password, use &ldquo;Forgot password&rdquo; on the login screen to get a new link.</p>
             ";
-            var body = EmailTemplates.Wrap("Account reminder", "Your account is waiting for you", inner, "Log In Now", GetFrontendUrl(), GetFrontendUrl());
+            var body = EmailTemplates.Wrap("Account reminder", "Is something stopping you from logging in?", inner, "Log In Now", GetFrontendUrl(), GetFrontendUrl());
 
             await EnqueueEmailAsync(toEmail, subject, body, "login_reminder");
         }
@@ -211,31 +218,60 @@ namespace KhoiProjectManagement.Infrastructure.Services
             await EnqueueEmailAsync(toEmail, subject, body, "broadcast");
         }
 
-        public async Task SendSystemOverviewEmailAsync(string toEmail, string userName)
+        // Label + one-line benefit for each of the 6 areas NotificationService.SendSystemOverviewEmailsAsync
+        // checks usage of. Vault/Finance/Calendar-management/Reports are deliberately not tracked here -
+        // they're permission-gated (Space-scoped or a flat permission), so "you haven't tried this" would
+        // be wrong advice for anyone who simply can't access it.
+        private static readonly Dictionary<string, (string Label, string Benefit)> TrackedFeatures = new()
         {
-            var subject = "What you can do in KhoiHub";
-            // Deliberately general-purpose copy, not tied to this particular recipient's own activity
-            // (unlike SendWeeklyDigestEmailAsync) - a standing tour of the system, sent on a fixed
-            // schedule (see SystemOverviewEmailJob) rather than triggered by anything the user did.
-            var inner = $@"
-                <p>Hi {userName},</p>
-                <p>Here's a quick reminder of what KhoiHub covers and where to find it:</p>
-                <ul>
-                    <li><strong>Projects &amp; Tasks</strong> - track work, assign tasks, and see what's overdue from the Dashboard.</li>
-                    <li><strong>Timesheets</strong> - log hours per period, submit for approval, or upload a CSV instead of typing them in.</li>
-                    <li><strong>Vault</strong> - a shared, permissioned place for secrets (API keys, credentials) with a full audit trail.</li>
-                    <li><strong>Wiki</strong> - your team's shared knowledge base, with page history and comments.</li>
-                    <li><strong>Library</strong> - shared files, organized like a folder tree.</li>
-                    <li><strong>Ideas</strong> - propose and discuss ideas before they become projects.</li>
-                    <li><strong>Calendar &amp; Reminders</strong> - company events and your own personal reminders, with recurrence and snooze.</li>
-                    <li><strong>Finance</strong> - invoicing, for anyone with access to it.</li>
-                    <li><strong>Reports</strong> - project summaries, team performance, and overdue-task reports, exportable and schedulable.</li>
-                </ul>
-                <p>Not sure where something lives, or how to do something for the first time? Ask your manager or an admin - they're happy to help.</p>
-            ";
-            var body = EmailTemplates.Wrap("System overview", "What you can do in KhoiHub", inner, "Open KhoiHub", GetFrontendUrl(), GetFrontendUrl());
+            ["tasks"] = ("Projects & Tasks", "See everything you're responsible for in one place, and get notified before anything slips."),
+            ["timesheets"] = ("Timesheets", "Log your hours in a couple of clicks each period - or skip typing entirely and upload a CSV instead."),
+            ["wiki"] = ("Wiki", "Write down anything worth remembering so your team stops re-explaining it in chat."),
+            ["library"] = ("Library", "Keep files everyone needs in one shared, organized place instead of buried in email attachments."),
+            ["ideas"] = ("Ideas", "Float a suggestion before it's a whole project and get feedback early."),
+            ["reminders"] = ("Reminders", "Set a personal reminder - with recurrence and snooze - so nothing falls through the cracks.")
+        };
 
-            await EnqueueEmailAsync(toEmail, subject, body, "system_overview");
+        // Two variants depending on how much of KhoiHub this user has already touched (see
+        // NotificationService.SendSystemOverviewEmailsAsync, which decides which branch applies and
+        // supplies either unusedFeatureKeys or the weekly stats accordingly - never both meaningfully at
+        // once). Replaces the old one-size-fits-all "here's everything KhoiHub covers" tour.
+        public async Task SendSystemOverviewEmailAsync(string toEmail, string userName, IReadOnlyList<string> unusedFeatureKeys, int tasksCompletedThisWeek, int tasksOpen, int activeProjects, int libraryUploadsThisWeek)
+        {
+            if (unusedFeatureKeys.Count > 0)
+            {
+                var subject = "A few things you haven't tried yet";
+                // The shell's fixed body -> detail rows -> CTA order means anything meant to read as a
+                // closer (like pointing them to an admin for help) has to go in this one paragraph,
+                // before the list, rather than after it - there's no "trailing text" slot below the rows.
+                var inner = $@"
+                    <p>Hi {userName},</p>
+                    <p>There's a bit more to KhoiHub than what you've used so far. A few areas worth a look -
+                    and if any of them aren't obvious to get started with, ask your manager or an admin:</p>
+                ";
+                var detailRows = unusedFeatureKeys
+                    .Where(TrackedFeatures.ContainsKey)
+                    .Select(key => (TrackedFeatures[key].Label, TrackedFeatures[key].Benefit))
+                    .ToList();
+                var body = EmailTemplates.Wrap("Try something new", "A few things you haven't tried yet", inner, "Open KhoiHub", GetFrontendUrl(), GetFrontendUrl(), detailRows);
+
+                await EnqueueEmailAsync(toEmail, subject, body, "system_overview");
+            }
+            else
+            {
+                var subject = "Your KhoiHub highlights this week";
+                var inner = $@"<p>Hi {userName},</p><p>You're getting the most out of KhoiHub already - nice work. Here's your week:</p>";
+                var detailRows = new List<(string, string)>
+                {
+                    ("Completed", $"{tasksCompletedThisWeek} task{(tasksCompletedThisWeek == 1 ? "" : "s")}"),
+                    ("Open", $"{tasksOpen} task{(tasksOpen == 1 ? "" : "s")}"),
+                    ("Active projects", activeProjects.ToString()),
+                    ("Library uploads", $"{libraryUploadsThisWeek} this week")
+                };
+                var body = EmailTemplates.Wrap("Weekly highlights", "Nice work this week", inner, "Open KhoiHub", GetFrontendUrl(), GetFrontendUrl(), detailRows);
+
+                await EnqueueEmailAsync(toEmail, subject, body, "system_overview");
+            }
         }
 
         public async Task SendScheduledReportEmailAsync(string toEmail, string reportTitle, byte[] attachmentContent, string attachmentFileName, string attachmentContentType)

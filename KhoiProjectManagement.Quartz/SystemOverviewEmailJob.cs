@@ -4,20 +4,21 @@ using Quartz;
 
 namespace KhoiProjectManagement.Quartz
 {
-    // Fires every Friday 10am (see Program.cs's cron trigger, the one genuinely calendar-based
-    // trigger in this project - every other job here uses an hourly/daily WithSimpleSchedule with the
-    // real cadence enforced by a dedup check inside the service instead). A standing "what this
-    // system is and how to use it" tour sent to every active user, not tied to any per-user activity.
+    // The one genuinely calendar-based trigger in this project (see Program.cs's cron trigger comment)
+    // - every other job here uses an hourly/daily WithSimpleSchedule with the real cadence enforced
+    // inside the service instead. Sends each fully-onboarded active user a personalized nudge toward
+    // whatever part of KhoiHub they haven't tried yet, or a short highlights email if they've tried
+    // everything tracked - see NotificationService.SendSystemOverviewEmailsAsync for the actual logic.
+    // Matches every other job in this project (OverdueTaskCheckJob etc.): a thin wrapper delegating to
+    // one NotificationService method, not IUserService/IEmailService directly.
     public class SystemOverviewEmailJob : IJob
     {
-        private readonly IUserService _userService;
-        private readonly IEmailService _emailService;
+        private readonly INotificationService _notificationService;
         private readonly ILogger<SystemOverviewEmailJob> _logger;
 
-        public SystemOverviewEmailJob(IUserService userService, IEmailService emailService, ILogger<SystemOverviewEmailJob> logger)
+        public SystemOverviewEmailJob(INotificationService notificationService, ILogger<SystemOverviewEmailJob> logger)
         {
-            _userService = userService;
-            _emailService = emailService;
+            _notificationService = notificationService;
             _logger = logger;
         }
 
@@ -25,14 +26,8 @@ namespace KhoiProjectManagement.Quartz
         {
             try
             {
-                var users = await _userService.GetAllUsersAsync();
-                var count = 0;
-                foreach (var user in users)
-                {
-                    await _emailService.SendSystemOverviewEmailAsync(user.Email, user.Name);
-                    count++;
-                }
-                _logger.LogInformation("System overview email queued for {Count} users at {Time}", count, DateTime.UtcNow);
+                await _notificationService.SendSystemOverviewEmailsAsync();
+                _logger.LogInformation("System overview emails sent at {Time}", DateTime.UtcNow);
             }
             catch (Exception ex)
             {
