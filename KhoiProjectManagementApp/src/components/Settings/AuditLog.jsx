@@ -305,13 +305,28 @@ const TAB_LABELS = {
   settings: 'Settings',
 };
 
-const PageVisitsView = ({ apiService }) => {
+// null/undefined (visit still open, or the client never got a chance to report it - a hard
+// crash/force-quit, mainly) renders as an em dash rather than "0s" or blank.
+const formatDuration = (seconds) => {
+  if (seconds == null) return '—';
+  if (seconds < 60) return `${seconds}s`;
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+  return remainingSeconds === 0 ? `${minutes}m` : `${minutes}m ${remainingSeconds}s`;
+};
+
+const PageVisitsView = ({ apiService, teamMembers = [] }) => {
   const toast = useToast();
   const [visits, setVisits] = useState(null);
+  const [userFilter, setUserFilter] = useState('all');
+  const [tabFilter, setTabFilter] = useState('all');
 
   const load = async () => {
     try {
-      const result = await apiService.getPageVisitLog({});
+      const result = await apiService.getPageVisitLog({
+        userId: userFilter === 'all' ? undefined : userFilter,
+        tabKey: tabFilter === 'all' ? undefined : tabFilter,
+      });
       setVisits(result || []);
     } catch (err) {
       reportApiError(toast, err, 'Could not load the page visit log.');
@@ -320,16 +335,40 @@ const PageVisitsView = ({ apiService }) => {
   };
 
   useEffect(() => {
-    load();
+    const debounce = setTimeout(load, 150);
+    return () => clearTimeout(debounce);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [userFilter, tabFilter]);
 
   return (
     <div className="space-y-3">
+      <div className="flex items-center gap-2">
+        <select
+          value={userFilter}
+          onChange={(e) => setUserFilter(e.target.value)}
+          className="text-sm border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        >
+          <option value="all">All users</option>
+          {teamMembers.map((member) => (
+            <option key={member.id} value={member.id}>{member.name}</option>
+          ))}
+        </select>
+        <select
+          value={tabFilter}
+          onChange={(e) => setTabFilter(e.target.value)}
+          className="text-sm border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        >
+          <option value="all">All pages</option>
+          {Object.entries(TAB_LABELS).map(([key, label]) => (
+            <option key={key} value={key}>{label}</option>
+          ))}
+        </select>
+      </div>
+
       {visits === null ? (
         <div className="text-sm text-gray-400">Loading...</div>
       ) : visits.length === 0 ? (
-        <div className="text-sm text-gray-400 italic p-4 text-center">No page visits recorded yet.</div>
+        <div className="text-sm text-gray-400 italic p-4 text-center">No page visits match.</div>
       ) : (
         <div className="border border-gray-100 rounded-2xl overflow-x-auto">
           <table className="w-full text-sm">
@@ -338,6 +377,7 @@ const PageVisitsView = ({ apiService }) => {
                 <th className="text-left px-3 py-2 font-medium">User</th>
                 <th className="text-left px-3 py-2 font-medium">Page</th>
                 <th className="text-left px-3 py-2 font-medium">Timestamp</th>
+                <th className="text-left px-3 py-2 font-medium">Duration</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -346,6 +386,7 @@ const PageVisitsView = ({ apiService }) => {
                   <td className="px-3 py-2 text-gray-900">{visit.userName}</td>
                   <td className="px-3 py-2 text-gray-700">{TAB_LABELS[visit.tabKey] || visit.tabKey}</td>
                   <td className="px-3 py-2 text-gray-500 whitespace-nowrap">{new Date(visit.timestamp).toLocaleString()}</td>
+                  <td className="px-3 py-2 text-gray-500 whitespace-nowrap">{formatDuration(visit.durationSeconds)}</td>
                 </tr>
               ))}
             </tbody>
@@ -363,7 +404,7 @@ const VIEWS = [
   { key: 'pageVisits', label: 'Page Visits' },
 ];
 
-const AuditLog = ({ apiService }) => {
+const AuditLog = ({ apiService, teamMembers = [] }) => {
   const [view, setView] = useState('emails');
 
   return (
@@ -393,7 +434,7 @@ const AuditLog = ({ apiService }) => {
       {view === 'emails' && <SentEmailsView apiService={apiService} />}
       {view === 'errors' && <ErrorLogsView apiService={apiService} />}
       {view === 'logins' && <LoginsView apiService={apiService} />}
-      {view === 'pageVisits' && <PageVisitsView apiService={apiService} />}
+      {view === 'pageVisits' && <PageVisitsView apiService={apiService} teamMembers={teamMembers} />}
     </div>
   );
 };

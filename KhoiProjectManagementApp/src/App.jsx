@@ -9,7 +9,7 @@ import TagsList from './components/Common/TagsList';
 import LoadingSpinner from './components/Common/LoadingSpinner';
 import ErrorMessage from './components/Common/ErrorMessage';
 import useModalA11y from './components/Common/useModalA11y';
-import ApiService, { NetworkError } from './services/ApiService';
+import ApiService, { NetworkError, API_BASE_URL } from './services/ApiService';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ToastProvider, useToast } from './contexts/ToastContext';
 import { ConfirmProvider, useConfirm } from './contexts/ConfirmContext';
@@ -187,13 +187,64 @@ const ProjectManagementSystem = () => {
     // link (deepLink) takes priority over both.
     const [activeTab, setActiveTab] = useState(() => deepLink?.tab || localStorage.getItem('khoi_last_tab') || 'dashboard');
 
+    // Holds the currently-open visit's { id, startedAt } (or null before the first log call
+    // resolves) - read by both the tab-change effect below and the pagehide handler further down,
+    // so a ref rather than state (a ref update must never itself trigger a re-render/re-log).
+    const currentVisitRef = useRef(null);
+
     useEffect(() => {
         localStorage.setItem('khoi_last_tab', activeTab);
         // Audit trail of tab visits for admins (Settings > Audit > Page Visits) - best-effort, must
-        // never disrupt navigation if it fails.
-        apiService.logPageVisit(activeTab).catch(() => {});
+        // never disrupt navigation if it fails. Reports how long the *previous* tab was open (if any)
+        // before logging the new one, so every visit but the very first/last carries a duration.
+        const previous = currentVisitRef.current;
+        if (previous) {
+            const durationSeconds = Math.round((Date.now() - previous.startedAt) / 1000);
+            apiService.recordPageVisitDuration(previous.id, durationSeconds).catch(() => {});
+        }
+        currentVisitRef.current = null;
+        apiService.logPageVisit(activeTab)
+            .then((result) => {
+                if (result?.id != null) currentVisitRef.current = { id: result.id, startedAt: Date.now() };
+            })
+            .catch(() => {});
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [activeTab]);
+
+    // Flushes the *last* open visit's duration when the tab is actually closing/backgrounding -
+    // pagehide/visibilitychange fire reliably across browsers (unlike beforeunload on mobile), but by
+    // then React's own render cycle is done, so this can't go through apiService.request() the normal
+    // way: fetch's keepalive flag is what lets the request outlive the unloading page, and that flag
+    // isn't exposed by request(). Best-effort only - a hard crash/force-quit still loses this interval,
+    // same as any client-side analytics beacon.
+    useEffect(() => {
+        const flush = () => {
+            const visit = currentVisitRef.current;
+            if (!visit) return;
+            const durationSeconds = Math.round((Date.now() - visit.startedAt) / 1000);
+            try {
+                fetch(`${API_BASE_URL}/audit/page-visits/${visit.id}/duration`, {
+                    method: 'PATCH',
+                    keepalive: true,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(apiService.token && { Authorization: `Bearer ${apiService.token}` }),
+                    },
+                    body: JSON.stringify({ durationSeconds }),
+                });
+            } catch {
+                // Best-effort - see comment above.
+            }
+        };
+        const onVisibilityChange = () => { if (document.visibilityState === 'hidden') flush(); };
+        window.addEventListener('pagehide', flush);
+        document.addEventListener('visibilitychange', onVisibilityChange);
+        return () => {
+            window.removeEventListener('pagehide', flush);
+            document.removeEventListener('visibilitychange', onVisibilityChange);
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     // Consume the share link's query string once so a later manual refresh doesn't keep re-forcing
     // navigation back to the shared item over whatever the user has since clicked into.
@@ -1991,7 +2042,7 @@ const ProjectManagementSystem = () => {
                                 <GroupsManagement apiService={apiService} teamMembers={teamMembers} />
                             )}
                             {hasPermission(user?.permissions, 'audit.view') && (
-                                <AuditLog apiService={apiService} />
+                                <AuditLog apiService={apiService} teamMembers={teamMembers} />
                             )}
                             {hasPermission(user?.permissions, 'email.broadcast') && (
                                 <BroadcastEmail apiService={apiService} />

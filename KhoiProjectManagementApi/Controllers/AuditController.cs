@@ -91,14 +91,28 @@ namespace KhoiProjectManagementApi.Controllers
         }
 
         // Any authenticated user logs their own navigation here - not admin-only, unlike every other
-        // action in this controller (see class comment).
+        // action in this controller (see class comment). Returns the new row's id so the frontend can
+        // later attach a duration to this exact visit (see PATCH below) once the user navigates away.
         [HttpPost("page-visits")]
         public async Task<IActionResult> LogPageVisit([FromBody] LogPageVisitDto dto)
         {
             var claim = User.FindFirst(ClaimTypes.NameIdentifier)!;
             var userId = int.Parse(claim.Value);
 
-            await _pageVisitService.LogAsync(userId, dto.TabKey);
+            var id = await _pageVisitService.LogAsync(userId, dto.TabKey);
+            return Ok(new { id });
+        }
+
+        // Same "any authenticated user, own data only" reasoning as the POST above - the service itself
+        // silently no-ops rather than 404ing/403ing if the id doesn't belong to the caller, since this
+        // is fired from a best-effort client-side timer with nothing watching the response.
+        [HttpPatch("page-visits/{id}/duration")]
+        public async Task<IActionResult> RecordPageVisitDuration(int id, [FromBody] RecordPageVisitDurationDto dto)
+        {
+            var claim = User.FindFirst(ClaimTypes.NameIdentifier)!;
+            var userId = int.Parse(claim.Value);
+
+            await _pageVisitService.RecordDurationAsync(id, userId, dto.DurationSeconds);
             return NoContent();
         }
     }

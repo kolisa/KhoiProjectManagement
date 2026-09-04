@@ -87,5 +87,39 @@ namespace KhoiProjectManagement.UnitTests.Services
             Assert.Single(result);
             Assert.Equal(2, result[0].Id);
         }
+
+        [Fact]
+        public async Task RecordDurationAsync_ForTheOwningUser_SetsDurationAndSaves()
+        {
+            var visit = Visit(1, 1, "Alice", "vault", DateTime.UtcNow);
+            _pageVisitRepo.FindAsync(1).Returns(visit);
+
+            await CreateSut().RecordDurationAsync(1, userId: 1, durationSeconds: 42);
+
+            Assert.Equal(42, visit.DurationSeconds);
+            await _unitOfWork.Received(1).SaveChangesAsync();
+        }
+
+        [Fact]
+        public async Task RecordDurationAsync_ForADifferentUsersVisit_SilentlyNoOps()
+        {
+            var visit = Visit(1, 1, "Alice", "vault", DateTime.UtcNow);
+            _pageVisitRepo.FindAsync(1).Returns(visit);
+
+            await CreateSut().RecordDurationAsync(1, userId: 2, durationSeconds: 42);
+
+            Assert.Null(visit.DurationSeconds);
+            await _unitOfWork.DidNotReceive().SaveChangesAsync();
+        }
+
+        [Fact]
+        public async Task RecordDurationAsync_ForAMissingVisit_SilentlyNoOps()
+        {
+            _pageVisitRepo.FindAsync(999).Returns((PageVisitLog?)null);
+
+            await CreateSut().RecordDurationAsync(999, userId: 1, durationSeconds: 42);
+
+            await _unitOfWork.DidNotReceive().SaveChangesAsync();
+        }
     }
 }

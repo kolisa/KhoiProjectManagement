@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { describe, it, expect, beforeEach } from 'vitest';
@@ -7,11 +7,16 @@ import { ToastProvider } from '../../contexts/ToastContext';
 import ApiService from '../../services/ApiService';
 import AuditLog from './AuditLog';
 
+const teamMembers = [
+  { id: 1, name: 'Alice' },
+  { id: 2, name: 'Bob' },
+];
+
 const renderComponent = () => {
   const apiService = new ApiService();
   return render(
     <ToastProvider>
-      <AuditLog apiService={apiService} />
+      <AuditLog apiService={apiService} teamMembers={teamMembers} />
     </ToastProvider>
   );
 };
@@ -95,5 +100,34 @@ describe('AuditLog', () => {
     await user.click(screen.getByRole('button', { name: /error logs/i }));
 
     expect(await screen.findByText(/no log files found/i)).toBeInTheDocument();
+  });
+
+  it('switching to Page Visits shows durations and lets you filter by user and page', async () => {
+    let lastQuery = null;
+    server.use(
+      http.get(`${API_BASE_URL}/audit/emails`, () => HttpResponse.json([])),
+      http.get(`${API_BASE_URL}/audit/page-visits`, ({ request }) => {
+        lastQuery = new URL(request.url).searchParams;
+        return HttpResponse.json([
+          { id: 1, userId: 1, userName: 'Alice', tabKey: 'vault', timestamp: '2026-09-04T10:00:00Z', durationSeconds: 75 },
+          { id: 2, userId: 2, userName: 'Bob', tabKey: 'wiki', timestamp: '2026-09-04T10:05:00Z', durationSeconds: null },
+        ]);
+      })
+    );
+
+    const user = userEvent.setup();
+    renderComponent();
+    await user.click(screen.getByRole('button', { name: /page visits/i }));
+
+    // 'Alice'/'Bob' also appear as <option> text in the user-filter dropdown, so the duration cell -
+    // unique to the loaded table row - is what actually confirms the async data has rendered.
+    expect(await screen.findByText('1m 15s', {}, FIND_OPTS)).toBeInTheDocument();
+    expect(screen.getByText('—')).toBeInTheDocument(); // null duration
+
+    await user.selectOptions(screen.getByDisplayValue('All users'), 'Bob');
+    await waitFor(() => expect(lastQuery.get('userId')).toBe('2'), FIND_OPTS);
+
+    await user.selectOptions(screen.getByDisplayValue('All pages'), 'Wiki');
+    await waitFor(() => expect(lastQuery.get('tabKey')).toBe('wiki'), FIND_OPTS);
   });
 });

@@ -15,15 +15,17 @@ namespace KhoiProjectManagement.Application
             _unitOfWork = unitOfWork;
         }
 
-        public async Task LogAsync(int userId, string tabKey)
+        public async Task<int> LogAsync(int userId, string tabKey)
         {
-            _pageVisitRepo.Add(new PageVisitLog
+            var log = new PageVisitLog
             {
                 UserId = userId,
                 TabKey = tabKey
-            });
+            };
+            _pageVisitRepo.Add(log);
 
             await _unitOfWork.SaveChangesAsync();
+            return log.Id;
         }
 
         public async Task<List<PageVisitLogDto>> GetRecentAsync(int take = 200, int? userId = null, string? tabKey = null)
@@ -44,9 +46,19 @@ namespace KhoiProjectManagement.Application
                     UserId = v.UserId,
                     UserName = v.User.Name,
                     TabKey = v.TabKey,
-                    Timestamp = v.Timestamp
+                    Timestamp = v.Timestamp,
+                    DurationSeconds = v.DurationSeconds
                 })
                 .ToListAsync();
+        }
+
+        public async Task RecordDurationAsync(int id, int userId, int durationSeconds)
+        {
+            var log = await _pageVisitRepo.FindAsync(id);
+            if (log == null || log.UserId != userId) return;
+
+            log.DurationSeconds = durationSeconds;
+            await _unitOfWork.SaveChangesAsync();
         }
     }
 }

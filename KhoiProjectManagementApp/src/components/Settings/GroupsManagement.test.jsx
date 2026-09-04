@@ -17,6 +17,11 @@ const groups = [
   { id: 200, name: 'On-call', description: '', memberCount: 0 },
 ];
 
+// waitFor's default 1000ms timeout is tight enough that a mocked fetch occasionally exceeds it under
+// CI/parallel-worker load (see ApiService.authorizedFetch's own 1500ms retry-on-network-failure delay,
+// which alone can outrun the default) - same reasoning AuditLog.test.jsx's FIND_OPTS documents.
+const WAIT_OPTS = { timeout: 3000 };
+
 const renderComponent = (props = {}) => {
   const apiService = new ApiService();
   return render(
@@ -69,7 +74,7 @@ describe('GroupsManagement', () => {
     // findByRole only waits for the checkbox to exist, not for the separate member-ids fetch that
     // sets its checked state - that needs its own wait, re-querying fresh each retry rather than a
     // reference captured before the state update (which may point at a now-replaced DOM node).
-    await waitFor(() => expect(screen.getByRole('checkbox', { name: /ada lovelace/i })).toBeChecked());
+    await waitFor(() => expect(screen.getByRole('checkbox', { name: /ada lovelace/i })).toBeChecked(), WAIT_OPTS);
     expect(screen.getByRole('checkbox', { name: /grace hopper/i })).not.toBeChecked();
   });
 
@@ -89,7 +94,16 @@ describe('GroupsManagement', () => {
     renderComponent();
 
     await screen.findByRole('button', { name: /engineering leads/i });
-    const adaCheckbox = await screen.findByRole('checkbox', { name: /ada lovelace/i });
+    await screen.findByRole('checkbox', { name: /ada lovelace/i });
+    // The member-ids fetch (loadMembers) resolves separately from the checkbox existing, and its own
+    // setDirty(false) on completion would silently undo a toggle that happened to land first - wait
+    // for it to settle before touching anything, or this races exactly that way under CI's slower/
+    // different scheduling. Re-queries fresh each retry rather than waiting on a reference captured
+    // before the state update, which may point at a now-replaced DOM node (same reasoning the "loading
+    // state" test above already documents) - only captured into a variable once this has settled.
+    await waitFor(() => expect(screen.getByRole('checkbox', { name: /ada lovelace/i })).toBeChecked(), WAIT_OPTS);
+
+    const adaCheckbox = screen.getByRole('checkbox', { name: /ada lovelace/i });
     const graceCheckbox = screen.getByRole('checkbox', { name: /grace hopper/i });
     const saveButton = screen.getByRole('button', { name: /save changes/i });
     expect(saveButton).toBeDisabled();
@@ -97,11 +111,11 @@ describe('GroupsManagement', () => {
     // Remove Ada, add Grace.
     await user.click(adaCheckbox);
     await user.click(graceCheckbox);
-    await waitFor(() => expect(saveButton).toBeEnabled());
+    await waitFor(() => expect(saveButton).toBeEnabled(), WAIT_OPTS);
 
     await user.click(saveButton);
 
-    await waitFor(() => expect(putBody).not.toBeNull());
+    await waitFor(() => expect(putBody).not.toBeNull(), WAIT_OPTS);
     expect(putGroupId).toBe('100');
     expect(putBody.userIds).toEqual([2]);
     expect(await screen.findByText(/members updated for engineering leads/i)).toBeInTheDocument();
@@ -139,7 +153,7 @@ describe('GroupsManagement', () => {
     await user.type(within(modal).getByPlaceholderText(/description/i), 'Support rota');
     await user.click(within(modal).getByRole('button', { name: /^create$/i }));
 
-    await waitFor(() => expect(postBody).not.toBeNull());
+    await waitFor(() => expect(postBody).not.toBeNull(), WAIT_OPTS);
     expect(postBody).toEqual({ name: 'Support', description: 'Support rota' });
     expect(await screen.findByText(/group created/i)).toBeInTheDocument();
     // The modal (its heading) is gone; the page's own "New Group" button remains.

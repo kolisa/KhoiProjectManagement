@@ -10,5 +10,10 @@ namespace KhoiProjectManagement.Domain
         public string TabKey { get; set; } = string.Empty;
 
         public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+
+        // Set later, once the user navigates away from this tab (or the page unloads) - see
+        // PageVisitService.RecordDurationAsync. Null means either the visit is still open or the
+        // client never got a chance to report it (a hard crash/force-quit, mainly).
+        public int? DurationSeconds { get; set; }
     }
 }
