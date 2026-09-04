@@ -30,6 +30,7 @@ const DashboardWidgetSettings = lazy(() => import('./components/Settings/Dashboa
 const PermissionsManagement = lazy(() => import('./components/Settings/PermissionsManagement'));
 const GroupsManagement = lazy(() => import('./components/Settings/GroupsManagement'));
 const AuditLog = lazy(() => import('./components/Settings/AuditLog'));
+const BroadcastEmail = lazy(() => import('./components/Settings/BroadcastEmail'));
 import OrgChartTree from './components/Team/OrgChartTree';
 const IdeasPage = lazy(() => import('./components/Ideas/IdeasPage'));
 const InvoicesPage = lazy(() => import('./components/Finance/InvoicesPage'));
@@ -1990,6 +1991,9 @@ const ProjectManagementSystem = () => {
                             )}
                             {hasPermission(user?.permissions, 'audit.view') && (
                                 <AuditLog apiService={apiService} />
+                            )}
+                            {hasPermission(user?.permissions, 'email.broadcast') && (
+                                <BroadcastEmail apiService={apiService} />
                             )}
                         </div>
                     </Suspense>

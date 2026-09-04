@@ -17,6 +17,14 @@ namespace KhoiProjectManagement.Application
         Task SendBirthdayEmailAsync(string toEmail, string userName);
         Task SendTimesheetSubmittedEmailAsync(string toEmail, string submitterName, DateTime periodStart, DateTime periodEnd, decimal totalHours);
 
+        // bodyHtml is admin-authored (see BroadcastEmailService), not a system-generated fragment like
+        // every other Send*EmailAsync here - still wrapped in the same branded EmailTemplates shell.
+        Task SendBroadcastEmailAsync(string toEmail, string subject, string bodyHtml);
+
+        // Sent every Friday 10am by SystemOverviewEmailJob (Quartz) - a standing "what this system is
+        // and how to use it" tour, not tied to any particular user action.
+        Task SendSystemOverviewEmailAsync(string toEmail, string userName);
+
         // Called by SendQueuedEmailsJob (Quartz) - dispatches every EmailLog row still Status=Pending
         // (i.e. every Send*EmailAsync call above except SendScheduledReportEmailAsync, which still
         // sends synchronously - see EmailService for why). Never called from a request path.

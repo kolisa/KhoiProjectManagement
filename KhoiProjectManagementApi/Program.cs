@@ -8,6 +8,7 @@ using KhoiProjectManagementApi.Hubs;
 using KhoiProjectManagementApi.Middleware;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Serilog;
 
 // Bootstrap logger: active only until the host is built, so startup failures (bad config, DB
@@ -74,6 +75,7 @@ try
     var noDocumentsNudgeJobKey = new JobKey("NoDocumentsNudge");
     var dormantUserJobKey = new JobKey("DormantUserCheck");
     var birthdayJobKey = new JobKey("BirthdayCheck");
+    var systemOverviewJobKey = new JobKey("SystemOverviewEmail");
     var firstRecurrence = DateBuilder.FutureDate(1, IntervalUnit.Hour);
     // SendQueuedEmailsJob repeats every 15s (it's the actual delivery mechanism for the EmailLog
     // outbox every Send*EmailAsync call now writes to - see EmailService), so reusing firstRecurrence's
@@ -156,6 +158,28 @@ try
             .WithIdentity("BirthdayCheck-trigger")
             .StartAt(firstRecurrence)
             .WithSimpleSchedule(s => s.WithIntervalInHours(24).RepeatForever()));
+
+        // The one genuinely calendar-based trigger in this file (every other job above uses an
+        // hourly/daily WithSimpleSchedule with the real cadence enforced inside the service instead -
+        // see WeeklyDigestJob's comment) - "every Friday at 10am" is exactly what Quartz's cron
+        // trigger is for. Both the on/off switch and the schedule itself are config-driven
+        // (SystemOverviewEmail:Enabled/CronSchedule in appsettings.json) rather than hardcoded, same
+        // spirit as Notifications:WeeklyDigestRepeatDays above - an admin can retime or disable this
+        // without a code change. Cron format is seconds minutes hours day-of-month month day-of-week.
+        // DoNothing on misfire is deliberate: if the scheduler was down at the scheduled time (a
+        // deploy, a restart), skip straight to the next occurrence rather than firing late or
+        // double-sending on next boot - this is a standing "welcome tour" email, not something that
+        // must eventually fire no matter what. No boot-time TriggerJob call either (unlike the daily
+        // jobs above) - this shouldn't fire on every dev/deploy restart.
+        if (builder.Configuration.GetValue("SystemOverviewEmail:Enabled", true))
+        {
+            var systemOverviewCron = builder.Configuration["SystemOverviewEmail:CronSchedule"] ?? "0 0 10 ? * FRI";
+            q.AddJob<SystemOverviewEmailJob>(opts => opts.WithIdentity(systemOverviewJobKey));
+            q.AddTrigger(opts => opts
+                .ForJob(systemOverviewJobKey)
+                .WithIdentity("SystemOverviewEmail-trigger")
+                .WithCronSchedule(systemOverviewCron, x => x.WithMisfireHandlingInstructionDoNothing()));
+        }
     });
     builder.Services.AddQuartzHostedService(opts => opts.WaitForJobsToComplete = true);
 

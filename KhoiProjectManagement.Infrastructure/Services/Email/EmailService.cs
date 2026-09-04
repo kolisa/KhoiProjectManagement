@@ -210,6 +210,40 @@ namespace KhoiProjectManagement.Infrastructure.Services
             await EnqueueEmailAsync(toEmail, subject, body, "timesheet_submitted");
         }
 
+        public async Task SendBroadcastEmailAsync(string toEmail, string subject, string bodyHtml)
+        {
+            var body = EmailTemplates.Wrap(subject, bodyHtml, "Open KhoiHub", GetFrontendUrl(), GetFrontendUrl());
+
+            await EnqueueEmailAsync(toEmail, subject, body, "broadcast");
+        }
+
+        public async Task SendSystemOverviewEmailAsync(string toEmail, string userName)
+        {
+            var subject = "What you can do in KhoiHub";
+            // Deliberately general-purpose copy, not tied to this particular recipient's own activity
+            // (unlike SendWeeklyDigestEmailAsync) - a standing tour of the system, sent on a fixed
+            // schedule (see SystemOverviewEmailJob) rather than triggered by anything the user did.
+            var inner = $@"
+                <p>Hi {userName},</p>
+                <p>Here's a quick reminder of what KhoiHub covers and where to find it:</p>
+                <ul>
+                    <li><strong>Projects &amp; Tasks</strong> - track work, assign tasks, and see what's overdue from the Dashboard.</li>
+                    <li><strong>Timesheets</strong> - log hours per period, submit for approval, or upload a CSV instead of typing them in.</li>
+                    <li><strong>Vault</strong> - a shared, permissioned place for secrets (API keys, credentials) with a full audit trail.</li>
+                    <li><strong>Wiki</strong> - your team's shared knowledge base, with page history and comments.</li>
+                    <li><strong>Library</strong> - shared files, organized like a folder tree.</li>
+                    <li><strong>Ideas</strong> - propose and discuss ideas before they become projects.</li>
+                    <li><strong>Calendar &amp; Reminders</strong> - company events and your own personal reminders, with recurrence and snooze.</li>
+                    <li><strong>Finance</strong> - invoicing, for anyone with access to it.</li>
+                    <li><strong>Reports</strong> - project summaries, team performance, and overdue-task reports, exportable and schedulable.</li>
+                </ul>
+                <p>Not sure where something lives, or how to do something for the first time? Ask your manager or an admin - they're happy to help.</p>
+            ";
+            var body = EmailTemplates.Wrap("What you can do in KhoiHub", inner, "Open KhoiHub", GetFrontendUrl(), GetFrontendUrl());
+
+            await EnqueueEmailAsync(toEmail, subject, body, "system_overview");
+        }
+
         public async Task SendScheduledReportEmailAsync(string toEmail, string reportTitle, byte[] attachmentContent, string attachmentFileName, string attachmentContentType)
         {
             // Not queued (see IEmailService's comment) - already runs off the request thread via
