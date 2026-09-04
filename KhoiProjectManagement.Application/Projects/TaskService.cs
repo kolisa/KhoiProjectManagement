@@ -150,7 +150,9 @@ namespace KhoiProjectManagement.Application
                                 await _emailService.SendTaskAssignmentEmailAsync(
                                     assignedUser.Email,
                                     task.Title,
-                                    project.Name
+                                    project.Name,
+                                    task.DueDate,
+                                    task.Priority
                                 );
                             }
                             catch
@@ -248,7 +250,9 @@ namespace KhoiProjectManagement.Application
                                 await _emailService.SendTaskAssignmentEmailAsync(
                                     assignedUser.Email,
                                     task.Title,
-                                    project.Name
+                                    project.Name,
+                                    task.DueDate,
+                                    task.Priority
                                 );
                             }
                             catch

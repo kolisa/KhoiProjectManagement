@@ -45,13 +45,17 @@ namespace KhoiProjectManagement.UnitTests.Services
         {
             var sut = CreateSut();
 
-            await sut.SendTaskAssignmentEmailAsync("dev@khoitech.africa", "Fix login bug", "Q3 Launch");
+            await sut.SendTaskAssignmentEmailAsync("dev@khoitech.africa", "Fix login bug", "Q3 Launch", new DateTime(2026, 9, 11), "high");
 
             var log = Assert.Single(_context.EmailLogs);
             Assert.Equal(EmailLogStatus.Pending, log.Status);
             Assert.Equal("dev@khoitech.africa", log.ToEmail);
             Assert.Equal("task_assignment", log.EmailType);
             Assert.Contains("https://app.example.com/?tab=tasks", log.Body);
+            // Project/Due/Priority render as detail rows now, not inline prose - see EmailTemplates.
+            Assert.Contains("Q3 Launch", log.Body);
+            Assert.Contains("2026-09-11", log.Body);
+            Assert.Contains("high", log.Body);
         }
 
         [Fact]
@@ -81,9 +85,9 @@ namespace KhoiProjectManagement.UnitTests.Services
         {
             var sut = CreateSut();
 
-            await sut.SendTaskAssignmentEmailAsync("a@x.com", "Task A", "Project");
-            await sut.SendTaskAssignmentEmailAsync("b@x.com", "Task B", "Project");
-            await sut.SendTaskAssignmentEmailAsync("c@x.com", "Task C", "Project");
+            await sut.SendTaskAssignmentEmailAsync("a@x.com", "Task A", "Project", DateTime.Today, "medium");
+            await sut.SendTaskAssignmentEmailAsync("b@x.com", "Task B", "Project", DateTime.Today, "medium");
+            await sut.SendTaskAssignmentEmailAsync("c@x.com", "Task C", "Project", DateTime.Today, "medium");
 
             var ids = _context.EmailLogs.OrderBy(e => e.Id).Select(e => e.ToEmail).ToList();
             Assert.Equal(new[] { "a@x.com", "b@x.com", "c@x.com" }, ids);

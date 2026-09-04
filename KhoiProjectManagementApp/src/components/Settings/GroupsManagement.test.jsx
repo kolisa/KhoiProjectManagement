@@ -97,7 +97,7 @@ describe('GroupsManagement', () => {
     // Remove Ada, add Grace.
     await user.click(adaCheckbox);
     await user.click(graceCheckbox);
-    expect(saveButton).toBeEnabled();
+    await waitFor(() => expect(saveButton).toBeEnabled());
 
     await user.click(saveButton);
 
