@@ -6,6 +6,7 @@ import PriorityBadge from '../Common/PriorityBadge';
 import StatusBadge from '../Common/StatusBadge';
 import WorkItemModal from './WorkItemModal';
 import { LabelChips, RollupBar } from './pmWidgets';
+import { EmptyState } from './pmUi';
 import { useToast } from '../../contexts/ToastContext';
 import { useConfirm } from '../../contexts/ConfirmContext';
 import { reportApiError } from '../../utils/apiError';
@@ -147,10 +148,9 @@ const PmBacklog = ({ apiService, project, members }) => {
       ) : error ? (
         <ErrorMessage message={error} onRetry={load} />
       ) : items.length === 0 ? (
-        <div className="text-center py-16 text-gray-500 bg-white border border-dashed border-gray-300 rounded-xl">
-          {isFiltered ? 'No work items match these filters.' : 'The backlog is empty.'}
-          {!isFiltered && canCreate && ' Create an Epic or Story to get started.'}
-        </div>
+        <EmptyState icon={isFiltered ? Search : Plus} title={isFiltered ? 'No work items match these filters' : 'The backlog is empty'}>
+          {isFiltered ? 'Try clearing a filter or searching for something else.' : canCreate ? 'Create an Epic or a Story to get started.' : 'Nothing has been added to this project yet.'}
+        </EmptyState>
       ) : (
         <ul className="bg-white border border-gray-200 rounded-xl divide-y divide-gray-100 overflow-hidden">
           {items.map((item, index) => (

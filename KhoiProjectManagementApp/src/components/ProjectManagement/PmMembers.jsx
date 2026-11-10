@@ -1,17 +1,21 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Trash2, Upload } from 'lucide-react';
+import { Trash2, Upload, UserPlus, ChevronRight } from 'lucide-react';
 import LoadingSpinner from '../Common/LoadingSpinner';
 import ErrorMessage from '../Common/ErrorMessage';
 import { useToast } from '../../contexts/ToastContext';
 import { useConfirm } from '../../contexts/ConfirmContext';
 import { reportApiError } from '../../utils/apiError';
 import { PROJECT_ROLES, roleLabel, can } from './pmConstants';
+import { Avatar, AccessBadge, RoleChip, cardClass } from './pmUi';
 import ImportMembersModal from './ImportMembersModal';
+import RoleMatrix from './RoleMatrix';
 
-const selectClass = 'border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500';
+const selectClass = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500';
+const labelClass = 'block text-xs font-medium text-gray-600 mb-1';
 
-// Project roster with per-project roles. Only a Project Admin (or SuperAdmin) can change it; everyone
-// else sees it read-only. Candidates for "add" are users a SuperAdmin has granted module access.
+// The project's people: who is on it, what role each has and what that means they can do (Read only / Read & write /
+// Full control). Only a Project Admin (or SuperAdmin) can change it; everyone else sees it read-only. People who can be
+// added are those a SuperAdmin has already given module access to.
 const PmMembers = ({ apiService, project, onChanged, otherProjects = [], canGrantAccess = false, currentUserId = null }) => {
   const toast = useToast();
   const confirm = useConfirm();
@@ -113,77 +117,101 @@ const PmMembers = ({ apiService, project, onChanged, otherProjects = [], canGran
 
   const memberIds = new Set(members.map((m) => m.userId));
   const addable = candidates.filter((c) => !memberIds.has(c.id));
+  const everyoneSelected = members.length > 0 && members.every((m) => selected.has(m.userId));
 
   return (
     <div className="space-y-4">
       {canManage && (
-        <form onSubmit={add} className="flex flex-wrap items-center gap-2">
-          <select aria-label="User to add" className={selectClass} value={newUserId} onChange={(e) => setNewUserId(e.target.value)}>
-            <option value="">Add a person…</option>
-            {addable.map((u) => <option key={u.id} value={u.id}>{u.name} ({u.email})</option>)}
-          </select>
-          <select aria-label="Role" className={selectClass} value={newRole} onChange={(e) => setNewRole(e.target.value)}>
-            {PROJECT_ROLES.map((r) => <option key={r.key} value={r.key}>{r.label}</option>)}
-          </select>
-          <button type="submit" disabled={!newUserId} className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 disabled:opacity-50">Add</button>
-          <button type="button" onClick={() => setShowImport(true)} className="ml-auto inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-300 text-sm text-gray-700 hover:bg-gray-50">
-            <Upload className="h-4 w-4" aria-hidden="true" /> Import members
-          </button>
-          {addable.length === 0 && <span className="text-xs text-gray-500">Everyone with module access is already on this project.</span>}
-        </form>
-      )}
-
-      {canManage && members.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2 text-sm">
-          <label className="inline-flex items-center gap-2 text-gray-700">
-            <input type="checkbox" className="h-4 w-4 rounded border-gray-300" aria-label="Select everyone"
-              checked={members.length > 0 && members.every((m) => selected.has(m.userId))}
-              onChange={() => setSelected(members.every((m) => selected.has(m.userId)) ? new Set() : new Set(members.map((m) => m.userId)))} />
-            {selected.size > 0 ? `${selected.size} selected` : 'Select'}
-          </label>
-          {selected.size > 0 && (
-            <>
-              <select aria-label="Role for selected people" className={selectClass} value={bulkRole} onChange={(e) => setBulkRole(e.target.value)}>
+        <section aria-label="Add people" className={`${cardClass} p-4`}>
+          <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-gray-900">
+            <UserPlus className="h-4 w-4 text-blue-600" aria-hidden="true" /> Add people to {project.name}
+          </h2>
+          <form onSubmit={add} className="flex flex-wrap items-end gap-3">
+            <div className="min-w-[14rem] flex-1">
+              <label htmlFor="pm-add-person" className={labelClass}>Person</label>
+              <select id="pm-add-person" className={selectClass} value={newUserId} onChange={(e) => setNewUserId(e.target.value)}>
+                <option value="">Choose a person…</option>
+                {addable.map((u) => <option key={u.id} value={u.id}>{u.name} ({u.email})</option>)}
+              </select>
+            </div>
+            <div className="w-44">
+              <label htmlFor="pm-add-role" className={labelClass}>Role</label>
+              <select id="pm-add-role" className={selectClass} value={newRole} onChange={(e) => setNewRole(e.target.value)}>
                 {PROJECT_ROLES.map((r) => <option key={r.key} value={r.key}>{r.label}</option>)}
               </select>
-              <button onClick={bulkSetRole} className="px-3 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50">Set role</button>
-              <button onClick={bulkRemove} className="px-3 py-2 rounded-lg border border-red-300 text-red-700 hover:bg-red-50">Remove selected</button>
-            </>
+            </div>
+            <button type="submit" disabled={!newUserId} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50">Add to project</button>
+            <button type="button" onClick={() => setShowImport(true)} className="ml-auto inline-flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50">
+              <Upload className="h-4 w-4" aria-hidden="true" /> Import members
+            </button>
+          </form>
+          {addable.length === 0 && <p className="mt-2 text-xs text-gray-500">Everyone who has Project Management access is already on this project.</p>}
+        </section>
+      )}
+
+      <section aria-label="Members" className={cardClass}>
+        <div className="flex flex-wrap items-center gap-3 border-b border-gray-100 px-4 py-3">
+          <h2 className="text-sm font-semibold text-gray-900">Members <span className="font-normal text-gray-500">({members.length})</span></h2>
+          {canManage && members.length > 0 && (
+            <div className="ml-auto flex flex-wrap items-center gap-2 text-sm">
+              <label className="inline-flex items-center gap-2 text-gray-700">
+                <input type="checkbox" className="h-4 w-4 rounded border-gray-300" aria-label="Select everyone" checked={everyoneSelected}
+                  onChange={() => setSelected(everyoneSelected ? new Set() : new Set(members.map((m) => m.userId)))} />
+                {selected.size > 0 ? `${selected.size} selected` : 'Select'}
+              </label>
+              {selected.size > 0 && (
+                <>
+                  <select aria-label="Role for selected people" className="rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-sm" value={bulkRole} onChange={(e) => setBulkRole(e.target.value)}>
+                    {PROJECT_ROLES.map((r) => <option key={r.key} value={r.key}>{r.label}</option>)}
+                  </select>
+                  <button onClick={bulkSetRole} className="rounded-lg border border-gray-300 px-3 py-1.5 text-gray-700 hover:bg-gray-50">Set role</button>
+                  <button onClick={bulkRemove} className="rounded-lg border border-red-300 px-3 py-1.5 text-red-700 hover:bg-red-50">Remove selected</button>
+                </>
+              )}
+            </div>
           )}
         </div>
-      )}
 
-      <ul className="bg-white border border-gray-200 rounded-xl divide-y divide-gray-100">
-        {members.map((m) => (
-          <li key={m.userId} className="flex items-center gap-3 px-4 py-3">
-            {canManage && (
-              <input type="checkbox" className="h-4 w-4 rounded border-gray-300" aria-label={`Select ${m.name}`}
-                checked={selected.has(m.userId)} onChange={() => toggle(m.userId)} />
-            )}
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-900 truncate">{m.name}</p>
-              <p className="text-xs text-gray-500 truncate">{m.email}</p>
-            </div>
-            {canManage ? (
-              <select
-                aria-label={`Role for ${m.name}`}
-                className={selectClass}
-                value={m.role}
-                onChange={(e) => run(() => apiService.setPmMember(project.id, m.userId, e.target.value), 'Role updated.')}
-              >
-                {PROJECT_ROLES.map((r) => <option key={r.key} value={r.key}>{r.label}</option>)}
-              </select>
-            ) : (
-              <span className="text-sm text-gray-600">{roleLabel(m.role)}</span>
-            )}
-            {canManage && (
-              <button aria-label={`Remove ${m.name}`} onClick={() => remove(m)} className="text-gray-400 hover:text-red-600">
-                <Trash2 className="h-4 w-4" />
-              </button>
-            )}
-          </li>
-        ))}
-      </ul>
+        <ul className="divide-y divide-gray-100">
+          {members.map((m) => (
+            <li key={m.userId} className="flex flex-wrap items-center gap-3 px-4 py-3">
+              {canManage && (
+                <input type="checkbox" className="h-4 w-4 rounded border-gray-300" aria-label={`Select ${m.name}`}
+                  checked={selected.has(m.userId)} onChange={() => toggle(m.userId)} />
+              )}
+              <Avatar name={m.name} />
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium text-gray-900">
+                  {m.name}{m.userId === currentUserId && <span className="ml-1.5 text-xs font-normal text-gray-500">(you)</span>}
+                </p>
+                <p className="truncate text-xs text-gray-500">{m.email}</p>
+              </div>
+              <AccessBadge role={m.role} readOnly={m.moduleReadOnly} />
+              {canManage ? (
+                <select aria-label={`Role for ${m.name}`} className="rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-sm" value={m.role}
+                  onChange={(e) => run(() => apiService.setPmMember(project.id, m.userId, e.target.value), 'Role updated.')}>
+                  {PROJECT_ROLES.map((r) => <option key={r.key} value={r.key}>{r.label}</option>)}
+                </select>
+              ) : (
+                <RoleChip role={m.role} />
+              )}
+              {canManage && (
+                <button aria-label={`Remove ${m.name}`} onClick={() => remove(m)} className="text-gray-400 hover:text-red-600">
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              )}
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <details className={`${cardClass} group`}>
+        <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-3 text-sm font-semibold text-gray-900">
+          <ChevronRight className="h-4 w-4 text-gray-400 transition-transform group-open:rotate-90" aria-hidden="true" />
+          What can each role do?
+        </summary>
+        <div className="border-t border-gray-100 px-4 py-4"><RoleMatrix highlightRole={project.actualRole} /></div>
+      </details>
 
       {showImport && (
         <ImportMembersModal apiService={apiService} project={project} otherProjects={otherProjects} canGrantAccess={canGrantAccess}

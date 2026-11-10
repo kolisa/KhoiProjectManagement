@@ -188,7 +188,7 @@ const ProjectManagementSystem = () => {
     // AuthContext.logout() clears this on an explicit manual logout, so that path always starts fresh
     // at the dashboard instead of jumping back to wherever the user happened to be. An incoming share
     // link (deepLink) takes priority over both.
-    const [activeTab, setActiveTab] = useState(() => deepLink?.tab || localStorage.getItem('khoi_last_tab') || 'dashboard');
+    const [activeTab, setActiveTab] = useState(() => deepLink?.tab || (window.location.hash.startsWith('#/pm/') ? 'pm' : null) || localStorage.getItem('khoi_last_tab') || 'dashboard');
 
     // Holds the currently-open visit's { id, startedAt } (or null before the first log call
     // resolves) - read by both the tab-change effect below and the pagehide handler further down,

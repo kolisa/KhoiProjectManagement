@@ -7,6 +7,8 @@ namespace KhoiProjectManagement.Application
         public string Status { get; set; } = string.Empty;
         // "SuperAdmin" for a SuperAdmin viewing a project they are not a member of.
         public string MyRole { get; set; } = string.Empty;
+        // The caller's module access level is read only: they can see this project but change nothing in it.
+        public bool ReadOnly { get; set; }
         public int TotalItems { get; set; }
         public int OpenItems { get; set; }
     }
@@ -17,6 +19,8 @@ namespace KhoiProjectManagement.Application
         public string Name { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
         public string Role { get; set; } = string.Empty;
+        // This person's module access level is read only, so their effective access is read only whatever the role.
+        public bool ModuleReadOnly { get; set; }
     }
 
     public class SetProjectMemberDto
@@ -114,11 +118,17 @@ namespace KhoiProjectManagement.Application
         public string Email { get; set; } = string.Empty;
         public bool PmAccess { get; set; }
         public bool PmOnly { get; set; }
+        public bool PmReadOnly { get; set; }
+        // How many projects the person belongs to - lets an admin spot someone who is on projects but cannot see them
+        // because module access was never switched on.
+        public int ProjectCount { get; set; }
     }
 
     public class SetPmAccessDto
     {
         public bool PmAccess { get; set; }
         public bool PmOnly { get; set; }
+        // Read only instead of read and write. Needs PmAccess.
+        public bool ReadOnly { get; set; }
     }
 }

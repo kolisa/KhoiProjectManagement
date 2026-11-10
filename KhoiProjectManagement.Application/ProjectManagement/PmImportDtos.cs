@@ -14,6 +14,8 @@ namespace KhoiProjectManagement.Application
         public bool GrantModuleAccess { get; set; }
         // With GrantModuleAccess: confine newly granted accounts to the PM module.
         public bool ModuleOnly { get; set; }
+        // With GrantModuleAccess: give the newly enabled people READ ONLY access instead of read and write.
+        public bool ReadOnlyAccess { get; set; }
         // Report what would happen without changing anything.
         public bool DryRun { get; set; }
     }
