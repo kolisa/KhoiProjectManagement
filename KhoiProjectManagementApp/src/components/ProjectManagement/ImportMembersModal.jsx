@@ -17,13 +17,14 @@ const ImportMembersModal = ({ apiService, project, otherProjects = [], canGrantA
   const [defaultRole, setDefaultRole] = useState('Developer');
   const [grant, setGrant] = useState(false);
   const [moduleOnly, setModuleOnly] = useState(false);
+  const [readOnlyAccess, setReadOnlyAccess] = useState(false);
   const [preview, setPreview] = useState(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
 
   const rows = parseMemberRows(text).map((r) => ({ ...r, role: r.role || defaultRole }));
 
-  const request = (dryRun) => ({ rows, grantModuleAccess: grant, moduleOnly: grant && moduleOnly, dryRun });
+  const request = (dryRun) => ({ rows, grantModuleAccess: grant, moduleOnly: grant && moduleOnly, readOnlyAccess: grant && readOnlyAccess, dryRun });
 
   const edit = (value) => { setText(value); setPreview(null); setError(null); };
 
@@ -122,6 +123,14 @@ const ImportMembersModal = ({ apiService, project, otherProjects = [], canGrantA
                   <input type="checkbox" checked={grant} onChange={(e) => { setGrant(e.target.checked); setPreview(null); }} className="h-4 w-4 rounded border-gray-300" />
                   Also enable Project Management access for people who lack it
                 </label>
+                <div role="radiogroup" aria-label="Access level for people who are newly enabled" className={`mt-1 ml-6 flex flex-wrap items-center gap-x-4 ${grant ? 'text-gray-700' : 'text-gray-400'}`}>
+                  <label className="inline-flex items-center gap-1.5">
+                    <input type="radio" name="import-access-level" disabled={!grant} checked={!readOnlyAccess} onChange={() => { setReadOnlyAccess(false); setPreview(null); }} /> Read &amp; write
+                  </label>
+                  <label className="inline-flex items-center gap-1.5">
+                    <input type="radio" name="import-access-level" disabled={!grant} checked={readOnlyAccess} onChange={() => { setReadOnlyAccess(true); setPreview(null); }} /> Read only
+                  </label>
+                </div>
                 <label className={`flex items-center gap-2 mt-1 ml-6 ${grant ? 'text-gray-700' : 'text-gray-400'}`}>
                   <input type="checkbox" disabled={!grant} checked={moduleOnly} onChange={(e) => { setModuleOnly(e.target.checked); setPreview(null); }} className="h-4 w-4 rounded border-gray-300" />
                   Confine them to this module only <span className="text-xs text-gray-500">(only accounts with no other permissions)</span>

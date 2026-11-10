@@ -1613,10 +1613,10 @@ class ApiService {
     return await this.request('/pm/access/users');
   }
 
-  async setPmAccess(userId, pmAccess, pmOnly) {
+  async setPmAccess(userId, pmAccess, pmOnly, readOnly = false) {
     return await this.request(`/pm/access/users/${userId}`, {
       method: 'PUT',
-      body: JSON.stringify({ pmAccess, pmOnly }),
+      body: JSON.stringify({ pmAccess, pmOnly, readOnly }),
     });
   }
 }

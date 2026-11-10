@@ -181,15 +181,20 @@ namespace KhoiProjectManagement.Application
                 project.StartDate = updateProjectDto.StartDate;
                 project.EndDate = updateProjectDto.EndDate;
 
-                // Update team members
-                _projectUserRepo.RemoveRange(project.ProjectUsers);
-                if (updateProjectDto.TeamMemberIds?.Any() == true)
+                // Update team members. Apply the DIFFERENCE rather than deleting every row and re-adding them: each
+                // ProjectUser also carries the person's Project Management role, so a delete-and-recreate silently reset
+                // every Project Admin / Scrum Master / Viewer to the default role whenever a project was merely renamed.
+                var wantedMembers = (updateProjectDto.TeamMemberIds ?? new List<int>()).Distinct().ToList();
+                var currentMembers = project.ProjectUsers.ToList();
+                _projectUserRepo.RemoveRange(currentMembers.Where(pu => !wantedMembers.Contains(pu.UserId)).ToList());
+                if (wantedMembers.Count > 0)
                 {
-                    var projectUsers = updateProjectDto.TeamMemberIds.Select(userId => new ProjectUser
+                    var alreadyOnProject = currentMembers.Select(pu => pu.UserId).ToHashSet();
+                    var projectUsers = wantedMembers.Where(userId => !alreadyOnProject.Contains(userId)).Select(userId => new ProjectUser
                     {
                         ProjectId = project.Id,
                         UserId = userId
-                    });
+                    }).ToList();
                     _projectUserRepo.AddRange(projectUsers);
 
                     var spaceId = await _spaceService.EnsureProjectSpaceAsync(project.Id, project.CreatedBy);

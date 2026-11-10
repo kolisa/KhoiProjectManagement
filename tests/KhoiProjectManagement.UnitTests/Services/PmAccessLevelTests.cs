@@ -192,5 +192,75 @@ namespace KhoiProjectManagement.UnitTests.Services
             Assert.False(pat.PmAccess);
             Assert.False(pat.PmReadOnly);
         }
+
+        // ---- a project's creator must be able to find their project
+
+        [Fact]
+        public async Task MyProjects_AddsTheCreatorAsProjectAdmin_WhenTheyAreNotOnTheTeam()
+        {
+            var added = new List<ProjectUser>();
+            _members.When(r => r.Add(Arg.Any<ProjectUser>())).Do(ci => added.Add(ci.Arg<ProjectUser>()));
+            _projects.Query().Returns(_ => new List<Project>
+            {
+                new() { Id = 1, Name = "Mine, not on the team", CreatedBy = 10 },
+                new() { Id = 2, Name = "Mine and on the team", CreatedBy = 10, ProjectUsers = { new ProjectUser { UserId = 10, ProjectRole = ProjectRoles.Developer } } },
+                new() { Id = 3, Name = "Someone else's", CreatedBy = 99 },
+            }.BuildMock());
+
+            await CreateSut().GetMyProjectsAsync(Dev);
+
+            var row = Assert.Single(added);
+            Assert.Equal((1, 10, ProjectRoles.ProjectAdmin), (row.ProjectId, row.UserId, row.ProjectRole));
+            await _uow.Received(1).SaveChangesAsync();
+        }
+
+        [Fact]
+        public async Task MyProjects_WhenTheCreatorIsAlreadyAMember_WritesNothing()
+        {
+            _projects.Query().Returns(_ => new List<Project>
+            {
+                new() { Id = 2, Name = "Mine", CreatedBy = 10, ProjectUsers = { new ProjectUser { UserId = 10, ProjectRole = ProjectRoles.Tester } } },
+            }.BuildMock());
+
+            await CreateSut().GetMyProjectsAsync(Dev);
+
+            _members.DidNotReceiveWithAnyArgs().Add(default!);
+            await _uow.DidNotReceive().SaveChangesAsync();
+        }
+
+        [Fact]
+        public async Task MyProjects_ASuperAdminIsNeverAddedAsAMember()
+        {
+            _projects.Query().Returns(_ => new List<Project> { new() { Id = 1, Name = "Any", CreatedBy = 2 } }.BuildMock());
+
+            await CreateSut().GetMyProjectsAsync(Super);
+
+            _members.DidNotReceiveWithAnyArgs().Add(default!);
+        }
+
+        [Fact]
+        public async Task MyProjects_ARacingRequestThatAddedTheCreatorFirst_IsNotAnError()
+        {
+            _projects.Query().Returns(_ => new List<Project> { new() { Id = 1, Name = "Mine", CreatedBy = 10 } }.BuildMock());
+            _uow.SaveChangesAsync().Returns<int>(_ => throw new Microsoft.EntityFrameworkCore.DbUpdateException("duplicate key"));
+
+            var mine = await CreateSut().GetMyProjectsAsync(Dev);
+
+            Assert.NotNull(mine);
+        }
+
+        [Fact]
+        public async Task AccessAdmin_ListsHowManyProjectsEachPersonIsOn()
+        {
+            _users.Query().Returns(_ => new List<User>
+            {
+                new() { Id = 1, Name = "Ada", Email = "a@x.com", IsActive = true, PmAccess = false, ProjectUsers = { new ProjectUser(), new ProjectUser() } },
+                new() { Id = 2, Name = "Bo", Email = "b@x.com", IsActive = true, PmAccess = true },
+            }.BuildMock());
+
+            var people = await CreateSut().GetAccessUsersAsync();
+
+            Assert.Equal(new[] { 2, 0 }, people.Select(p => p.ProjectCount));
+        }
     }
 }

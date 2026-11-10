@@ -121,6 +121,41 @@ namespace KhoiProjectManagement.UnitTests.Services
             await _spaceService.Received(1).SyncSpaceMembersAsync(77, Arg.Is<IEnumerable<int>>(ids => !ids.Any()), PermissionLevel.Write, 1);
         }
 
+        [Fact]
+        public async Task UpdateProjectAsync_KeepsExistingMembersAndTheirProjectManagementRoles_AddingAndRemovingOnlyTheDifference()
+        {
+            var admin = new ProjectUser { ProjectId = 5, UserId = 10, ProjectRole = "ProjectAdmin" };
+            var scrum = new ProjectUser { ProjectId = 5, UserId = 11, ProjectRole = "ScrumMaster" };
+            var leaving = new ProjectUser { ProjectId = 5, UserId = 12, ProjectRole = "Viewer" };
+            var project = new Project { Id = 5, Name = "Existing", CreatedBy = 1, ProjectUsers = new List<ProjectUser> { admin, scrum, leaving } };
+            _projectRepo.Query().Returns(new List<Project> { project }.BuildMock());
+            var added = new List<ProjectUser>();
+            var removed = new List<ProjectUser>();
+            _projectUserRepo.When(r => r.AddRange(Arg.Any<IEnumerable<ProjectUser>>())).Do(ci => added.AddRange(ci.Arg<IEnumerable<ProjectUser>>()));
+            _projectUserRepo.When(r => r.RemoveRange(Arg.Any<IEnumerable<ProjectUser>>())).Do(ci => removed.AddRange(ci.Arg<IEnumerable<ProjectUser>>()));
+
+            var dto = new UpdateProjectDto { Name = "Renamed", Priority = "low", Status = "active", TeamMemberIds = new List<int> { 10, 11, 13 } };
+            Assert.True(await CreateSut().UpdateProjectAsync(5, dto));
+
+            Assert.Equal(new[] { 12 }, removed.Select(r => r.UserId));          // only the person who left
+            Assert.Equal(new[] { 13 }, added.Select(a => a.UserId));            // only the person who arrived
+            Assert.Equal("ProjectAdmin", admin.ProjectRole);                    // untouched rows keep their role
+            Assert.Equal("ScrumMaster", scrum.ProjectRole);
+        }
+
+        [Fact]
+        public async Task UpdateProjectAsync_WithAnUnchangedTeam_TouchesNoMembershipRows()
+        {
+            var admin = new ProjectUser { ProjectId = 5, UserId = 10, ProjectRole = "ProjectAdmin" };
+            var project = new Project { Id = 5, Name = "Existing", CreatedBy = 1, ProjectUsers = new List<ProjectUser> { admin } };
+            _projectRepo.Query().Returns(new List<Project> { project }.BuildMock());
+
+            await CreateSut().UpdateProjectAsync(5, new UpdateProjectDto { Name = "Renamed", Priority = "low", Status = "active", TeamMemberIds = new List<int> { 10 } });
+
+            _projectUserRepo.Received(1).RemoveRange(Arg.Is<IEnumerable<ProjectUser>>(e => !e.Any()));
+            _projectUserRepo.Received(1).AddRange(Arg.Is<IEnumerable<ProjectUser>>(e => !e.Any()));
+        }
+
         [Theory]
         [InlineData(0, 0, 0.0)]
         [InlineData(4, 2, 50.0)]
