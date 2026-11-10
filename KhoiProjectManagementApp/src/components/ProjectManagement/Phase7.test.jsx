@@ -267,7 +267,7 @@ describe('PmMembers bulk actions', () => {
     setPmMember: vi.fn().mockResolvedValue(null),
     removePmMember: vi.fn().mockResolvedValue(null),
   });
-  const renderMembers = (api) => wrap(<PmMembers apiService={api} project={{ id: 3, name: 'Khoi', myRole: 'ProjectAdmin' }} onChanged={vi.fn()} />);
+  const renderMembers = (api, currentUserId = null) => wrap(<PmMembers apiService={api} project={{ id: 3, name: 'Khoi', myRole: 'ProjectAdmin' }} onChanged={vi.fn()} currentUserId={currentUserId} />);
 
   it('sets one role for everyone selected', async () => {
     const api = makeApi();
@@ -307,6 +307,50 @@ describe('PmMembers bulk actions', () => {
     await user.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Remove' }));
 
     await waitFor(() => expect(api.removePmMember).toHaveBeenCalledWith(3, 3));
+  });
+
+  it('warns when a bulk removal includes you, and removes you last', async () => {
+    const api = makeApi();
+    const order = [];
+    api.removePmMember.mockImplementation((_p, id) => { order.push(id); return Promise.resolve(null); });
+    const user = userEvent.setup();
+    renderMembers(api, 1);                       // Ada Admin (id 1) is the signed-in user
+    await user.click(await screen.findByLabelText('Select everyone'));
+
+    await user.click(screen.getByRole('button', { name: 'Remove selected' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(dialog).toHaveTextContent(/This includes you/);
+    await user.click(within(dialog).getByRole('button', { name: 'Remove' }));
+
+    await waitFor(() => expect(order).toHaveLength(3));
+    expect(order).toEqual([2, 3, 1]);            // yourself last, so the rest are not cut off mid-way
+  });
+
+  it('asks before giving yourself a role that cannot manage members, and lets you cancel', async () => {
+    const api = makeApi();
+    const user = userEvent.setup();
+    renderMembers(api, 1);
+    await user.click(await screen.findByLabelText('Select Ada Admin'));
+    await user.selectOptions(screen.getByLabelText('Role for selected people'), 'Developer');
+
+    await user.click(screen.getByRole('button', { name: 'Set role' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(dialog).toHaveTextContent(/no longer be able to manage/);
+    await user.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+
+    expect(api.setPmMember).not.toHaveBeenCalled();
+  });
+
+  it('does not nag when the bulk role change keeps your ability to manage members', async () => {
+    const api = makeApi();
+    const user = userEvent.setup();
+    renderMembers(api, 1);
+    await user.click(await screen.findByLabelText('Select Ada Admin'));
+    await user.selectOptions(screen.getByLabelText('Role for selected people'), 'ProjectAdmin');
+
+    await user.click(screen.getByRole('button', { name: 'Set role' }));
+
+    await waitFor(() => expect(api.setPmMember).toHaveBeenCalledWith(3, 1, 'ProjectAdmin'));
   });
 
   it('offers import only to people who can manage members', async () => {

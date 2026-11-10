@@ -12,7 +12,7 @@ const selectClass = 'border border-gray-300 rounded-lg px-3 py-2 text-sm bg-whit
 
 // Project roster with per-project roles. Only a Project Admin (or SuperAdmin) can change it; everyone
 // else sees it read-only. Candidates for "add" are users a SuperAdmin has granted module access.
-const PmMembers = ({ apiService, project, onChanged, otherProjects = [], canGrantAccess = false }) => {
+const PmMembers = ({ apiService, project, onChanged, otherProjects = [], canGrantAccess = false, currentUserId = null }) => {
   const toast = useToast();
   const confirm = useConfirm();
   const [members, setMembers] = useState([]);
@@ -76,7 +76,10 @@ const PmMembers = ({ apiService, project, onChanged, otherProjects = [], canGran
   // Bulk actions run one person at a time through the same endpoints as the single actions, so every server
   // rule (e.g. keeping at least one Project Admin) still applies and one refusal does not undo the rest.
   const bulk = async (action, verb) => {
-    const people = members.filter((m) => selected.has(m.userId));
+    // The signed-in person goes LAST: if the change takes their own access away (removing or demoting themselves),
+    // the remaining calls would otherwise fail with confusing "not found" errors.
+    const people = members.filter((m) => selected.has(m.userId))
+      .sort((a, b) => (a.userId === currentUserId) - (b.userId === currentUserId));
     const failures = [];
     for (const m of people) {
       try { await action(m); } catch (err) { failures.push(`${m.name}: ${err?.message || 'failed'}`); }
@@ -89,9 +92,19 @@ const PmMembers = ({ apiService, project, onChanged, otherProjects = [], canGran
     onChanged?.();
   };
 
-  const bulkSetRole = () => bulk((m) => apiService.setPmMember(project.id, m.userId, bulkRole), 'updated');
+  const includesMe = currentUserId != null && selected.has(currentUserId);
+
+  const bulkSetRole = async () => {
+    // Giving yourself a role that cannot manage members would lock you out of this page's controls.
+    if (includesMe && !can(bulkRole, 'members')
+      && !(await confirm(`This includes you. As ${roleLabel(bulkRole)} you will no longer be able to manage this project's members.`, { title: 'Change your own role?', confirmText: 'Change roles', danger: true }))) return;
+    await bulk((m) => apiService.setPmMember(project.id, m.userId, bulkRole), 'updated');
+  };
   const bulkRemove = async () => {
-    if (!(await confirm(`Remove ${selected.size} ${selected.size === 1 ? 'person' : 'people'} from this project? Their assigned items become unassigned.`, { title: 'Remove members', confirmText: 'Remove', danger: true }))) return;
+    const people = `${selected.size} ${selected.size === 1 ? 'person' : 'people'}`;
+    const message = `Remove ${people} from this project? Their assigned items become unassigned.`
+      + (includesMe ? ' This includes you - you will lose access to this project.' : '');
+    if (!(await confirm(message, { title: 'Remove members', confirmText: 'Remove', danger: true }))) return;
     await bulk((m) => apiService.removePmMember(project.id, m.userId), 'removed');
   };
 

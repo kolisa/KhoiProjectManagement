@@ -111,7 +111,7 @@ const PmWorkspace = ({ apiService, user }) => {
         <PmOverview key={project.id} apiService={apiService} project={project} />
       ) : activeTab === 'members' ? (
         <PmMembers key={project.id} apiService={apiService} project={project} onChanged={loadProjects}
-          otherProjects={projects.filter((p) => p.id !== project.id)} canGrantAccess={isPmAdmin} />
+          otherProjects={projects.filter((p) => p.id !== project.id)} canGrantAccess={isPmAdmin} currentUserId={user?.id ?? null} />
       ) : (
         <PmWithMembers key={`${tab}-${project.id}`} apiService={apiService} project={project} view={activeTab} />
       )}
