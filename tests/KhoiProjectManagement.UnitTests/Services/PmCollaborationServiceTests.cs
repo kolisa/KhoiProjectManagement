@@ -443,5 +443,24 @@ namespace KhoiProjectManagement.UnitTests.Services
             _links.Received(1).Remove(Arg.Is<WorkItemLink>(l => l.SourceId == 1 && l.TargetId == 2));
             Assert.Equal(2, saves);
         }
+
+        [Fact]
+        public async Task ReadOnlyAccess_IsOfferedNoEditOrDeleteControlsOnCommentsOrFiles()
+        {
+            _access.IsReadOnlyAsync(default!).ReturnsForAnyArgs(true);
+            SetComments(new WorkItemComment { Id = 1, TaskId = 1, AuthoredBy = 10, Body = "mine", Author = new User { Name = "Dana" } });
+            _attachments.Query().Returns(_ => new List<Attachment>
+            {
+                new() { Id = 1, TaskId = 1, UploadedBy = 10, FilePath = "pm/1/a.png", FileName = "a.png", ContentType = "image/png", UploadedByUser = new User { Name = "Dana" } },
+            }.BuildMock());
+            var sut = CreateSut();
+
+            var comment = Assert.Single(await sut.GetCommentsAsync(Dev, 1));
+            var file = Assert.Single(await sut.GetAttachmentsAsync(Dev, 1));
+
+            Assert.False(comment.CanEdit);
+            Assert.False(comment.CanDelete);
+            Assert.False(file.CanDelete);
+        }
     }
 }

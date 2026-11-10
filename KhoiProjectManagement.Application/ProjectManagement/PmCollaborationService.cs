@@ -97,6 +97,7 @@ namespace KhoiProjectManagement.Application
             var item = await ItemAsync(itemId);
             await _access.RequireAsync(caller, item.ProjectId, PmAction.View);
             var canModerate = await CanAsync(caller, item.ProjectId, PmAction.DeleteItem);
+            var readOnly = await _access.IsReadOnlyAsync(caller);   // a read-only person is offered no edit/delete controls
 
             var rows = await _comments.Query().AsNoTracking()
                 .Where(c => c.TaskId == itemId && !c.IsDeleted)
@@ -108,8 +109,8 @@ namespace KhoiProjectManagement.Application
             {
                 Id = c.Id, TaskId = c.TaskId, AuthorId = c.AuthoredBy, AuthorName = c.Name, Body = c.Body,
                 CreatedAt = c.CreatedAt, EditedAt = c.EditedAt,
-                CanEdit = c.AuthoredBy == caller.UserId,
-                CanDelete = c.AuthoredBy == caller.UserId || canModerate,
+                CanEdit = !readOnly && c.AuthoredBy == caller.UserId,
+                CanDelete = !readOnly && (c.AuthoredBy == caller.UserId || canModerate),
             }).ToList();
         }
 
@@ -379,6 +380,7 @@ namespace KhoiProjectManagement.Application
             var item = await ItemAsync(itemId);
             await _access.RequireAsync(caller, item.ProjectId, PmAction.View);
             var canModerate = await CanAsync(caller, item.ProjectId, PmAction.DeleteItem);
+            var readOnly = await _access.IsReadOnlyAsync(caller);
 
             var rows = await PmAttachmentsQuery(_attachments.Query()).AsNoTracking().Where(a => a.TaskId == itemId)
                 .OrderBy(a => a.UploadedAt)
@@ -389,7 +391,7 @@ namespace KhoiProjectManagement.Application
             {
                 Id = a.Id, FileName = a.FileName, FileSize = a.FileSize, ContentType = a.ContentType, UploadedBy = a.Name,
                 UploadedAt = a.UploadedAt, IsImage = IsImage(a.ContentType),
-                CanDelete = a.UploadedBy == caller.UserId || canModerate,
+                CanDelete = !readOnly && (a.UploadedBy == caller.UserId || canModerate),
             }).ToList();
         }
 

@@ -234,5 +234,17 @@ namespace KhoiProjectManagement.UnitTests.Services
             await CreateSut().DeleteAsync(Dev, 1);
             _items.Received(1).Remove(Arg.Any<RetroItem>());
         }
+
+        [Fact]
+        public async Task Get_ForAReadOnlyPerson_OffersNoEditOrDelete_EvenOnTheirOwnCards()
+        {
+            _access.IsReadOnlyAsync(default!).ReturnsForAnyArgs(true);
+            SetItems(new RetroItem { Id = 1, SprintId = 1, AuthoredBy = 10, Category = "WentWell", Text = "mine", Author = new User { Name = "Dana" } });
+
+            var row = Assert.Single(await CreateSut().GetAsync(Dev, 1));
+
+            Assert.False(row.CanEdit);
+            Assert.False(row.CanDelete);
+        }
     }
 }

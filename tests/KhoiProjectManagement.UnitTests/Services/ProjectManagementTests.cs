@@ -309,9 +309,9 @@ namespace KhoiProjectManagement.UnitTests.Services
 
         private ProjectAccessService CreateSut() => new(_members, _users, _projects);
 
-        private void Setup(bool pmAccess, string? role)
+        private void Setup(bool pmAccess, string? role, bool readOnly = false)
         {
-            _users.Query().Returns(new List<User> { new() { Id = 7, IsActive = true, PmAccess = pmAccess } }.BuildMock());
+            _users.Query().Returns(new List<User> { new() { Id = 7, IsActive = true, PmAccess = pmAccess, PmReadOnly = readOnly } }.BuildMock());
             _members.Query().Returns((role == null
                 ? new List<ProjectUser>()
                 : new List<ProjectUser> { new() { ProjectId = 1, UserId = 7, ProjectRole = role } }).BuildMock());
@@ -337,6 +337,68 @@ namespace KhoiProjectManagement.UnitTests.Services
         {
             Setup(pmAccess: true, role: ProjectRoles.Viewer);
             await Assert.ThrowsAsync<ForbiddenException>(() => CreateSut().RequireAsync(new PmCaller(7, false), 1, PmAction.CreateItem));
+        }
+
+        [Theory]
+        [InlineData(ProjectRoles.ProjectAdmin)]
+        [InlineData(ProjectRoles.ProjectManager)]
+        [InlineData(ProjectRoles.ScrumMaster)]
+        [InlineData(ProjectRoles.Developer)]
+        [InlineData(ProjectRoles.Tester)]
+        [InlineData(ProjectRoles.Viewer)]
+        public async Task RequireAsync_ReadOnlyAccess_CanViewWhateverTheRole(string role)
+        {
+            Setup(pmAccess: true, role: role, readOnly: true);
+            await CreateSut().RequireAsync(new PmCaller(7, false), 1, PmAction.View);
+        }
+
+        [Theory]
+        [InlineData(PmAction.CreateItem)]
+        [InlineData(PmAction.EditItem)]
+        [InlineData(PmAction.DeleteItem)]
+        [InlineData(PmAction.RankItem)]
+        [InlineData(PmAction.ManageBoard)]
+        [InlineData(PmAction.ManageSprint)]
+        [InlineData(PmAction.ManageMembers)]
+        [InlineData(PmAction.Collaborate)]
+        public async Task RequireAsync_ReadOnlyAccess_CannotWrite_EvenAsProjectAdmin(PmAction action)
+        {
+            Setup(pmAccess: true, role: ProjectRoles.ProjectAdmin, readOnly: true);
+
+            var ex = await Assert.ThrowsAsync<ForbiddenException>(() => CreateSut().RequireAsync(new PmCaller(7, false), 1, action));
+
+            Assert.Equal(ProjectAccessService.ReadOnlyMessage, ex.Message);
+        }
+
+        [Fact]
+        public async Task RequireAsync_ReadAndWriteAccess_StillFollowsTheRole()
+        {
+            Setup(pmAccess: true, role: ProjectRoles.Developer, readOnly: false);
+            var sut = CreateSut();
+            await sut.RequireAsync(new PmCaller(7, false), 1, PmAction.EditItem);
+            await Assert.ThrowsAsync<ForbiddenException>(() => sut.RequireAsync(new PmCaller(7, false), 1, PmAction.ManageMembers));
+        }
+
+        [Fact]
+        public async Task RequireAsync_ASuperAdmin_IsNeverReadOnly()
+        {
+            Setup(pmAccess: true, role: null, readOnly: true);   // the user row is flagged read-only, but the caller is a SuperAdmin
+            await CreateSut().RequireAsync(new PmCaller(7, true), 1, PmAction.DeleteItem);
+        }
+
+        [Fact]
+        public async Task IsReadOnlyAsync_ReportsTheLevel_ButOnlyForSomeoneWithAccess()
+        {
+            Setup(pmAccess: true, role: ProjectRoles.Developer, readOnly: true);
+            Assert.True(await CreateSut().IsReadOnlyAsync(new PmCaller(7, false)));
+
+            Setup(pmAccess: true, role: ProjectRoles.Developer, readOnly: false);
+            Assert.False(await CreateSut().IsReadOnlyAsync(new PmCaller(7, false)));
+
+            Setup(pmAccess: false, role: ProjectRoles.Developer, readOnly: true);    // flag left behind after access was revoked
+            Assert.False(await CreateSut().IsReadOnlyAsync(new PmCaller(7, false)));
+
+            Assert.False(await CreateSut().IsReadOnlyAsync(new PmCaller(7, true)));
         }
 
         [Fact]
