@@ -55,7 +55,7 @@ export const AccessBadge = ({ role, readOnly = false }) => {
   const { cls, Icon } = ACCESS_STYLES[level];
   return (
     <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${cls}`}
-      title={readOnly ? 'Read-only access was set for this person by a SuperAdmin' : undefined}>
+      title={readOnly ? 'Read-only access was set for this person by an administrator' : undefined}>
       <Icon className="h-3 w-3" aria-hidden="true" />
       {ACCESS_LEVEL_LABELS[level]}
     </span>

@@ -13,6 +13,7 @@ namespace KhoiProjectManagementApi.Controllers
     [Route("api/pm")]
     [Authorize]
     [AllowModuleOnly]
+    [TypeFilter(typeof(ResolvePmCallerFilter))]
     public class ProjectManagementController : ControllerBase
     {
         private readonly IPmProjectService _projects;
@@ -40,10 +41,14 @@ namespace KhoiProjectManagementApi.Controllers
             _workItems = workItems;
         }
 
-        private PmCaller Caller => new(
-            int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value),
-            User.HasClaim("superadmin", "true"),
-            User.HasClaim("superadmin", "true") || User.HasClaim("permission", "pm.admin"));
+        // Resolved once per request by ResolvePmCallerFilter (SuperAdmins and Project Admins are both administrators).
+        private PmCaller Caller => HttpContext.GetPmCaller();
+
+        // What the signed-in person may administer, so the UI can offer (or hide) the Module access screen and the
+        // "grant module access" import option without guessing from the JWT.
+        [HttpGet("capabilities")]
+        public ActionResult<PmCapabilitiesDto> GetCapabilities() =>
+            Ok(new PmCapabilitiesDto { IsAdmin = Caller.IsSuperAdmin || Caller.IsPmAdmin });
 
         [HttpGet("projects")]
         public async Task<ActionResult<List<PmProjectSummaryDto>>> GetProjects() =>

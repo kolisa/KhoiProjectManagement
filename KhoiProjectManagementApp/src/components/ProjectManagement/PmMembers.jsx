@@ -15,7 +15,7 @@ const labelClass = 'block text-xs font-medium text-gray-600 mb-1';
 
 // The project's people: who is on it, what role each has and what that means they can do (Read only / Read & write /
 // Full control). Only a Project Admin (or SuperAdmin) can change it; everyone else sees it read-only. People who can be
-// added are those a SuperAdmin has already given module access to.
+// added are those who already have module access (an administrator can grant it from the import).
 const PmMembers = ({ apiService, project, onChanged, otherProjects = [], canGrantAccess = false, currentUserId = null }) => {
   const toast = useToast();
   const confirm = useConfirm();

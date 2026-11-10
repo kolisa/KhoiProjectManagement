@@ -14,7 +14,7 @@ const LEVELS = [
 
 export const levelOf = (u) => (!u.pmAccess ? 'none' : u.pmReadOnly ? 'read' : 'write');
 
-// SuperAdmin-only: the per-person policy for the whole module. Each person gets one access LEVEL -
+// Administrators only (SuperAdmins and Project Admins): the per-person policy for the whole module. Each person gets one access LEVEL -
 // no access, read only, or read & write - and can optionally be confined to the module. The level caps what they can
 // do in every project; their project role then decides the detail within it. Changes apply on their next request.
 const PmAccessAdmin = ({ apiService }) => {

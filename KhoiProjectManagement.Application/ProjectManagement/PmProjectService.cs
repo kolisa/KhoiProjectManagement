@@ -124,7 +124,7 @@ namespace KhoiProjectManagement.Application
             var target = await _users.Query().AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId && u.IsActive)
                 ?? throw new InvalidOperationException("User not found or inactive.");
             if (!target.PmAccess)
-                throw new InvalidOperationException("This user has not been granted Project Management module access. Ask a SuperAdmin to enable it first.");
+                throw new InvalidOperationException("This user has not been granted Project Management module access. Ask an administrator to enable it first.");
 
             var existing = await _members.Query().FirstOrDefaultAsync(m => m.ProjectId == projectId && m.UserId == userId);
             if (existing == null)
@@ -161,7 +161,7 @@ namespace KhoiProjectManagement.Application
             if (dto.Rows.Count == 0) throw new InvalidOperationException("There are no rows to import.");
             if (dto.Rows.Count > MaxImportRows) throw new InvalidOperationException($"An import can have at most {MaxImportRows} rows.");
             if (dto.GrantModuleAccess && !caller.IsPmAdmin && !caller.IsSuperAdmin)
-                throw new ForbiddenException("Only a SuperAdmin can grant Project Management module access.");
+                throw new ForbiddenException("Only an administrator can grant Project Management module access.");
             if (dto.ModuleOnly && !dto.GrantModuleAccess)
                 throw new InvalidOperationException("Module-only accounts must also be granted module access.");
             if (dto.ReadOnlyAccess && !dto.GrantModuleAccess)

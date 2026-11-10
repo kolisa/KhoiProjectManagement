@@ -32,6 +32,6 @@ describe('pmConstants', () => {
 
   it('labels roles', () => {
     expect(roleLabel('ScrumMaster')).toBe('Scrum Master');
-    expect(roleLabel('SuperAdmin')).toBe('Super Admin');
+    expect(roleLabel('SuperAdmin')).toBe('Administrator');
   });
 });

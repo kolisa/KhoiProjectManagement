@@ -124,6 +124,12 @@ namespace KhoiProjectManagement.Application
         public int ProjectCount { get; set; }
     }
 
+    public class PmCapabilitiesDto
+    {
+        // May administer module access: a SuperAdmin, a pm.admin holder or a Project Admin.
+        public bool IsAdmin { get; set; }
+    }
+
     public class SetPmAccessDto
     {
         public bool PmAccess { get; set; }

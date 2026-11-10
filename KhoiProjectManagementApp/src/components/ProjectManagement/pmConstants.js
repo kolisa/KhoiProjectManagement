@@ -12,7 +12,7 @@ export const PROJECT_ROLES = [
 ];
 
 export const roleLabel = (key) =>
-  key === 'SuperAdmin' ? 'Super Admin' : PROJECT_ROLES.find((r) => r.key === key)?.label || key;
+  key === 'SuperAdmin' ? 'Administrator' : PROJECT_ROLES.find((r) => r.key === key)?.label || key;
 
 export const WORK_ITEM_TYPES = ['Epic', 'Feature', 'Story', 'Task', 'Bug', 'Subtask'];
 
@@ -62,7 +62,7 @@ export const can = (role, action) => role === 'SuperAdmin' || (CAN[role] || []).
 
 // ---- Access levels ("policies") ------------------------------------------------------------------------
 // A person's access in a project is the combination of two things: their per-project ROLE, and their module-wide
-// access LEVEL (read only vs read & write, set by a SuperAdmin). Read-only wins over any role. These helpers
+// access LEVEL (read only vs read & write, set by an administrator). Read-only wins over any role. These helpers
 // describe the result in one word; the server enforces it.
 export const ACCESS_LEVEL_LABELS = { read: 'Read only', write: 'Read & write', full: 'Full control' };
 

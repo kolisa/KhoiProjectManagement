@@ -80,12 +80,20 @@ const PmWorkspace = ({ apiService, user }) => {
   const [error, setError] = useState(null);
   const [route, setRoute] = useState(initialRoute);
   const [navOpen, setNavOpen] = useState(false);
-  const isPmAdmin = hasPermission(user?.permissions, 'pm.admin');
+  // Whether this person administers the module. The server decides (a Project Admin counts as an administrator, and that
+  // is a database fact the JWT cannot carry); the pm.admin permission is only the answer until the server has replied.
+  const [serverAdmin, setServerAdmin] = useState(null);
+  const isPmAdmin = serverAdmin ?? hasPermission(user?.permissions, 'pm.admin');
 
   const loadProjects = useCallback(async () => {
     try {
       setError(null);
-      setProjects(await apiService.getPmProjects());
+      const [list, capabilities] = await Promise.all([
+        apiService.getPmProjects(),
+        apiService.getPmCapabilities ? apiService.getPmCapabilities().catch(() => null) : Promise.resolve(null),
+      ]);
+      setServerAdmin(capabilities ? Boolean(capabilities.isAdmin) : null);
+      setProjects(list);
     } catch (err) {
       setError(err?.message || 'Could not load projects.');
     }
@@ -224,7 +232,7 @@ const PmWorkspace = ({ apiService, user }) => {
             {project.readOnly && (
               <div role="note" className="mb-4 flex items-start gap-2 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700">
                 <Eye className="mt-0.5 h-4 w-4 flex-shrink-0 text-gray-500" aria-hidden="true" />
-                <span><strong>Read-only access.</strong> You can see everything in this project but not change it. Ask a SuperAdmin if you need read and write access.</span>
+                <span><strong>Read-only access.</strong> You can see everything in this project but not change it. Ask an administrator if you need read and write access.</span>
               </div>
             )}
 

@@ -83,6 +83,10 @@ namespace KhoiProjectManagement.UnitTests.Services
         }
 
         [Fact]
+        public void ProjectAdminLookup_JoinsTheUserAndFiltersOnTheirFlags() =>
+            AssertSql(ProjectAccessService.ProjectAdminsQuery(_db.ProjectUsers, 7).ToQueryString(), "PmAccess", "PmReadOnly", "IsActive");
+
+        [Fact]
         public void PmAttachmentFilter_BecomesAPrefixMatch() =>
             AssertSql(PmCollaborationService.PmAttachmentsQuery(_db.Attachments).ToQueryString(), "LIKE 'pm/%'");
     }

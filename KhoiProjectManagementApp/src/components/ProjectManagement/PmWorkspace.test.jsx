@@ -30,9 +30,10 @@ const projects = [
   { id: 2, name: 'Beta', myRole: 'ScrumMaster', openItems: 1, totalItems: 4, readOnly: false },
 ];
 
-const makeApi = (list = projects) => ({
+const makeApi = (list = projects, capabilities = undefined) => ({
   getPmProjects: vi.fn().mockResolvedValue(list),
   getPmMembers: vi.fn().mockResolvedValue([]),
+  ...(capabilities === undefined ? {} : { getPmCapabilities: vi.fn().mockResolvedValue(capabilities) }),
 });
 
 const renderWorkspace = (api, user = { id: 7, permissions: [] }) =>
@@ -261,5 +262,49 @@ describe('PmWorkspace', () => {
     renderWorkspace(api);
     expect(await screen.findByText(/boom/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /try again/i })).toBeInTheDocument();
+  });
+
+  describe('who counts as an administrator', () => {
+    it('lets a Project Admin - who holds no pm.admin permission - open Module access, because the server says they are an administrator', async () => {
+      const user = userEvent.setup();
+      renderWorkspace(makeApi(projects, { isAdmin: true }), { id: 7, permissions: [] });
+      await screen.findByTestId('overview');
+
+      await user.click(navItem('Module access'));
+
+      expect(screen.getByTestId('access')).toBeInTheDocument();
+    });
+
+    it('also tells the members page that this person may grant module access', async () => {
+      const user = userEvent.setup();
+      renderWorkspace(makeApi(projects, { isAdmin: true }), { id: 7, permissions: [] });
+      await screen.findByTestId('overview');
+
+      await user.click(screen.getByRole('tab', { name: /Members/ }));
+
+      expect(await screen.findByTestId('members')).toHaveTextContent('grant=true');
+    });
+
+    it('trusts the server over the permission list: no longer an administrator means no Module access', async () => {
+      renderWorkspace(makeApi(projects, { isAdmin: false }), { id: 7, permissions: ['pm.admin'] });
+      await screen.findByTestId('overview');
+      expect(within(nav()).queryByRole('button', { name: /Module access/ })).not.toBeInTheDocument();
+    });
+
+    it('falls back to the permission list if the capabilities request fails', async () => {
+      const api = makeApi(projects);
+      api.getPmCapabilities = vi.fn().mockRejectedValue(new Error('offline'));
+      renderWorkspace(api, { id: 7, permissions: ['pm.admin'] });
+      await screen.findByTestId('overview');
+      expect(within(nav()).getByRole('button', { name: /Module access/ })).toBeInTheDocument();
+    });
+
+    it('shows a SuperAdmin role as Administrator', async () => {
+      renderWorkspace(makeApi([{ ...projects[0], myRole: 'SuperAdmin' }], { isAdmin: true }));
+      await screen.findByTestId('overview');
+      const header = screen.getByRole('heading', { level: 1 }).closest('header');
+      expect(within(header).getByText('Administrator')).toBeInTheDocument();
+      expect(within(header).getByText('Full control')).toBeInTheDocument();
+    });
   });
 });

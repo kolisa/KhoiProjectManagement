@@ -1474,6 +1474,11 @@ class ApiService {
   }
 
   // ---- PM overview, my work, activity, labels, member import ----
+  // { isAdmin }: may this person administer module access (a SuperAdmin, a pm.admin holder or a Project Admin).
+  async getPmCapabilities() {
+    return await this.request('/pm/capabilities');
+  }
+
   // Id/title/type/status only - for pickers; far lighter than getWorkItems.
   async getWorkItemLookup(projectId) {
     return await this.request(`/pm/projects/${projectId}/work-items/lookup`);
