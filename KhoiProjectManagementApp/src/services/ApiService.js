@@ -1473,6 +1473,23 @@ class ApiService {
     return await this.request(`/pm/attachments/${attachmentId}`, { method: 'DELETE' });
   }
 
+  // ---- PM analytics ----
+  async getCumulativeFlow(projectId, days = 30) {
+    return await this.request(`/pm/projects/${projectId}/reports/cumulative-flow?days=${days}`);
+  }
+
+  async getFlowMetrics(projectId, days = 90) {
+    return await this.request(`/pm/projects/${projectId}/reports/flow-metrics?days=${days}`);
+  }
+
+  async getWorkloadReport(projectId) {
+    return await this.request(`/pm/projects/${projectId}/reports/workload`);
+  }
+
+  async exportWorkItemsCsv(projectId) {
+    return await this.downloadBlob(`/pm/projects/${projectId}/export/work-items`, `project-${projectId}-work-items.csv`);
+  }
+
   async getBoard(projectId, sprintId = null) {
     return await this.request(`/pm/projects/${projectId}/board${sprintId ? `?sprintId=${sprintId}` : ''}`);
   }

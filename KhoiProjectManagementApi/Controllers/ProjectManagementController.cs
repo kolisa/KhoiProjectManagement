@@ -20,11 +20,13 @@ namespace KhoiProjectManagementApi.Controllers
         private readonly IPmBoardService _board;
         private readonly IPmSprintService _sprints;
         private readonly IPmCollaborationService _collab;
+        private readonly IPmReportService _reports;
 
-        public ProjectManagementController(IPmProjectService projects, IPmWorkItemService workItems, IPmBoardService board, IPmSprintService sprints, IPmCollaborationService collab)
+        public ProjectManagementController(IPmProjectService projects, IPmWorkItemService workItems, IPmBoardService board, IPmSprintService sprints, IPmCollaborationService collab, IPmReportService reports)
         {
             _sprints = sprints;
             _collab = collab;
+            _reports = reports;
             _board = board;
             _projects = projects;
             _workItems = workItems;
@@ -218,6 +220,27 @@ namespace KhoiProjectManagementApi.Controllers
         {
             await _collab.DeleteAttachmentAsync(Caller, attachmentId);
             return NoContent();
+        }
+
+        // ---- Phase 5: analytics ----
+
+        [HttpGet("projects/{projectId:int}/reports/cumulative-flow")]
+        public async Task<ActionResult<CumulativeFlowDto>> GetCumulativeFlow(int projectId, [FromQuery] int days = 30) =>
+            Ok(await _reports.GetCumulativeFlowAsync(Caller, projectId, days));
+
+        [HttpGet("projects/{projectId:int}/reports/flow-metrics")]
+        public async Task<ActionResult<FlowMetricsDto>> GetFlowMetrics(int projectId, [FromQuery] int days = 90) =>
+            Ok(await _reports.GetFlowMetricsAsync(Caller, projectId, days));
+
+        [HttpGet("projects/{projectId:int}/reports/workload")]
+        public async Task<ActionResult<List<WorkloadRowDto>>> GetWorkload(int projectId) =>
+            Ok(await _reports.GetWorkloadAsync(Caller, projectId));
+
+        [HttpGet("projects/{projectId:int}/export/work-items")]
+        public async Task<IActionResult> ExportWorkItems(int projectId)
+        {
+            var export = await _reports.ExportWorkItemsCsvAsync(Caller, projectId);
+            return File(export.Content, "text/csv; charset=utf-8", export.FileName);
         }
 
         [HttpDelete("work-items/{itemId:int}")]

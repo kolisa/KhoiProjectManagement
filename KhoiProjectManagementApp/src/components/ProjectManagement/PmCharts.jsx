@@ -102,3 +102,84 @@ export const VelocityChart = ({ velocity }) => {
     </figure>
   );
 };
+
+const FLOW_COLORS = { completed: '#16a34a', 'in-progress': '#2563eb', blocked: '#dc2626', todo: '#cbd5e1' };
+const FLOW_LABELS = { completed: 'Done', 'in-progress': 'In progress', blocked: 'Blocked', todo: 'To do' };
+
+// Stacked areas of how many items sat in each status at the end of each day. Bands that widen show
+// where work is piling up; a flat "Done" band means nothing is finishing.
+export const CumulativeFlowChart = ({ flow }) => {
+  const { points, statuses } = flow;
+  if (!points.length) return null;
+  const totals = points.map((p) => statuses.reduce((sum, s) => sum + (p.counts[s] || 0), 0));
+  const max = Math.max(1, ...totals);
+  const x = (i) => PAD.left + (points.length === 1 ? innerW / 2 : (i / (points.length - 1)) * innerW);
+  const y = (v) => PAD.top + innerH - (v / max) * innerH;
+
+  // Build each band's polygon from the running total below it.
+  const below = points.map(() => 0);
+  const bands = statuses.map((status) => {
+    const lower = [...below];
+    const upper = points.map((p, i) => { below[i] += p.counts[status] || 0; return below[i]; });
+    const d = `M${upper.map((v, i) => `${x(i)},${y(v)}`).join(' L')} L${lower.map((v, i) => `${x(i)},${y(v)}`).reverse().join(' L')} Z`;
+    return { status, d };
+  });
+  const last = points[points.length - 1];
+
+  return (
+    <figure>
+      <svg viewBox={`0 0 ${W} ${H}`} role="img" className="w-full h-auto"
+        aria-label={`Cumulative flow over ${points.length} days. Today: ${statuses.map((s) => `${last.counts[s] || 0} ${FLOW_LABELS[s]}`).join(', ')}.`}>
+        <Axes max={max} />
+        {bands.map((b) => <path key={b.status} d={b.d} fill={FLOW_COLORS[b.status]} fillOpacity="0.9" />)}
+        <g fontSize="10" className="text-gray-500" fill="currentColor">
+          <text x={PAD.left} y={H - 8}>{fmtDay(points[0].date)}</text>
+          <text x={W - PAD.right} y={H - 8} textAnchor="end">{fmtDay(last.date)}</text>
+        </g>
+      </svg>
+      <figcaption className="flex flex-wrap gap-4 text-xs text-gray-600 mt-1">
+        {[...statuses].reverse().map((s) => (
+          <span key={s} className="inline-flex items-center gap-1.5"><span className="inline-block w-3 h-3 rounded-sm" style={{ background: FLOW_COLORS[s] }} /> {FLOW_LABELS[s]}</span>
+        ))}
+      </figcaption>
+      <table className="sr-only">
+        <caption>Cumulative flow data</caption>
+        <thead><tr><th>Date</th>{statuses.map((s) => <th key={s}>{FLOW_LABELS[s]}</th>)}</tr></thead>
+        <tbody>{points.map((p) => <tr key={p.date}><td>{fmtDay(p.date)}</td>{statuses.map((s) => <td key={s}>{p.counts[s] || 0}</td>)}</tr>)}</tbody>
+      </table>
+    </figure>
+  );
+};
+
+// Items finished per week (bars) - the project's real delivery rhythm.
+export const ThroughputChart = ({ weeks }) => {
+  if (!weeks.length) return null;
+  const max = Math.max(1, ...weeks.map((w) => w.items));
+  const slot = innerW / weeks.length;
+  const barW = Math.min(32, slot * 0.7);
+  const y = (v) => PAD.top + innerH - (v / max) * innerH;
+  const total = weeks.reduce((sum, w) => sum + w.items, 0);
+
+  return (
+    <figure>
+      <svg viewBox={`0 0 ${W} ${H}`} role="img" className="w-full h-auto"
+        aria-label={`Throughput over ${weeks.length} weeks: ${total} items finished.`}>
+        <Axes max={max} />
+        {weeks.map((w, i) => {
+          const cx = PAD.left + slot * i + slot / 2;
+          return (
+            <g key={w.weekStart}>
+              <rect x={cx - barW / 2} y={y(w.items)} width={barW} height={PAD.top + innerH - y(w.items)} fill="#2563eb" rx="2" />
+              {weeks.length <= 14 && <text x={cx} y={H - 8} textAnchor="middle" fontSize="10" className="text-gray-500" fill="currentColor">{fmtDay(w.weekStart)}</text>}
+            </g>
+          );
+        })}
+      </svg>
+      <table className="sr-only">
+        <caption>Throughput by week</caption>
+        <thead><tr><th>Week of</th><th>Items finished</th><th>Points</th></tr></thead>
+        <tbody>{weeks.map((w) => <tr key={w.weekStart}><td>{fmtDay(w.weekStart)}</td><td>{w.items}</td><td>{w.points}</td></tr>)}</tbody>
+      </table>
+    </figure>
+  );
+};
