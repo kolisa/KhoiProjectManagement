@@ -1256,6 +1256,14 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
                             Description = "Configure the weekly system-overview email's on/off switch and schedule",
                             Name = "email.manage_overview",
                             Resource = "email"
+                        },
+                        new
+                        {
+                            Id = 29,
+                            Action = "admin",
+                            Description = "Grant or revoke Project Management module access (and module-only confinement) for users",
+                            Name = "pm.admin",
+                            Resource = "pm"
                         });
                 });
 
@@ -1352,6 +1360,9 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
                     b.Property<DateTime>("DueDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<int?>("ParentId")
+                        .HasColumnType("integer");
+
                     b.Property<string>("Priority")
                         .IsRequired()
                         .HasColumnType("text");
@@ -1359,9 +1370,15 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
                     b.Property<int>("ProjectId")
                         .HasColumnType("integer");
 
+                    b.Property<double>("Rank")
+                        .HasColumnType("double precision");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<int?>("StoryPoints")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -1382,7 +1399,9 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
 
                     b.HasIndex("AssignedToId");
 
-                    b.HasIndex("ProjectId");
+                    b.HasIndex("ParentId");
+
+                    b.HasIndex("ProjectId", "Rank");
 
                     b.ToTable("Tasks");
                 });
@@ -1397,6 +1416,13 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
 
                     b.Property<DateTime>("JoinedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ProjectRole")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasDefaultValue("Developer");
 
                     b.HasKey("ProjectId", "UserId");
 
@@ -1768,6 +1794,11 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
                         {
                             RoleId = 1,
                             PermissionId = 28
+                        },
+                        new
+                        {
+                            RoleId = 1,
+                            PermissionId = 29
                         },
                         new
                         {
@@ -2213,6 +2244,12 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<bool>("PmAccess")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("PmOnly")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("Position")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -2241,6 +2278,8 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
                             MustChangePassword = false,
                             Name = "Kolisa Mjobo",
                             PasswordHash = "$2a$11$Mg5gaJc5mAg7.lr7Nn6ire/RyTfOGkwGc3uid3jUmn43hN4NOBvbe",
+                            PmAccess = false,
+                            PmOnly = false,
                             Position = "Full stack Developer",
                             Role = "admin"
                         },
@@ -2253,6 +2292,8 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
                             MustChangePassword = false,
                             Name = "Seati Moloi",
                             PasswordHash = "$2a$11$yaq0/sKRX14GeyRfr8CMrehqRat5ufDxjqz9wPdTaAIwzsBBBsb7C",
+                            PmAccess = false,
+                            PmOnly = false,
                             Position = "Business Analyst",
                             Role = "manager"
                         },
@@ -2265,6 +2306,8 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
                             MustChangePassword = false,
                             Name = "Kenneth Mothobi",
                             PasswordHash = "$2a$11$Gz1fjWb8BDrfP21Iq2g9tO2fJjSJRLqMUO2N7/v0oboJNPiQVAkZy",
+                            PmAccess = false,
+                            PmOnly = false,
                             Position = "System Analyst",
                             Role = "member"
                         },
@@ -2277,6 +2320,8 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
                             MustChangePassword = false,
                             Name = "Thato",
                             PasswordHash = "$2a$11$Gz1fjWb8BDrfP21Iq2g9tO2fJjSJRLqMUO2N7/v0oboJNPiQVAkZy",
+                            PmAccess = false,
+                            PmOnly = false,
                             Position = "Marketing Manager",
                             Role = "member"
                         },
@@ -2289,6 +2334,8 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
                             MustChangePassword = false,
                             Name = "Metsing",
                             PasswordHash = "$2a$11$Gz1fjWb8BDrfP21Iq2g9tO2fJjSJRLqMUO2N7/v0oboJNPiQVAkZy",
+                            PmAccess = false,
+                            PmOnly = false,
                             Position = "Finance Manager",
                             Role = "member"
                         },
@@ -2301,6 +2348,8 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
                             MustChangePassword = false,
                             Name = "Lebo",
                             PasswordHash = "$2a$11$Gz1fjWb8BDrfP21Iq2g9tO2fJjSJRLqMUO2N7/v0oboJNPiQVAkZy",
+                            PmAccess = false,
+                            PmOnly = false,
                             Position = "Client Support Manager",
                             Role = "member"
                         });
@@ -3041,6 +3090,11 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
                         .HasForeignKey("AssignedToId")
                         .OnDelete(DeleteBehavior.SetNull);
 
+                    b.HasOne("KhoiProjectManagement.Domain.ProjectTask", "Parent")
+                        .WithMany("Children")
+                        .HasForeignKey("ParentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("KhoiProjectManagement.Domain.Project", "Project")
                         .WithMany("Tasks")
                         .HasForeignKey("ProjectId")
@@ -3048,6 +3102,8 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("AssignedTo");
+
+                    b.Navigation("Parent");
 
                     b.Navigation("Project");
                 });
@@ -3514,6 +3570,8 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
             modelBuilder.Entity("KhoiProjectManagement.Domain.ProjectTask", b =>
                 {
                     b.Navigation("Attachments");
+
+                    b.Navigation("Children");
 
                     b.Navigation("TaskTags");
                 });

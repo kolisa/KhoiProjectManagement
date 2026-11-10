@@ -12,7 +12,7 @@ namespace KhoiProjectManagement.Application
 
     internal static class TaskTypeRule
     {
-        public static readonly string[] Valid = { "Task", "Meeting", "Milestone", "Review" };
+        public static readonly string[] Valid = { "Task", "Meeting", "Milestone", "Review", "Epic", "Feature", "Story", "Bug", "Subtask" };
     }
 
     public class CreateTaskDtoValidator : AbstractValidator<CreateTaskDto>

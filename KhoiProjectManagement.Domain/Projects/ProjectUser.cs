@@ -14,6 +14,9 @@ namespace KhoiProjectManagement.Domain
         public int UserId { get; set; }
         public virtual User User { get; set; } = null!;
 
+        // Project Management module role: ProjectAdmin, ProjectManager, ScrumMaster, Developer, Tester,
+        // Viewer. Existing memberships default to Developer; it has no effect outside the PM module.
+        public string ProjectRole { get; set; } = "Developer";
         public DateTime JoinedAt { get; set; } = DateTime.UtcNow;
     }
 }

@@ -39,7 +39,11 @@ try
     // Add services
     builder.Services.AddApplicationServices(builder.Configuration);
     builder.Services.AddScoped<ValidationActionFilter>();
-    builder.Services.AddControllers(options => options.Filters.Add<ValidationActionFilter>());
+    builder.Services.AddControllers(options =>
+    {
+        options.Filters.Add<ValidationActionFilter>();
+        options.Filters.Add<ModuleOnlyAccessFilter>();
+    });
     builder.Services.AddEndpointsApiExplorer();
     builder.Services.AddSwaggerGen(c =>
     {

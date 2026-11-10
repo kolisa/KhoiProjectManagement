@@ -306,6 +306,11 @@ namespace KhoiProjectManagement.Application
             {
                 claims.Add(new Claim("superadmin", "true"));
             }
+            else if (user.PmOnly)
+            {
+                // Read by ModuleOnlyAccessFilter - confines this account to [AllowModuleOnly] endpoints.
+                claims.Add(new Claim("pm_only", "true"));
+            }
 
             var accessTokenExpiryMinutes = int.Parse(_configuration["Jwt:AccessTokenExpiryMinutes"] ?? "15");
 

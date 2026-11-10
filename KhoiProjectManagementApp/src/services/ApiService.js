@@ -1341,6 +1341,75 @@ class ApiService {
   getIcsFeedUrl(token) {
     return `${API_BASE_URL}/calendar/feed.ics?token=${encodeURIComponent(token)}`;
   }
+
+  // Project Management module (/api/pm)
+  async getPmProjects() {
+    return await this.request('/pm/projects');
+  }
+
+  async getPmUsers() {
+    return await this.request('/pm/users');
+  }
+
+  async getPmMembers(projectId) {
+    return await this.request(`/pm/projects/${projectId}/members`);
+  }
+
+  async setPmMember(projectId, userId, role) {
+    return await this.request(`/pm/projects/${projectId}/members/${userId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ role }),
+    });
+  }
+
+  async removePmMember(projectId, userId) {
+    return await this.request(`/pm/projects/${projectId}/members/${userId}`, { method: 'DELETE' });
+  }
+
+  async getWorkItems(projectId, filter = {}) {
+    const params = new URLSearchParams();
+    Object.entries(filter).forEach(([k, v]) => {
+      if (v !== null && v !== undefined && v !== '') params.append(k, v);
+    });
+    const qs = params.toString();
+    return await this.request(`/pm/projects/${projectId}/work-items${qs ? `?${qs}` : ''}`);
+  }
+
+  async createWorkItem(projectId, item) {
+    return await this.request(`/pm/projects/${projectId}/work-items`, {
+      method: 'POST',
+      body: JSON.stringify(item),
+    });
+  }
+
+  async updateWorkItem(itemId, item) {
+    return await this.request(`/pm/work-items/${itemId}`, {
+      method: 'PUT',
+      body: JSON.stringify(item),
+    });
+  }
+
+  async rankWorkItem(itemId, afterItemId) {
+    return await this.request(`/pm/work-items/${itemId}/rank`, {
+      method: 'PUT',
+      body: JSON.stringify({ afterItemId }),
+    });
+  }
+
+  async deleteWorkItem(itemId) {
+    return await this.request(`/pm/work-items/${itemId}`, { method: 'DELETE' });
+  }
+
+  async getPmAccessUsers() {
+    return await this.request('/pm/access/users');
+  }
+
+  async setPmAccess(userId, pmAccess, pmOnly) {
+    return await this.request(`/pm/access/users/${userId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ pmAccess, pmOnly }),
+    });
+  }
 }
 
 export default ApiService;

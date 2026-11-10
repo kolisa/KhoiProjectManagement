@@ -167,7 +167,13 @@ namespace KhoiProjectManagement.Infrastructure.Data
                 e.Property(t => t.Status).IsRequired();
                 e.Property(t => t.Priority).IsRequired();
                 e.Property(t => t.Type).IsRequired().HasMaxLength(20).HasDefaultValue("Task");
+                e.HasOne(t => t.Parent).WithMany(t => t.Children).HasForeignKey(t => t.ParentId).OnDelete(DeleteBehavior.Restrict);
+                e.HasIndex(t => new { t.ProjectId, t.Rank });
+                e.HasIndex(t => t.ParentId);
             });
+
+            modelBuilder.Entity<ProjectUser>()
+                .Property(pu => pu.ProjectRole).IsRequired().HasMaxLength(20).HasDefaultValue("Developer");
 
             modelBuilder.Entity<Tag>(e =>
             {
@@ -980,7 +986,8 @@ namespace KhoiProjectManagement.Infrastructure.Data
                 new Permission { Id = 25, Resource = "groups", Action = "manage", Name = "groups.manage", Description = "Create groups and manage their membership" },
                 new Permission { Id = 26, Resource = "audit", Action = "view", Name = "audit.view", Description = "View sent-email history and application error logs" },
                 new Permission { Id = 27, Resource = "email", Action = "broadcast", Name = "email.broadcast", Description = "Send a broadcast email to users filtered by role" },
-                new Permission { Id = 28, Resource = "email", Action = "manage_overview", Name = "email.manage_overview", Description = "Configure the weekly system-overview email's on/off switch and schedule" }
+                new Permission { Id = 28, Resource = "email", Action = "manage_overview", Name = "email.manage_overview", Description = "Configure the weekly system-overview email's on/off switch and schedule" },
+                new Permission { Id = 29, Resource = "pm", Action = "admin", Name = "pm.admin", Description = "Grant or revoke Project Management module access (and module-only confinement) for users" }
             );
 
             modelBuilder.Entity<Role>().HasData(
@@ -991,7 +998,7 @@ namespace KhoiProjectManagement.Infrastructure.Data
 
             // Admin: all permissions.
             modelBuilder.Entity<RolePermission>().HasData(
-                Enumerable.Range(1, 28).Select(permissionId => new RolePermission { RoleId = 1, PermissionId = permissionId }).ToArray()
+                Enumerable.Range(1, 29).Select(permissionId => new RolePermission { RoleId = 1, PermissionId = permissionId }).ToArray()
             );
 
             // Manager: projects.create/edit, tasks.delete, attachments.delete, notifications.check_overdue,
