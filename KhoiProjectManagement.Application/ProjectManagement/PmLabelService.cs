@@ -17,6 +17,15 @@ namespace KhoiProjectManagement.Application
     {
         public const int MaxLabelsPerItem = 10;
         public const int MaxLabelLength = 30;
+        // The tags every install starts with (see the seed data). They stay even when nothing uses them.
+        private static readonly string[] SeededTagNames = { "web", "mobile", "design", "development", "urgent" };
+
+        // Tag has no unique index on Name (the classic screens may already hold case-variant duplicates, so one
+        // cannot be added safely), so find-or-create is serialised here instead: two people adding the same new
+        // label at once would otherwise each create it. This relies on the API running as a single instance,
+        // which is how it is deployed.
+        private static readonly SemaphoreSlim LabelWrites = new(1, 1);
+
         private static readonly string[] Palette = { "#3B82F6", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6", "#EC4899", "#14B8A6", "#6366F1" };
 
         private readonly IRepository<Tag> _tags;
@@ -50,6 +59,10 @@ namespace KhoiProjectManagement.Application
         public static IQueryable<Tag> FindTagsQuery(IQueryable<Tag> tags, IReadOnlyCollection<string> lowerCaseNames) =>
             tags.Where(t => lowerCaseNames.Contains(t.Name.ToLower()));
 
+        // Tags that nothing references any more (no task, project or wiki page).
+        public static IQueryable<Tag> OrphanedTagsQuery(IQueryable<Tag> tags, IReadOnlyCollection<int> candidateIds) =>
+            tags.Where(t => candidateIds.Contains(t.Id) && !t.TaskTags.Any() && !t.ProjectTags.Any() && !t.WikiPageTags.Any());
+
         public static IQueryable<TaskTag> CurrentLabelsQuery(IQueryable<TaskTag> taskTags, int itemId) =>
             taskTags.Where(tt => tt.TaskId == itemId).Include(tt => tt.Tag);
 
@@ -77,32 +90,55 @@ namespace KhoiProjectManagement.Application
             if (names.Any(n => n.Length > MaxLabelLength))
                 throw new InvalidOperationException($"A label can be at most {MaxLabelLength} characters.");
 
-            var lowered = names.Select(n => n.ToLower()).ToList();
-            var known = await FindTagsQuery(_tags.Query(), lowered).ToListAsync();
-            var byName = known.GroupBy(t => t.Name.ToLowerInvariant()).ToDictionary(g => g.Key, g => g.First());
-
-            var current = await CurrentLabelsQuery(_taskTags.Query(), itemId).ToListAsync();
-            var wanted = new List<Tag>();
-            foreach (var name in names)
+            await LabelWrites.WaitAsync();
+            try
             {
-                if (!byName.TryGetValue(name.ToLowerInvariant(), out var tag))
+                var lowered = names.Select(n => n.ToLower()).ToList();
+                var known = await FindTagsQuery(_tags.Query(), lowered).ToListAsync();
+                var byName = known.GroupBy(t => t.Name.ToLowerInvariant()).ToDictionary(g => g.Key, g => g.First());
+
+                var current = await CurrentLabelsQuery(_taskTags.Query(), itemId).ToListAsync();
+                var wanted = new List<Tag>();
+                foreach (var name in names)
                 {
-                    tag = new Tag { Name = name, Color = ColorFor(name) };
-                    byName[name.ToLowerInvariant()] = tag;
+                    if (!byName.TryGetValue(name.ToLowerInvariant(), out var tag))
+                    {
+                        tag = new Tag { Name = name, Color = ColorFor(name) };
+                        byName[name.ToLowerInvariant()] = tag;
+                    }
+                    wanted.Add(tag);
                 }
-                wanted.Add(tag);
+
+                var wantedKeys = wanted.Select(t => t.Name.ToLowerInvariant()).ToHashSet();
+                var removed = current.Where(tt => !wantedKeys.Contains(tt.Tag.Name.ToLowerInvariant())).ToList();
+                _taskTags.RemoveRange(removed);
+                var currentKeys = current.Select(tt => tt.Tag.Name.ToLowerInvariant()).ToHashSet();
+                foreach (var tag in wanted.Where(t => !currentKeys.Contains(t.Name.ToLowerInvariant())))
+                    _taskTags.Add(new TaskTag { TaskId = itemId, Tag = tag });
+
+                await _uow.SaveChangesAsync();
+
+                // A label nobody uses any more is deleted, so the shared tag table does not fill with leftovers
+                // (the built-in tags are never touched).
+                if (removed.Count > 0)
+                {
+                    var orphans = (await OrphanedTagsQuery(_tags.Query(), removed.Select(tt => tt.TagId).Distinct().ToList()).ToListAsync())
+                        .Where(t => !SeededTagNames.Contains(t.Name, StringComparer.OrdinalIgnoreCase)).ToList();
+                    if (orphans.Count > 0)
+                    {
+                        _tags.RemoveRange(orphans);
+                        await _uow.SaveChangesAsync();
+                    }
+                }
+
+                await _activity.LogAsync("WorkItem", item.Id, item.Title, caller.UserId, "labelled", names.Count == 0 ? "none" : string.Join(", ", names));
+
+                return wanted.Select(t => new LabelDto { Id = t.Id, Name = t.Name, Color = t.Color }).OrderBy(l => l.Name, StringComparer.OrdinalIgnoreCase).ToList();
             }
-
-            var wantedKeys = wanted.Select(t => t.Name.ToLowerInvariant()).ToHashSet();
-            _taskTags.RemoveRange(current.Where(tt => !wantedKeys.Contains(tt.Tag.Name.ToLowerInvariant())).ToList());
-            var currentKeys = current.Select(tt => tt.Tag.Name.ToLowerInvariant()).ToHashSet();
-            foreach (var tag in wanted.Where(t => !currentKeys.Contains(t.Name.ToLowerInvariant())))
-                _taskTags.Add(new TaskTag { TaskId = itemId, Tag = tag });
-
-            await _uow.SaveChangesAsync();
-            await _activity.LogAsync("WorkItem", item.Id, item.Title, caller.UserId, "labelled", names.Count == 0 ? "none" : string.Join(", ", names));
-
-            return wanted.Select(t => new LabelDto { Id = t.Id, Name = t.Name, Color = t.Color }).OrderBy(l => l.Name, StringComparer.OrdinalIgnoreCase).ToList();
+            finally
+            {
+                LabelWrites.Release();
+            }
         }
     }
 }

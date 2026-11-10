@@ -65,6 +65,7 @@ namespace KhoiProjectManagement.UnitTests.Services
             AssertSql(PmLabelService.ProjectLabelsQuery(_db.TaskTags, 1).ToQueryString(), "DISTINCT");
             AssertSql(PmLabelService.FindTagsQuery(_db.Tags, new[] { "ui", "api" }).ToQueryString(), "lower(");
             AssertSql(PmLabelService.CurrentLabelsQuery(_db.TaskTags, 1).ToQueryString(), "Tags");
+            AssertSql(PmLabelService.OrphanedTagsQuery(_db.Tags, new[] { 1, 2 }).ToQueryString(), "NOT EXISTS");
         }
 
         [Fact]

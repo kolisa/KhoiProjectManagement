@@ -338,6 +338,42 @@ namespace KhoiProjectManagement.UnitTests.Services
         }
 
         [Fact]
+        public async Task SetLabels_DeletesATagThatNothingUsesAnyMore_ButNeverABuiltInOne_OrOneStillInUse()
+        {
+            var orphan = new Tag { Id = 2, Name = "old" };
+            var builtIn = new Tag { Id = 3, Name = "Web" };
+            var stillUsed = new Tag { Id = 4, Name = "shared", TaskTags = new List<TaskTag> { new() { TaskId = 99, TagId = 4 } } };
+            SetTags(orphan, builtIn, stillUsed);
+            SetTaskTags(
+                new TaskTag { TaskId = 1, TagId = 2, Tag = orphan },
+                new TaskTag { TaskId = 1, TagId = 3, Tag = builtIn },
+                new TaskTag { TaskId = 1, TagId = 4, Tag = stillUsed });
+
+            await CreateSut().SetLabelsAsync(Dev, 1, new SetLabelsDto());   // remove them all from this item
+
+            _tags.Received(1).RemoveRange(Arg.Is<IEnumerable<Tag>>(e => e.SequenceEqual(new[] { orphan })));
+        }
+
+        [Fact]
+        public async Task SetLabels_RunsOneWriteAtATime()
+        {
+            var inside = 0;
+            var maxInside = 0;
+            _uow.SaveChangesAsync().Returns(async _ =>
+            {
+                var now = Interlocked.Increment(ref inside);
+                maxInside = Math.Max(maxInside, now);
+                await Task.Delay(30);
+                Interlocked.Decrement(ref inside);
+                return 1;
+            });
+
+            await Task.WhenAll(Enumerable.Range(0, 4).Select(i => CreateSut().SetLabelsAsync(Dev, 1, new SetLabelsDto { Labels = { "label" + i } })));
+
+            Assert.Equal(1, maxInside);
+        }
+
+        [Fact]
         public async Task SetLabels_DeduplicatesAndIgnoresBlanks()
         {
             var added = new List<TaskTag>();
