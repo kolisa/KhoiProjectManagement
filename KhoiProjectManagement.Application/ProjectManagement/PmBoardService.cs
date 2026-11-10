@@ -6,7 +6,7 @@ namespace KhoiProjectManagement.Application
 {
     public interface IPmBoardService
     {
-        Task<BoardDto> GetBoardAsync(PmCaller caller, int projectId);
+        Task<BoardDto> GetBoardAsync(PmCaller caller, int projectId, int? sprintId = null);
         Task<BoardDto> SaveColumnsAsync(PmCaller caller, int projectId, List<SaveBoardColumnDto> columns);
         Task<WorkItemDto> MoveAsync(PmCaller caller, int itemId, MoveWorkItemDto dto);
     }
@@ -48,12 +48,12 @@ namespace KhoiProjectManagement.Application
             _unitOfWork = unitOfWork;
         }
 
-        public async Task<BoardDto> GetBoardAsync(PmCaller caller, int projectId)
+        public async Task<BoardDto> GetBoardAsync(PmCaller caller, int projectId, int? sprintId = null)
         {
             await _access.RequireAsync(caller, projectId, PmAction.View);
             var columns = await EnsureColumnsAsync(projectId);
 
-            var items = await _workItems.GetBacklogAsync(caller, projectId, new WorkItemFilterDto());
+            var items = await _workItems.GetBacklogAsync(caller, projectId, new WorkItemFilterDto { SprintId = sprintId });
             var boardItems = items.Where(i => !NonBoardTypes.Contains(i.Type)).ToList(); // already rank-ordered
 
             return new BoardDto

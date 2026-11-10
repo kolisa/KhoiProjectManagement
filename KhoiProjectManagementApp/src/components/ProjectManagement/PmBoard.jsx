@@ -36,6 +36,8 @@ const PmBoard = ({ apiService, project, members }) => {
   const [editing, setEditing] = useState(null);
   const [showSettings, setShowSettings] = useState(false);
   const [assignee, setAssignee] = useState('');
+  const [sprints, setSprints] = useState([]);
+  const [sprintId, setSprintId] = useState('');
 
   const canEdit = can(project.myRole, 'edit');
   const canConfigure = can(project.myRole, 'board');
@@ -43,15 +45,19 @@ const PmBoard = ({ apiService, project, members }) => {
   const load = useCallback(async () => {
     try {
       setError(null);
-      setBoard(await apiService.getBoard(project.id));
+      setBoard(await apiService.getBoard(project.id, sprintId || null));
     } catch (err) {
       setError(err?.message || 'Could not load the board.');
     } finally {
       setLoading(false);
     }
-  }, [apiService, project.id]);
+  }, [apiService, project.id, sprintId]);
 
   useEffect(() => { setLoading(true); load(); }, [load]);
+
+  useEffect(() => {
+    apiService.getSprints(project.id).then((s) => setSprints(s.filter((x) => x.state !== 'Completed'))).catch(() => setSprints([]));
+  }, [apiService, project.id]);
 
   const move = async (itemId, status, afterItemId) => {
     try {
@@ -93,6 +99,11 @@ const PmBoard = ({ apiService, project, members }) => {
           className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
           <option value="">Everyone</option>
           {members.map((m) => <option key={m.userId} value={m.userId}>{m.name}</option>)}
+        </select>
+        <select aria-label="Show work from" value={sprintId} onChange={(e) => setSprintId(e.target.value)}
+          className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <option value="">All work (Kanban)</option>
+          {sprints.map((s) => <option key={s.id} value={s.id}>{s.name}{s.state === 'Active' ? ' (active)' : ''}</option>)}
         </select>
         <span className="text-xs text-gray-500">{allCards.length} cards on the board · Epics and Features stay on the backlog</span>
         {canConfigure && (

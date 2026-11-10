@@ -25,6 +25,7 @@ namespace KhoiProjectManagement.Infrastructure.Data
         public DbSet<Notification> Notifications { get; set; }
         public DbSet<ProjectUser> ProjectUsers { get; set; }
         public DbSet<BoardColumn> BoardColumns { get; set; }
+        public DbSet<Sprint> Sprints { get; set; }
         public DbSet<TaskStatusHistory> TaskStatusHistories { get; set; }
         public DbSet<ProjectTag> ProjectTags { get; set; }
         public DbSet<TaskTag> TaskTags { get; set; }
@@ -180,6 +181,18 @@ namespace KhoiProjectManagement.Infrastructure.Data
                 e.Property(c => c.Name).IsRequired().HasMaxLength(40);
                 e.HasIndex(c => new { c.ProjectId, c.Status }).IsUnique();
                 e.HasOne(c => c.Project).WithMany().HasForeignKey(c => c.ProjectId).OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<Sprint>(e =>
+            {
+                e.Property(s => s.Name).IsRequired().HasMaxLength(100);
+                e.Property(s => s.Goal).HasMaxLength(500);
+                e.Property(s => s.State).IsRequired().HasMaxLength(20);
+                e.HasIndex(s => new { s.ProjectId, s.State });
+                // At most one active sprint per project, enforced by the database as well as the service.
+                e.HasIndex(s => s.ProjectId).IsUnique().HasFilter("\"State\" = 'Active'").HasDatabaseName("IX_Sprints_ProjectId_Active");
+                e.HasOne(s => s.Project).WithMany().HasForeignKey(s => s.ProjectId).OnDelete(DeleteBehavior.Cascade);
+                e.HasMany(s => s.Tasks).WithOne(t => t.Sprint).HasForeignKey(t => t.SprintId).OnDelete(DeleteBehavior.SetNull);
             });
 
             modelBuilder.Entity<TaskStatusHistory>(e =>

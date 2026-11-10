@@ -3,6 +3,7 @@ import LoadingSpinner from '../Common/LoadingSpinner';
 import ErrorMessage from '../Common/ErrorMessage';
 import PmBacklog from './PmBacklog';
 import PmBoard from './PmBoard';
+import PmSprints from './PmSprints';
 import PmMembers from './PmMembers';
 import PmAccessAdmin from './PmAccessAdmin';
 import { hasPermission } from '../../utils/permissions';
@@ -48,6 +49,7 @@ const PmWorkspace = ({ apiService, user }) => {
 
   const tabs = [
     { key: 'backlog', label: 'Backlog' },
+    { key: 'sprints', label: 'Sprints' },
     { key: 'board', label: 'Board' },
     { key: 'members', label: 'Members' },
     ...(isPmAdmin ? [{ key: 'access', label: 'Module access' }] : []),
@@ -109,7 +111,7 @@ const PmWithMembers = ({ apiService, project, view }) => {
     return () => { cancelled = true; };
   }, [apiService, project.id]);
   if (!members) return <LoadingSpinner />;
-  const View = view === 'board' ? PmBoard : PmBacklog;
+  const View = view === 'board' ? PmBoard : view === 'sprints' ? PmSprints : PmBacklog;
   return <View apiService={apiService} project={project} members={members} />;
 };
 

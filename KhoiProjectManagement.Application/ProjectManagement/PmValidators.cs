@@ -52,3 +52,17 @@ namespace KhoiProjectManagement.Application
         }
     }
 }
+
+namespace KhoiProjectManagement.Application
+{
+    public class SaveSprintDtoValidator : AbstractValidator<SaveSprintDto>
+    {
+        public SaveSprintDtoValidator()
+        {
+            RuleFor(x => x.Name).NotEmpty().MaximumLength(100);
+            RuleFor(x => x.Goal).MaximumLength(500);
+            RuleFor(x => x.EndDate).GreaterThan(x => x.StartDate).WithMessage("End date must be after the start date.");
+            RuleFor(x => x.Capacity).InclusiveBetween(0, 1000).When(x => x.Capacity.HasValue);
+        }
+    }
+}

@@ -42,6 +42,8 @@ namespace KhoiProjectManagement.Application
         public string Priority { get; set; } = string.Empty;
         public int? StoryPoints { get; set; }
         public DateTime? StartedAt { get; set; }
+        public int? SprintId { get; set; }
+        public string? SprintName { get; set; }
         public int? AssignedToId { get; set; }
         public string? AssignedToName { get; set; }
         public int? ParentId { get; set; }
@@ -61,6 +63,9 @@ namespace KhoiProjectManagement.Application
         public string? Status { get; set; }
         public int? AssigneeId { get; set; }
         public int? ParentId { get; set; }
+        public int? SprintId { get; set; }
+        // True restricts the list to items not in any sprint (the unplanned backlog).
+        public bool? Unplanned { get; set; }
         public string? Search { get; set; }
     }
 

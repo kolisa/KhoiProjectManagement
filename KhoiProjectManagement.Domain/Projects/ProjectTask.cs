@@ -40,6 +40,8 @@ namespace KhoiProjectManagement.Domain
         public virtual ProjectTask? Parent { get; set; }
         public virtual ICollection<ProjectTask> Children { get; set; } = new List<ProjectTask>();
         public int? StoryPoints { get; set; }
+        public int? SprintId { get; set; }
+        public virtual Sprint? Sprint { get; set; }
         // First time the item entered "in-progress" (see WorkItemStatusTracker) - cycle time is
         // CompletedAt - StartedAt. Null for work that predates the PM module or never started.
         public DateTime? StartedAt { get; set; }

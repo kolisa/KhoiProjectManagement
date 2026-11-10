@@ -1400,8 +1400,50 @@ class ApiService {
     return await this.request(`/pm/work-items/${itemId}`, { method: 'DELETE' });
   }
 
-  async getBoard(projectId) {
-    return await this.request(`/pm/projects/${projectId}/board`);
+  async getBoard(projectId, sprintId = null) {
+    return await this.request(`/pm/projects/${projectId}/board${sprintId ? `?sprintId=${sprintId}` : ''}`);
+  }
+
+  async getSprints(projectId) {
+    return await this.request(`/pm/projects/${projectId}/sprints`);
+  }
+
+  async createSprint(projectId, sprint) {
+    return await this.request(`/pm/projects/${projectId}/sprints`, { method: 'POST', body: JSON.stringify(sprint) });
+  }
+
+  async updateSprint(sprintId, sprint) {
+    return await this.request(`/pm/sprints/${sprintId}`, { method: 'PUT', body: JSON.stringify(sprint) });
+  }
+
+  async deleteSprint(sprintId) {
+    return await this.request(`/pm/sprints/${sprintId}`, { method: 'DELETE' });
+  }
+
+  async startSprint(sprintId) {
+    return await this.request(`/pm/sprints/${sprintId}/start`, { method: 'POST' });
+  }
+
+  async completeSprint(sprintId, moveIncompleteToSprintId = null) {
+    return await this.request(`/pm/sprints/${sprintId}/complete`, {
+      method: 'POST',
+      body: JSON.stringify({ moveIncompleteToSprintId }),
+    });
+  }
+
+  async assignWorkItemSprint(itemId, sprintId) {
+    return await this.request(`/pm/work-items/${itemId}/sprint`, {
+      method: 'PUT',
+      body: JSON.stringify({ sprintId }),
+    });
+  }
+
+  async getBurndown(sprintId) {
+    return await this.request(`/pm/sprints/${sprintId}/burndown`);
+  }
+
+  async getVelocity(projectId, count = 6) {
+    return await this.request(`/pm/projects/${projectId}/velocity?count=${count}`);
   }
 
   async saveBoardColumns(projectId, columns) {

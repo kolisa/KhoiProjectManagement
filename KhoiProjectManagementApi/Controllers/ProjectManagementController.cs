@@ -18,9 +18,11 @@ namespace KhoiProjectManagementApi.Controllers
         private readonly IPmProjectService _projects;
         private readonly IPmWorkItemService _workItems;
         private readonly IPmBoardService _board;
+        private readonly IPmSprintService _sprints;
 
-        public ProjectManagementController(IPmProjectService projects, IPmWorkItemService workItems, IPmBoardService board)
+        public ProjectManagementController(IPmProjectService projects, IPmWorkItemService workItems, IPmBoardService board, IPmSprintService sprints)
         {
+            _sprints = sprints;
             _board = board;
             _projects = projects;
             _workItems = workItems;
@@ -80,8 +82,8 @@ namespace KhoiProjectManagementApi.Controllers
             Ok(await _workItems.RankAsync(Caller, itemId, dto));
 
         [HttpGet("projects/{projectId:int}/board")]
-        public async Task<ActionResult<BoardDto>> GetBoard(int projectId) =>
-            Ok(await _board.GetBoardAsync(Caller, projectId));
+        public async Task<ActionResult<BoardDto>> GetBoard(int projectId, [FromQuery] int? sprintId) =>
+            Ok(await _board.GetBoardAsync(Caller, projectId, sprintId));
 
         [HttpPut("projects/{projectId:int}/board/columns")]
         public async Task<ActionResult<BoardDto>> SaveBoardColumns(int projectId, List<SaveBoardColumnDto> columns) =>
@@ -90,6 +92,45 @@ namespace KhoiProjectManagementApi.Controllers
         [HttpPut("work-items/{itemId:int}/move")]
         public async Task<ActionResult<WorkItemDto>> MoveWorkItem(int itemId, MoveWorkItemDto dto) =>
             Ok(await _board.MoveAsync(Caller, itemId, dto));
+
+        [HttpGet("projects/{projectId:int}/sprints")]
+        public async Task<ActionResult<List<SprintDto>>> GetSprints(int projectId) =>
+            Ok(await _sprints.GetSprintsAsync(Caller, projectId));
+
+        [HttpPost("projects/{projectId:int}/sprints")]
+        public async Task<ActionResult<SprintDto>> CreateSprint(int projectId, SaveSprintDto dto) =>
+            Ok(await _sprints.CreateAsync(Caller, projectId, dto));
+
+        [HttpPut("sprints/{sprintId:int}")]
+        public async Task<ActionResult<SprintDto>> UpdateSprint(int sprintId, SaveSprintDto dto) =>
+            Ok(await _sprints.UpdateAsync(Caller, sprintId, dto));
+
+        [HttpDelete("sprints/{sprintId:int}")]
+        public async Task<IActionResult> DeleteSprint(int sprintId)
+        {
+            await _sprints.DeleteAsync(Caller, sprintId);
+            return NoContent();
+        }
+
+        [HttpPost("sprints/{sprintId:int}/start")]
+        public async Task<ActionResult<SprintDto>> StartSprint(int sprintId) =>
+            Ok(await _sprints.StartAsync(Caller, sprintId));
+
+        [HttpPost("sprints/{sprintId:int}/complete")]
+        public async Task<ActionResult<SprintDto>> CompleteSprint(int sprintId, CompleteSprintDto dto) =>
+            Ok(await _sprints.CompleteAsync(Caller, sprintId, dto));
+
+        [HttpGet("sprints/{sprintId:int}/burndown")]
+        public async Task<ActionResult<BurndownDto>> GetBurndown(int sprintId) =>
+            Ok(await _sprints.GetBurndownAsync(Caller, sprintId));
+
+        [HttpGet("projects/{projectId:int}/velocity")]
+        public async Task<ActionResult<VelocityDto>> GetVelocity(int projectId, [FromQuery] int count = 6) =>
+            Ok(await _sprints.GetVelocityAsync(Caller, projectId, count));
+
+        [HttpPut("work-items/{itemId:int}/sprint")]
+        public async Task<ActionResult<WorkItemDto>> AssignSprint(int itemId, AssignSprintDto dto) =>
+            Ok(await _sprints.AssignAsync(Caller, itemId, dto.SprintId));
 
         [HttpDelete("work-items/{itemId:int}")]
         public async Task<IActionResult> DeleteWorkItem(int itemId)

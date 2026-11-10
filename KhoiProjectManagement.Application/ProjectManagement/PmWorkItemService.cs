@@ -55,6 +55,8 @@ namespace KhoiProjectManagement.Application
             if (!string.IsNullOrWhiteSpace(filter.Status)) query = query.Where(t => t.Status == filter.Status);
             if (filter.AssigneeId.HasValue) query = query.Where(t => t.AssignedToId == filter.AssigneeId);
             if (filter.ParentId.HasValue) query = query.Where(t => t.ParentId == filter.ParentId);
+            if (filter.SprintId.HasValue) query = query.Where(t => t.SprintId == filter.SprintId);
+            if (filter.Unplanned == true) query = query.Where(t => t.SprintId == null);
             if (!string.IsNullOrWhiteSpace(filter.Search))
             {
                 var term = filter.Search.Trim().ToLower();
@@ -209,6 +211,8 @@ namespace KhoiProjectManagement.Application
                 Priority = t.Priority,
                 StoryPoints = t.StoryPoints,
                 StartedAt = t.StartedAt,
+                SprintId = t.SprintId,
+                SprintName = t.Sprint != null ? t.Sprint.Name : null,
                 AssignedToId = t.AssignedToId,
                 AssignedToName = t.AssignedTo != null ? t.AssignedTo.Name : null,
                 ParentId = t.ParentId,

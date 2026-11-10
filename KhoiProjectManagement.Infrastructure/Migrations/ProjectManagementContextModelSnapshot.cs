@@ -1408,6 +1408,9 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
                     b.Property<double>("Rank")
                         .HasColumnType("double precision");
 
+                    b.Property<int?>("SprintId")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime?>("StartedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -1438,6 +1441,8 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
                     b.HasIndex("AssignedToId");
 
                     b.HasIndex("ParentId");
+
+                    b.HasIndex("SprintId");
 
                     b.HasIndex("ProjectId", "Rank");
 
@@ -2037,6 +2042,68 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("SpacePermissions");
+                });
+
+            modelBuilder.Entity("KhoiProjectManagement.Domain.Sprint", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("Capacity")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("CommittedPoints")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("CompletedPoints")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("EndDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Goal")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("ProjectId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("StartDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("StartedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProjectId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_Sprints_ProjectId_Active")
+                        .HasFilter("\"State\" = 'Active'");
+
+                    b.HasIndex("ProjectId", "State");
+
+                    b.ToTable("Sprints");
                 });
 
             modelBuilder.Entity("KhoiProjectManagement.Domain.SystemOverviewEmailSettings", b =>
@@ -3187,11 +3254,18 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("KhoiProjectManagement.Domain.Sprint", "Sprint")
+                        .WithMany("Tasks")
+                        .HasForeignKey("SprintId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.Navigation("AssignedTo");
 
                     b.Navigation("Parent");
 
                     b.Navigation("Project");
+
+                    b.Navigation("Sprint");
                 });
 
             modelBuilder.Entity("KhoiProjectManagement.Domain.ProjectUser", b =>
@@ -3346,6 +3420,17 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
                     b.Navigation("Space");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("KhoiProjectManagement.Domain.Sprint", b =>
+                {
+                    b.HasOne("KhoiProjectManagement.Domain.Project", "Project")
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Project");
                 });
 
             modelBuilder.Entity("KhoiProjectManagement.Domain.SystemOverviewEmailSettings", b =>
@@ -3692,6 +3777,11 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
                     b.Navigation("ChildSpaces");
 
                     b.Navigation("Permissions");
+                });
+
+            modelBuilder.Entity("KhoiProjectManagement.Domain.Sprint", b =>
+                {
+                    b.Navigation("Tasks");
                 });
 
             modelBuilder.Entity("KhoiProjectManagement.Domain.Tag", b =>

@@ -166,6 +166,7 @@ const PmBacklog = ({ apiService, project, members }) => {
                 <span className="block text-xs text-gray-500 truncate">
                   #{item.id}
                   {item.parentTitle && ` · in ${item.parentTitle}`}
+                  {item.sprintName && ` · ${item.sprintName}`}
                   {item.childCount > 0 && ` · ${item.childCount} child item${item.childCount === 1 ? '' : 's'}`}
                   {item.isOverdue && <span className="text-red-600 font-medium"> · overdue</span>}
                 </span>
