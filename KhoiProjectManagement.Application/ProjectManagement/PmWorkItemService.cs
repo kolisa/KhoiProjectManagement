@@ -7,7 +7,10 @@ namespace KhoiProjectManagement.Application
 {
     public interface IPmWorkItemService
     {
-        Task<List<WorkItemDto>> GetBacklogAsync(PmCaller caller, int projectId, WorkItemFilterDto filter);
+        // includeRollup: fills in the Epic/Feature progress fields. It costs one extra project-wide query, so
+        // callers that never show it (the board) pass false.
+        Task<List<WorkItemDto>> GetBacklogAsync(PmCaller caller, int projectId, WorkItemFilterDto filter, bool includeRollup = true);
+        Task<List<WorkItemLookupDto>> GetLookupAsync(PmCaller caller, int projectId);
         Task<WorkItemDto> GetAsync(PmCaller caller, int itemId);
         Task<WorkItemDto> CreateAsync(PmCaller caller, int projectId, SaveWorkItemDto dto);
         Task<WorkItemDto> UpdateAsync(PmCaller caller, int itemId, SaveWorkItemDto dto);
@@ -59,7 +62,7 @@ namespace KhoiProjectManagement.Application
             _unitOfWork = unitOfWork;
         }
 
-        public async Task<List<WorkItemDto>> GetBacklogAsync(PmCaller caller, int projectId, WorkItemFilterDto filter)
+        public async Task<List<WorkItemDto>> GetBacklogAsync(PmCaller caller, int projectId, WorkItemFilterDto filter, bool includeRollup = true)
         {
             await _access.RequireAsync(caller, projectId, PmAction.View);
 
@@ -78,8 +81,17 @@ namespace KhoiProjectManagement.Application
             }
 
             var list = await Project(query.OrderBy(t => t.Rank).ThenBy(t => t.Id)).ToListAsync();
-            await ApplyRollupAsync(projectId, list);
+            if (includeRollup) await ApplyRollupAsync(projectId, list);
             return list;
+        }
+
+        public async Task<List<WorkItemLookupDto>> GetLookupAsync(PmCaller caller, int projectId)
+        {
+            await _access.RequireAsync(caller, projectId, PmAction.View);
+            return await _tasks.Query().AsNoTracking().Where(t => t.ProjectId == projectId)
+                .OrderBy(t => t.Rank).ThenBy(t => t.Id)
+                .Select(t => new WorkItemLookupDto { Id = t.Id, Title = t.Title, Type = t.Type, Status = t.Status })
+                .ToListAsync();
         }
 
         public async Task<WorkItemDto> GetAsync(PmCaller caller, int itemId)

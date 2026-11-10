@@ -192,7 +192,7 @@ describe('Labels and history on a work item', () => {
     getWorkItemComments: vi.fn().mockResolvedValue([]),
     getWorkItemChecklist: vi.fn().mockResolvedValue([]),
     getWorkItemLinks: vi.fn().mockResolvedValue([]),
-    getWorkItems: vi.fn().mockResolvedValue([]),
+    getWorkItemLookup: vi.fn().mockResolvedValue([]),
     getWorkItemAttachments: vi.fn().mockResolvedValue([]),
     getProjectLabels: vi.fn().mockResolvedValue([{ id: 1, name: 'ui' }, { id: 2, name: 'api' }]),
     setWorkItemLabels: vi.fn().mockImplementation((_id, names) => Promise.resolve(names.map((n, i) => ({ id: i + 10, name: n, color: '#111' })))),

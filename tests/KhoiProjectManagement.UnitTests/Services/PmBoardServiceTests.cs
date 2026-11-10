@@ -73,6 +73,17 @@ namespace KhoiProjectManagement.UnitTests.Services
         }
 
         [Fact]
+        public async Task GetBoardAsync_SkipsTheEpicRollupQuery()
+        {
+            SetColumns();
+            _workItems.GetBacklogAsync(default!, default, default!).ReturnsForAnyArgs(new List<WorkItemDto>());
+
+            await CreateSut().GetBoardAsync(Dev, 1);
+
+            await _workItems.Received(1).GetBacklogAsync(Dev, 1, Arg.Any<WorkItemFilterDto>(), false);
+        }
+
+        [Fact]
         public async Task MoveAsync_IntoAFullColumn_IsRejected_AndChangesNothing()
         {
             SetColumns(wipInProgress: 1);

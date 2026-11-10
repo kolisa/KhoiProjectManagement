@@ -27,7 +27,7 @@ const makeApi = (overrides = {}) => ({
   addWorkItemLink: vi.fn().mockResolvedValue({}),
   deleteWorkItemLink: vi.fn().mockResolvedValue(null),
   // Everything in the project - including an Epic and an item the opening screen would not have had.
-  getWorkItems: vi.fn().mockResolvedValue([
+  getWorkItemLookup: vi.fn().mockResolvedValue([
     { id: 7, title: 'Login page', type: 'Story' },
     { id: 3, title: 'API', type: 'Task' },
     { id: 4, title: 'DB', type: 'Task' },
@@ -133,6 +133,19 @@ describe('WorkItemCollab', () => {
     await user.click(screen.getByRole('tab', { name: /links/i }));
     await screen.findByText(/blocked by 1/i);
     expect(screen.queryByLabelText('Item to link')).not.toBeInTheDocument();
+  });
+
+  it('fetches the link picker list only when the Links tab is opened', async () => {
+    const api = makeApi();
+    const user = userEvent.setup();
+    renderCollab(api);
+    await waitFor(() => expect(api.getWorkItemLinks).toHaveBeenCalled());
+    expect(api.getWorkItemLookup).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole('tab', { name: /links/i }));
+
+    await waitFor(() => expect(api.getWorkItemLookup).toHaveBeenCalledWith(5));
+    expect(api.getWorkItemLookup).toHaveBeenCalledTimes(1);
   });
 
   it('does not refetch when an unrelated toast appears (a stable toast reference)', async () => {

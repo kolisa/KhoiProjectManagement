@@ -287,6 +287,10 @@ namespace KhoiProjectManagementApi.Controllers
 
         // ---- Phase 7: overview, my work, activity, labels, member import ----
 
+        [HttpGet("projects/{projectId:int}/work-items/lookup")]
+        public async Task<ActionResult<List<WorkItemLookupDto>>> GetWorkItemLookup(int projectId) =>
+            Ok(await _workItems.GetLookupAsync(Caller, projectId));
+
         [HttpGet("projects/{projectId:int}/overview")]
         public async Task<ActionResult<ProjectOverviewDto>> GetOverview(int projectId) =>
             Ok(await _insights.GetOverviewAsync(Caller, projectId));

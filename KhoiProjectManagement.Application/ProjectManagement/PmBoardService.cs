@@ -56,7 +56,8 @@ namespace KhoiProjectManagement.Application
             await _access.RequireAsync(caller, projectId, PmAction.View);
             var columns = await EnsureColumnsAsync(projectId);
 
-            var items = await _workItems.GetBacklogAsync(caller, projectId, new WorkItemFilterDto { SprintId = sprintId });
+            var items = // The board never shows Epic/Feature progress, so skip that extra project-wide query.
+            await _workItems.GetBacklogAsync(caller, projectId, new WorkItemFilterDto { SprintId = sprintId }, includeRollup: false);
             var boardItems = items.Where(i => !NonBoardTypes.Contains(i.Type)).ToList(); // already rank-ordered
 
             return new BoardDto

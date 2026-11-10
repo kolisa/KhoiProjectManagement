@@ -601,6 +601,48 @@ namespace KhoiProjectManagement.UnitTests.Services
     {
         private static readonly PmCaller Dev = new(10, false);
 
+        private static PmWorkItemService Sut(IRepository<ProjectTask> tasks, IProjectAccessService? access = null) => new(tasks,
+            Substitute.For<IRepository<Project>>(), Substitute.For<IRepository<ProjectUser>>(), Substitute.For<IRepository<TaskStatusHistory>>(),
+            Substitute.For<IRepository<Attachment>>(), Substitute.For<IFileStorage>(), Substitute.For<IPmWorkflowService>(),
+            access ?? Substitute.For<IProjectAccessService>(), Substitute.For<IActivityLogService>(), Substitute.For<IUnitOfWork>(),
+            Microsoft.Extensions.Logging.Abstractions.NullLogger<PmWorkItemService>.Instance);
+
+        [Fact]
+        public async Task Lookup_ReturnsOnlyTheFieldsAPickerNeeds_InRankOrder_ForTheProject()
+        {
+            var tasks = Substitute.For<IRepository<ProjectTask>>();
+            tasks.Query().Returns(_ => new List<ProjectTask>
+            {
+                new() { Id = 2, ProjectId = 1, Title = "B", Type = "Task", Status = "todo", Rank = 2000, Description = "long text" },
+                new() { Id = 1, ProjectId = 1, Title = "A", Type = "Epic", Status = "todo", Rank = 1000 },
+                new() { Id = 3, ProjectId = 9, Title = "Elsewhere", Type = "Task", Status = "todo", Rank = 1 },
+            }.BuildMock());
+
+            var lookup = await Sut(tasks).GetLookupAsync(Dev, 1);
+
+            Assert.Equal(new[] { "A", "B" }, lookup.Select(l => l.Title));
+            Assert.Equal("Epic", lookup[0].Type);
+        }
+
+        [Fact]
+        public async Task Backlog_CanSkipTheRollupQuery()
+        {
+            var tasks = Substitute.For<IRepository<ProjectTask>>();
+            var epic = new ProjectTask { Id = 1, ProjectId = 1, Type = "Epic", Title = "E", Status = "todo" };
+            var child = new ProjectTask { Id = 2, ProjectId = 1, Type = "Story", Title = "S", Status = "completed", ParentId = 1, Parent = epic };
+            epic.Children = new List<ProjectTask> { child };
+            var calls = 0;
+            tasks.Query().Returns(_ => { calls++; return new List<ProjectTask> { epic, child }.BuildMock(); });
+
+            await Sut(tasks).GetBacklogAsync(Dev, 1, new WorkItemFilterDto(), includeRollup: false);
+            var withoutRollup = calls;
+            calls = 0;
+            await Sut(tasks).GetBacklogAsync(Dev, 1, new WorkItemFilterDto());
+
+            Assert.Equal(1, withoutRollup);
+            Assert.Equal(2, calls);   // the list query plus the project-wide roll-up query
+        }
+
         [Fact]
         public async Task Backlog_FillsInRollupForContainers_FromTheWholeProject_AndFiltersByLabel()
         {

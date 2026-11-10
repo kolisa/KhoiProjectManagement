@@ -227,20 +227,22 @@ const LINK_TYPES = [
   { key: 'Duplicates', label: 'Duplicates' },
 ];
 
-const LinksPanel = ({ apiService, item, items, canEdit, onCount }) => {
+const LinksPanel = ({ apiService, item, items, canEdit, onCount, active }) => {
   const toast = useToast();
   const [links, setLinks] = useState(null);
   // The picker offers every item in the project (Epics, Features and other sprints included), not just
   // whatever list the opener happened to have on screen - the board, for one, only holds sprint cards.
   const [projectItems, setProjectItems] = useState(null);
 
+  // Fetched only once the Links tab is opened, and as a light id/title list rather than the full backlog.
   useEffect(() => {
+    if (!active || !canEdit || projectItems !== null) return undefined;
     let cancelled = false;
-    apiService.getWorkItems(item.projectId)
+    apiService.getWorkItemLookup(item.projectId)
       .then((list) => { if (!cancelled) setProjectItems(list); })
-      .catch(() => { if (!cancelled) setProjectItems(null); });
+      .catch(() => { /* the opener's own list stays as the fallback */ });
     return () => { cancelled = true; };
-  }, [apiService, item.projectId]);
+  }, [active, canEdit, projectItems, apiService, item.projectId]);
   const [type, setType] = useState('Relates');
   const [targetId, setTargetId] = useState('');
 
@@ -547,7 +549,7 @@ const WorkItemCollab = ({ apiService, item, items, members, can: abilities, onCh
         <ChecklistPanel apiService={apiService} itemId={item.id} canEdit={abilities.edit} onCount={onChecklist} />
       </div>
       <div role="tabpanel" id="collab-panel-links" aria-labelledby="collab-tab-links" hidden={tab !== 'links'}>
-        <LinksPanel apiService={apiService} item={item} items={items} canEdit={abilities.edit} onCount={onLinks} />
+        <LinksPanel apiService={apiService} item={item} items={items} canEdit={abilities.edit} onCount={onLinks} active={tab === 'links'} />
       </div>
       <div role="tabpanel" id="collab-panel-activity" aria-labelledby="collab-tab-activity" hidden={tab !== 'activity'}>
         <ActivityPanel apiService={apiService} itemId={item.id} active={tab === 'activity'} />

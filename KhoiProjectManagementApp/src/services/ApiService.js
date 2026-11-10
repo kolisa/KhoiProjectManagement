@@ -1474,6 +1474,11 @@ class ApiService {
   }
 
   // ---- PM overview, my work, activity, labels, member import ----
+  // Id/title/type/status only - for pickers; far lighter than getWorkItems.
+  async getWorkItemLookup(projectId) {
+    return await this.request(`/pm/projects/${projectId}/work-items/lookup`);
+  }
+
   async getPmOverview(projectId) {
     return await this.request(`/pm/projects/${projectId}/overview`);
   }

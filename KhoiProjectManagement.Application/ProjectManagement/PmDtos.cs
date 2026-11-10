@@ -63,6 +63,15 @@ namespace KhoiProjectManagement.Application
         public DateTime? CompletedAt { get; set; }
     }
 
+    // The few fields a picker needs - id and title, not the description and everything else on WorkItemDto.
+    public class WorkItemLookupDto
+    {
+        public int Id { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public string Type { get; set; } = string.Empty;
+        public string Status { get; set; } = string.Empty;
+    }
+
     public class WorkItemFilterDto
     {
         public string? Type { get; set; }
