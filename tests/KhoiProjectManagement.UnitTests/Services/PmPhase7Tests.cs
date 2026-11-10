@@ -360,6 +360,7 @@ namespace KhoiProjectManagement.UnitTests.Services
         private readonly IRepository<ProjectUser> _members = Substitute.For<IRepository<ProjectUser>>();
         private readonly IRepository<ProjectTask> _tasks = Substitute.For<IRepository<ProjectTask>>();
         private readonly IRepository<User> _users = Substitute.For<IRepository<User>>();
+        private readonly IRepository<UserRole> _userRoles = Substitute.For<IRepository<UserRole>>();
         private readonly IProjectAccessService _access = Substitute.For<IProjectAccessService>();
         private readonly IActivityLogService _activity = Substitute.For<IActivityLogService>();
         private readonly IUnitOfWork _uow = Substitute.For<IUnitOfWork>();
@@ -372,10 +373,11 @@ namespace KhoiProjectManagement.UnitTests.Services
         public PmMemberImportTests()
         {
             _users.Query().Returns(_ => new List<User> { _dana, _sam, _noAccess, _inactive }.BuildMock());
+            _userRoles.Query().Returns(_ => new List<UserRole>().BuildMock());
             SetRoster(new ProjectUser { ProjectId = 1, UserId = 1, ProjectRole = ProjectRoles.ProjectAdmin });
         }
 
-        private PmProjectService CreateSut() => new(_projects, _members, _tasks, _users, _access, _activity, _uow);
+        private PmProjectService CreateSut() => new(_projects, _members, _tasks, _users, _userRoles, _access, _activity, _uow);
         private void SetRoster(params ProjectUser[] m) => _members.Query().Returns(_ => m.ToList().BuildMock());
         private static ImportMemberRowDto Row(string email, string? role = null) => new() { Email = email, Role = role };
 
@@ -424,12 +426,12 @@ namespace KhoiProjectManagement.UnitTests.Services
                     Row("pat@khoitech.africa"),               // no module access
                     Row("not-an-email"),                      // invalid email
                     Row("dana@khoitech.africa", "wizard"),    // invalid role
-                    Row("SAM@khoitech.africa", "Viewer"),     // duplicate of row 1
+                    Row("SAM@khoitech.africa", "Viewer"),     // duplicate of row 1 (which was valid)
                 },
             });
 
             Assert.Equal(
-                new[] { ImportOutcomes.Added, ImportOutcomes.NotFound, ImportOutcomes.Inactive, ImportOutcomes.NoModuleAccess, ImportOutcomes.InvalidEmail, ImportOutcomes.InvalidRole, ImportOutcomes.Duplicate },
+                new[] { ImportOutcomes.Added, ImportOutcomes.Unavailable, ImportOutcomes.Unavailable, ImportOutcomes.Unavailable, ImportOutcomes.InvalidEmail, ImportOutcomes.InvalidRole, ImportOutcomes.Duplicate },
                 result.Rows.Select(r => r.Outcome));
             Assert.Equal(new[] { 1, 2, 3, 4, 5, 6, 7 }, result.Rows.Select(r => r.Row));
             Assert.Equal((1, 6), (result.Added, result.Skipped));
@@ -509,6 +511,74 @@ namespace KhoiProjectManagement.UnitTests.Services
             Assert.True(_noAccess.PmOnly);
             Assert.Equal(1, result.ModuleAccessGranted);
             Assert.Contains("Module access granted", result.Rows[0].Message);
+        }
+
+        [Fact]
+        public async Task Import_ByAProjectAdmin_DoesNotRevealWhyAnEmailCannotBeAdded()
+        {
+            var result = await CreateSut().ImportMembersAsync(Admin, 1, new ImportMembersDto
+            {
+                Rows = { Row("nobody@khoitech.africa"), Row("old@khoitech.africa"), Row("pat@khoitech.africa") },
+            });
+
+            Assert.All(result.Rows, r => Assert.Equal(ImportOutcomes.Unavailable, r.Outcome));
+            Assert.Equal(1, result.Rows.Select(r => r.Message).Distinct().Count());   // identical wording for all three
+        }
+
+        [Fact]
+        public async Task Import_ByAPmAdmin_SeesTheSpecificReasons()
+        {
+            var result = await CreateSut().ImportMembersAsync(Super, 1, new ImportMembersDto
+            {
+                Rows = { Row("nobody@khoitech.africa"), Row("old@khoitech.africa"), Row("pat@khoitech.africa") },
+            });
+
+            Assert.Equal(new[] { ImportOutcomes.NotFound, ImportOutcomes.Inactive, ImportOutcomes.NoModuleAccess }, result.Rows.Select(r => r.Outcome));
+        }
+
+        [Fact]
+        public async Task Import_AFailedRowDoesNotMakeALaterCorrectRowForTheSamePersonADuplicate()
+        {
+            var result = await CreateSut().ImportMembersAsync(Admin, 1, new ImportMembersDto
+            {
+                Rows = { Row("sam@khoitech.africa", "wizard"), Row("sam@khoitech.africa", "Tester") },
+            });
+
+            Assert.Equal(new[] { ImportOutcomes.InvalidRole, ImportOutcomes.Added }, result.Rows.Select(r => r.Outcome));
+        }
+
+        [Fact]
+        public async Task Import_ModuleOnly_IsNotAppliedToSomeoneWhoHasOtherPermissions()
+        {
+            var role = new Role { Id = 5, Name = "Finance", RolePermissions = new List<RolePermission> { new(), new() } };
+            _userRoles.Query().Returns(_ => new List<UserRole> { new() { UserId = _noAccess.Id, RoleId = 5, Role = role } }.BuildMock());
+
+            var result = await CreateSut().ImportMembersAsync(Super, 1, new ImportMembersDto
+            {
+                GrantModuleAccess = true, ModuleOnly = true, Rows = { Row("pat@khoitech.africa") },
+            });
+
+            Assert.True(_noAccess.PmAccess);
+            Assert.False(_noAccess.PmOnly);
+            Assert.False(result.Rows[0].ConfinedToModule);
+            Assert.Contains("other permissions", result.Rows[0].Message);
+        }
+
+        [Fact]
+        public async Task Import_GrantOnlyForSomeoneAlreadyOnTheProject_IsNotReportedAsARoleChange()
+        {
+            _noAccess.PmAccess = false;
+            SetRoster(new ProjectUser { ProjectId = 1, UserId = 1, ProjectRole = ProjectRoles.ProjectAdmin },
+                      new ProjectUser { ProjectId = 1, UserId = 12, ProjectRole = ProjectRoles.Developer });
+
+            var result = await CreateSut().ImportMembersAsync(Super, 1, new ImportMembersDto
+            {
+                GrantModuleAccess = true, Rows = { Row("pat@khoitech.africa", "Developer") },
+            });
+
+            Assert.Equal(ImportOutcomes.AccessGranted, result.Rows[0].Outcome);
+            Assert.Equal((0, 0, 1), (result.Added, result.Updated, result.ModuleAccessGranted));
+            Assert.DoesNotContain("Role changed", result.Rows[0].Message);
         }
 
         [Fact]

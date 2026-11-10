@@ -24,6 +24,7 @@ namespace KhoiProjectManagement.Application
         private readonly IRepository<ProjectUser> _members;
         private readonly IRepository<ProjectTask> _tasks;
         private readonly IRepository<User> _users;
+        private readonly IRepository<UserRole> _userRoles;
         private readonly IProjectAccessService _access;
         private readonly IActivityLogService _activity;
         private readonly IUnitOfWork _unitOfWork;
@@ -33,6 +34,7 @@ namespace KhoiProjectManagement.Application
             IRepository<ProjectUser> members,
             IRepository<ProjectTask> tasks,
             IRepository<User> users,
+            IRepository<UserRole> userRoles,
             IProjectAccessService access,
             IActivityLogService activity,
             IUnitOfWork unitOfWork)
@@ -41,6 +43,7 @@ namespace KhoiProjectManagement.Application
             _members = members;
             _tasks = tasks;
             _users = users;
+            _userRoles = userRoles;
             _access = access;
             _activity = activity;
             _unitOfWork = unitOfWork;
@@ -132,8 +135,23 @@ namespace KhoiProjectManagement.Application
             var hadAdmin = roster.Any(m => m.ProjectRole == ProjectRoles.ProjectAdmin);
             var finalRoles = roster.ToDictionary(m => m.UserId, m => m.ProjectRole);
 
+            // Only people who are allowed to see the directory get to learn WHY an email can't be added; a
+            // project admin otherwise could probe which addresses have accounts, and which are deactivated.
+            var seesDirectory = caller.IsPmAdmin || caller.IsSuperAdmin;
+
+            // "Confine to this module" locks an account out of everything else in the app, so it is only applied to
+            // accounts that have no other permissions - never to someone who also uses finance, HR, the wiki...
+            var otherPermissions = new Dictionary<int, int>();
+            if (dto.GrantModuleAccess && dto.ModuleOnly && users.Count > 0)
+            {
+                var ids = users.Select(u => u.Id).ToList();
+                var counts = await _userRoles.Query().AsNoTracking().Where(ur => ids.Contains(ur.UserId))
+                    .Select(ur => new { ur.UserId, Count = ur.Role.RolePermissions.Count() }).ToListAsync();
+                otherPermissions = counts.GroupBy(c => c.UserId).ToDictionary(g => g.Key, g => g.Sum(c => c.Count));
+            }
+
             var result = new ImportMembersResultDto { DryRun = dto.DryRun };
-            var seen = new HashSet<string>();
+            var claimed = new HashSet<string>();
             var rowNumber = 0;
 
             foreach (var raw in dto.Rows)
@@ -144,13 +162,20 @@ namespace KhoiProjectManagement.Application
                 result.Rows.Add(row);
 
                 void Reject(string outcome, string message) { row.Outcome = outcome; row.Message = message; }
+                void Unavailable(string detailedOutcome, string detailedMessage)
+                {
+                    if (seesDirectory) Reject(detailedOutcome, detailedMessage);
+                    else Reject(ImportOutcomes.Unavailable, "This person can't be added: there is no active account with Project Management access for this email.");
+                }
 
                 if (email.Length == 0 || email.Length > 254 || !email.Contains('@') || email.Any(char.IsWhiteSpace))
                 { Reject(ImportOutcomes.InvalidEmail, "That is not a valid email address."); continue; }
 
                 var key = email.ToLowerInvariant();
-                if (!seen.Add(key))
-                { Reject(ImportOutcomes.Duplicate, "This email appears earlier in the list; the first row wins."); continue; }
+                // An email is only "claimed" by a row that is itself valid, so a mistake on an earlier line never
+                // causes a later, correct line for the same person to be rejected as a duplicate.
+                if (claimed.Contains(key))
+                { Reject(ImportOutcomes.Duplicate, "This email appears earlier in the list; the first valid row wins."); continue; }
 
                 string role;
                 if (string.IsNullOrWhiteSpace(raw.Role)) role = ProjectRoles.Developer;
@@ -164,27 +189,49 @@ namespace KhoiProjectManagement.Application
                 row.Role = role;
 
                 if (!userByEmail.TryGetValue(key, out var user))
-                { Reject(ImportOutcomes.NotFound, "No account with this email. Accounts are created by an administrator, not by this import."); continue; }
+                { Unavailable(ImportOutcomes.NotFound, "No account with this email. Accounts are created by an administrator, not by this import."); continue; }
                 if (!user.IsActive)
-                { Reject(ImportOutcomes.Inactive, "This account is deactivated."); continue; }
+                { Unavailable(ImportOutcomes.Inactive, "This account is deactivated."); continue; }
 
                 var grant = !user.PmAccess && dto.GrantModuleAccess;
                 if (!user.PmAccess && !dto.GrantModuleAccess)
-                { Reject(ImportOutcomes.NoModuleAccess, "This person has no Project Management module access yet. A SuperAdmin can enable it, or tick the grant option."); continue; }
+                { Unavailable(ImportOutcomes.NoModuleAccess, "This person has no Project Management module access yet. A SuperAdmin can enable it, or tick the grant option."); continue; }
 
+                claimed.Add(key);
                 memberByUser.TryGetValue(user.Id, out var existing);
                 if (existing != null && existing.ProjectRole == role && !grant)
                 { row.Outcome = ImportOutcomes.Unchanged; row.Message = "Already on the project with this role."; continue; }
 
                 row.Applied = true;
-                row.Outcome = existing == null ? ImportOutcomes.Added : ImportOutcomes.Updated;
-                row.Message = existing == null ? "Added to the project." : $"Role changed from {existing.ProjectRole} to {role}.";
-                if (grant) { row.Message += " Module access granted."; result.ModuleAccessGranted++; }
-                if (existing == null) result.Added++; else result.Updated++;
+                if (existing == null)
+                {
+                    row.Outcome = ImportOutcomes.Added; row.Message = "Added to the project."; result.Added++;
+                }
+                else if (existing.ProjectRole != role)
+                {
+                    row.Outcome = ImportOutcomes.Updated; row.Message = $"Role changed from {existing.ProjectRole} to {role}."; result.Updated++;
+                }
+                else
+                {
+                    row.Outcome = ImportOutcomes.AccessGranted; row.Message = "Role unchanged.";
+                }
+
+                var confine = false;
+                if (grant)
+                {
+                    result.ModuleAccessGranted++;
+                    confine = dto.ModuleOnly && otherPermissions.GetValueOrDefault(user.Id) == 0;
+                    row.ConfinedToModule = confine;
+                    row.Message += confine
+                        ? " Module access granted; this account is confined to the module."
+                        : dto.ModuleOnly
+                            ? " Module access granted. Not confined to the module, because this account has other permissions in the app."
+                            : " Module access granted.";
+                }
                 finalRoles[user.Id] = role;
 
                 if (dto.DryRun) continue;
-                if (grant) { user.PmAccess = true; user.PmOnly = dto.ModuleOnly; }
+                if (grant) { user.PmAccess = true; user.PmOnly = confine; }
                 if (existing == null) _members.Add(new ProjectUser { ProjectId = projectId, UserId = user.Id, ProjectRole = role });
                 else existing.ProjectRole = role;
             }

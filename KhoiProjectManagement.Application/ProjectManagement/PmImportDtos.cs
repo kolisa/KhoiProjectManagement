@@ -29,6 +29,10 @@ namespace KhoiProjectManagement.Application
         public const string InvalidRole = "InvalidRole";
         public const string NoModuleAccess = "NoModuleAccess";
         public const string Duplicate = "Duplicate";
+        // Shown instead of NotFound / Inactive / NoModuleAccess to callers who may not browse the user directory.
+        public const string Unavailable = "Unavailable";
+        // The person was already on the project with that role; only their module access was switched on.
+        public const string AccessGranted = "AccessGranted";
     }
 
     public class ImportMemberResultRowDto
@@ -40,6 +44,8 @@ namespace KhoiProjectManagement.Application
         public string Message { get; set; } = string.Empty;
         // Whether this row changes (or would change) the roster.
         public bool Applied { get; set; }
+        // True when module access was granted AND the account was confined to the module.
+        public bool ConfinedToModule { get; set; }
     }
 
     public class ImportMembersResultDto

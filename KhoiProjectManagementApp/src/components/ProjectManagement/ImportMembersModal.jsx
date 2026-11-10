@@ -124,7 +124,7 @@ const ImportMembersModal = ({ apiService, project, otherProjects = [], canGrantA
                 </label>
                 <label className={`flex items-center gap-2 mt-1 ml-6 ${grant ? 'text-gray-700' : 'text-gray-400'}`}>
                   <input type="checkbox" disabled={!grant} checked={moduleOnly} onChange={(e) => { setModuleOnly(e.target.checked); setPreview(null); }} className="h-4 w-4 rounded border-gray-300" />
-                  Confine them to this module only
+                  Confine them to this module only <span className="text-xs text-gray-500">(only accounts with no other permissions)</span>
                 </label>
               </fieldset>
             )}

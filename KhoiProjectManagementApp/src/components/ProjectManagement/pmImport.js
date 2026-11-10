@@ -65,6 +65,8 @@ export const OUTCOME_STYLES = {
   InvalidRole: 'bg-red-100 text-red-700',
   NoModuleAccess: 'bg-amber-100 text-amber-700',
   Duplicate: 'bg-gray-100 text-gray-600',
+  Unavailable: 'bg-red-100 text-red-700',
+  AccessGranted: 'bg-blue-100 text-blue-700',
 };
 
 export const OUTCOME_LABELS = {
@@ -77,4 +79,6 @@ export const OUTCOME_LABELS = {
   InvalidRole: 'Bad role',
   NoModuleAccess: 'No PM access',
   Duplicate: 'Duplicate',
+  Unavailable: 'Can\'t add',
+  AccessGranted: 'Access only',
 };
