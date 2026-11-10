@@ -2322,9 +2322,16 @@ const ProjectManagementSystem = () => {
                                     required
                                 >
                                     <option value="">Select Project</option>
-                                    {projects.map(project => (
-                                        <option key={project.id} value={project.id}>{project.name}</option>
-                                    ))}
+                                    {projects.map(project => {
+                                        // Visible but not usable: the person's role (or read-only level) on it can't create tasks.
+                                        const blocked = editingTaskId === null && project.canCreateTasks === false;
+                                        return (
+                                            <option key={project.id} value={project.id} disabled={blocked}
+                                                title={blocked ? "Your role on this project can't create tasks" : undefined}>
+                                                {project.name}{blocked ? " (you can't add tasks here)" : ''}
+                                            </option>
+                                        );
+                                    })}
                                 </select>
                                 <input
                                     type="text"

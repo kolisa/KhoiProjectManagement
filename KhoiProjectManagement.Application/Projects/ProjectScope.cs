@@ -30,7 +30,7 @@ namespace KhoiProjectManagement.Application
 
     public class ProjectScope : IProjectScope
     {
-        private sealed record Snapshot(bool Unrestricted, Dictionary<int, string> Roles, HashSet<int> Created, bool ReadOnly)
+        private sealed record Snapshot(bool Unrestricted, Dictionary<int, string> Roles, HashSet<int> Created, bool ReadOnly, int UserId = 0)
         {
             public IReadOnlyCollection<int> VisibleIds => Roles.Keys.Union(Created).ToList();
         }
@@ -61,7 +61,7 @@ namespace KhoiProjectManagement.Application
                 .GroupBy(m => m.ProjectId).ToDictionary(g => g.Key, g => g.First().ProjectRole);
             var created = (await _projects.Query().AsNoTracking().Where(p => p.CreatedBy == userId).Select(p => p.Id).ToListAsync()).ToHashSet();
             var readOnly = await _users.Query().AsNoTracking().Where(u => u.Id == userId).Select(u => u.PmReadOnly).FirstOrDefaultAsync();
-            return new Snapshot(false, roles, created, readOnly);
+            return new Snapshot(false, roles, created, readOnly, userId);
         }
 
         public async Task<bool> IsUnrestrictedAsync() => (await LoadAsync()).Unrestricted;
@@ -85,7 +85,10 @@ namespace KhoiProjectManagement.Application
             var s = await LoadAsync();
             if (s.Unrestricted) return tasks;
             var ids = s.VisibleIds;
-            return tasks.Where(t => ids.Contains(t.ProjectId));
+            var me = s.UserId;
+            // A task assigned to you stays visible to you (read only) even if you are not on its project - you are told about it
+            // (notifications), so hiding it would be confusing. Changing it still follows project membership.
+            return tasks.Where(t => ids.Contains(t.ProjectId) || t.AssignedToId == me);
         }
 
         public async Task<ProjectAccessOutcome> CheckAsync(int projectId, ProjectAbility ability)

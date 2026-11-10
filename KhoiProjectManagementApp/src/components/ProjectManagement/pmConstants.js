@@ -108,6 +108,8 @@ const ACTION_WORDS = {
   collaborate: 'comment or attach files',
 };
 
+export const ACTIONS_WITH_A_REASON = Object.keys(ACTION_WORDS);
+
 export const denyReason = (project, action) => {
   if (!project || can(project.myRole, action)) return null;
   if (project.readOnly) return 'Your access is read-only, so you can view this but not change it. Ask an administrator for read and write access.';

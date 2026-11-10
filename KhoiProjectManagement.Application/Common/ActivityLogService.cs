@@ -65,42 +65,53 @@ namespace KhoiProjectManagement.Application
         }
 
         // The company-wide feed names tasks and projects, so for anyone who is not an administrator only entries about
-        // THEIR projects survive. Over-fetch, then filter: the entries carry an entity id, not a project id.
+        // THEIR projects survive.
         private async Task<List<ActivityLogEntryDto>> GetRecentForProjectsAsync(int take, IReadOnlyCollection<int> visibleProjects)
         {
-            var candidates = await _logRepo.Query()
-                .OrderByDescending(a => a.Timestamp)
-                .Take(Math.Max(take * 10, 200))
-                .Select(a => new ActivityLogEntryDto
-                {
-                    Id = a.Id,
-                    EntityType = a.EntityType,
-                    EntityId = a.EntityId,
-                    EntityNameSnapshot = a.EntityNameSnapshot,
-                    ActorNameSnapshot = a.ActorNameSnapshot,
-                    Action = a.Action,
-                    Details = a.Details,
-                    Timestamp = a.Timestamp
-                })
-                .ToListAsync();
-
-            var taskIds = candidates.Where(c => c.EntityType is "WorkItem" or "Task" && c.EntityId != null)
-                .Select(c => c.EntityId!.Value).Distinct().ToList();
-            var projectOfTask = taskIds.Count == 0
-                ? new Dictionary<int, int>()
-                : (await _taskRepo.Query().Where(t => taskIds.Contains(t.Id)).Select(t => new { t.Id, t.ProjectId }).ToListAsync())
-                    .ToDictionary(t => t.Id, t => t.ProjectId);
-
-            bool Visible(ActivityLogEntryDto c) => c.EntityType switch
+            // The entries carry an entity id, not a project id, so they are read newest-first in batches and filtered until
+            // enough visible ones are found (or the log, or a sane cap of batches, runs out) - a quiet project is never
+            // starved just because other projects were busier.
+            const int batchSize = 200, maxBatches = 25;
+            var result = new List<ActivityLogEntryDto>();
+            for (var batch = 0; batch < maxBatches && result.Count < take; batch++)
             {
-                "Project" => c.EntityId is int projectId && visibleProjects.Contains(projectId),
-                "WorkItem" or "Task" => c.EntityId is int taskId && projectOfTask.TryGetValue(taskId, out var owner) && visibleProjects.Contains(owner),
-                // Sprint events and module-access changes name things the caller has no business seeing.
-                "Sprint" or "User" => false,
-                _ => true,
-            };
+                var candidates = await _logRepo.Query()
+                    .OrderByDescending(a => a.Timestamp).ThenByDescending(a => a.Id)
+                    .Skip(batch * batchSize).Take(batchSize)
+                    .Select(a => new ActivityLogEntryDto
+                    {
+                        Id = a.Id,
+                        EntityType = a.EntityType,
+                        EntityId = a.EntityId,
+                        EntityNameSnapshot = a.EntityNameSnapshot,
+                        ActorNameSnapshot = a.ActorNameSnapshot,
+                        Action = a.Action,
+                        Details = a.Details,
+                        Timestamp = a.Timestamp
+                    })
+                    .ToListAsync();
+                if (candidates.Count == 0) break;
 
-            return candidates.Where(Visible).Take(take).ToList();
+                var taskIds = candidates.Where(c => c.EntityType is "WorkItem" or "Task" && c.EntityId != null)
+                    .Select(c => c.EntityId!.Value).Distinct().ToList();
+                var projectOfTask = taskIds.Count == 0
+                    ? new Dictionary<int, int>()
+                    : (await _taskRepo.Query().Where(t => taskIds.Contains(t.Id)).Select(t => new { t.Id, t.ProjectId }).ToListAsync())
+                        .ToDictionary(t => t.Id, t => t.ProjectId);
+
+                bool Visible(ActivityLogEntryDto c) => c.EntityType switch
+                {
+                    "Project" => c.EntityId is int projectId && visibleProjects.Contains(projectId),
+                    "WorkItem" or "Task" => c.EntityId is int taskId && projectOfTask.TryGetValue(taskId, out var owner) && visibleProjects.Contains(owner),
+                    // Sprint events and module-access changes name things the caller has no business seeing.
+                    "Sprint" or "User" => false,
+                    _ => true,
+                };
+
+                result.AddRange(candidates.Where(Visible));
+                if (candidates.Count < batchSize) break;
+            }
+            return result.Take(take).ToList();
         }
     }
 }

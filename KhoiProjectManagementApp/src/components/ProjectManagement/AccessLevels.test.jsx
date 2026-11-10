@@ -224,7 +224,7 @@ describe('PmMembers: labelled controls and access', () => {
 
     expect(screen.getByLabelText('Person')).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Add to project' })).toBeDisabled();
-    expect(screen.queryByLabelText('Select everyone')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Select everyone')).toBeDisabled();
     expect(screen.getByLabelText('Role for Ada Admin')).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Remove Ada Admin' })).toBeDisabled();
     expect(screen.getByText(/can't manage members/i)).toBeInTheDocument();

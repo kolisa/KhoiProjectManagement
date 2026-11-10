@@ -68,7 +68,9 @@ namespace KhoiProjectManagement.Application
                 query = query.Where(t => t.Status == status);
 
             var timesheets = await query.OrderByDescending(t => t.PeriodStart).ToListAsync();
-            return timesheets.Select(MapToDto).ToList();
+            var dtos = timesheets.Select(MapToDto).ToList();
+            await RedactHiddenProjectsAsync(dtos);
+            return dtos;
         }
 
         public async Task<TimesheetDto?> GetTimesheetByIdAsync(int id, ClaimsPrincipal caller)
@@ -81,7 +83,9 @@ namespace KhoiProjectManagement.Application
             if (timesheet.UserId != callerId && !caller.HasClaim("permission", "timesheets.view_all") && !caller.HasClaim("permission", "timesheets.approve"))
                 throw new UnauthorizedAccessException($"Caller lacks access to timesheet {id}.");
 
-            return MapToDto(timesheet);
+            var dto = MapToDto(timesheet);
+            await RedactHiddenProjectsAsync(new[] { dto });
+            return dto;
         }
 
         public async Task<TimesheetDto> CreateTimesheetAsync(CreateTimesheetDto dto, ClaimsPrincipal caller)
@@ -101,7 +105,7 @@ namespace KhoiProjectManagement.Application
             await _unitOfWork.SaveChangesAsync();
 
             var saved = await LoadAsync(timesheet.Id);
-            return MapToDto(saved!);
+            return MapToDto(saved!);   // the caller just proved they can see every project on it
         }
 
         public async Task<bool> UpdateTimesheetAsync(int id, UpdateTimesheetDto dto, ClaimsPrincipal caller)
@@ -119,7 +123,10 @@ namespace KhoiProjectManagement.Application
             if (timesheet.Status != "Draft" && timesheet.Status != "Rejected")
                 throw new InvalidOperationException($"Cannot edit a timesheet with status '{timesheet.Status}'.");
 
-            await EnsureProjectsAreVisibleAsync(dto.Entries);
+            // Only projects NEW to this timesheet need checking: an entry kept from before stays editable even if the person has
+            // since left that project (it is shown redacted).
+            var alreadyOnIt = timesheet.Entries.Where(e => e.ProjectId.HasValue).Select(e => e.ProjectId!.Value).ToHashSet();
+            await EnsureProjectsAreVisibleAsync(dto.Entries, alreadyOnIt);
             _entryRepo.RemoveRange(timesheet.Entries);
             timesheet.Entries = dto.Entries.Select(e =>
             {
@@ -266,13 +273,24 @@ namespace KhoiProjectManagement.Application
 
         // Time can only be logged against a project the person belongs to. An unknown project and one they cannot see give the
         // same answer, so this cannot be used to discover which projects exist.
-        private async Task EnsureProjectsAreVisibleAsync(IEnumerable<CreateTimesheetEntryDto> entries)
+        private async Task EnsureProjectsAreVisibleAsync(IEnumerable<CreateTimesheetEntryDto> entries, ISet<int>? alreadyAccepted = null)
         {
             foreach (var projectId in entries.Where(e => e.ProjectId.HasValue).Select(e => e.ProjectId!.Value).Distinct())
             {
+                if (alreadyAccepted?.Contains(projectId) == true) continue;
                 if (await _scope.CheckAsync(projectId, ProjectAbility.View) != ProjectAccessOutcome.Allowed)
                     throw new InvalidOperationException("One of the projects on this timesheet does not exist.");
             }
+        }
+
+        // A reviewer (or the owner, after leaving a project) must not learn the NAME of a project they cannot see just because
+        // it appears on a timesheet.
+        private async Task RedactHiddenProjectsAsync(IEnumerable<TimesheetDto> timesheets)
+        {
+            var visible = await _scope.VisibleProjectIdsAsync();
+            if (visible == null) return;
+            foreach (var entry in timesheets.SelectMany(t => t.Entries).Where(e => e.ProjectId.HasValue && !visible.Contains(e.ProjectId.Value)))
+                entry.ProjectName = "Restricted project";
         }
 
         private static TimesheetEntry MapEntry(CreateTimesheetEntryDto dto) => new()

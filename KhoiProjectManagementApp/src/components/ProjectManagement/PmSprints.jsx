@@ -10,7 +10,6 @@ import { useToast } from '../../contexts/ToastContext';
 import { useConfirm } from '../../contexts/ConfirmContext';
 import { reportApiError } from '../../utils/apiError';
 import { TYPE_STYLES, STATUS_STYLES, statusLabel, can, denyReason } from './pmConstants';
-import { GateReason } from './pmUi';
 
 const CONTAINER_TYPES = ['Epic', 'Feature'];
 const selectClass = 'border border-gray-300 rounded-lg px-2 py-1 text-xs bg-white text-gray-700';
@@ -124,7 +123,7 @@ const PmSprints = ({ apiService, project }) => {
         <p className="text-sm text-gray-500">Plan work into time-boxed sprints. Epics and Features are planned through their stories and tasks.</p>
         <button onClick={() => setEditing(null)} disabled={!canPlan} title={planReason || undefined}
           className="ml-auto inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">
-          <Plus className="h-4 w-4" aria-hidden="true" /> New sprint<GateReason reason={planReason} />
+          <Plus className="h-4 w-4" aria-hidden="true" /> New sprint
         </button>
       </div>
 
@@ -166,13 +165,13 @@ const PmSprints = ({ apiService, project }) => {
                   <button onClick={() => act(() => apiService.startSprint(sprint.id), 'Sprint started.')} disabled={!canPlan || hasActive}
                     title={planReason || (hasActive ? 'Complete the active sprint first' : 'Start sprint')}
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-300 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
-                    <Play className="h-4 w-4" aria-hidden="true" /> Start<GateReason reason={planReason} />
+                    <Play className="h-4 w-4" aria-hidden="true" /> Start
                   </button>
                 )}
                 {sprint.state === 'Active' && (
                   <button onClick={() => setCompleting(sprint)} disabled={!canPlan} title={planReason || undefined}
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-600 text-white text-sm font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed">
-                    <CheckCircle2 className="h-4 w-4" aria-hidden="true" /> Complete<GateReason reason={planReason} />
+                    <CheckCircle2 className="h-4 w-4" aria-hidden="true" /> Complete
                   </button>
                 )}
                 <button aria-label={`Edit ${sprint.name}`} onClick={() => setEditing(sprint)} disabled={!canPlan} title={planReason || undefined}

@@ -67,7 +67,9 @@ namespace KhoiProjectManagement.Application
                 .Include(p => p.Tasks));
             var projects = await visible.ToListAsync();
 
-            return projects.Select(MapToDto);
+            var dtos = projects.Select(MapToDto).ToList();
+            foreach (var dto in dtos) dto.CanCreateTasks = await _scope.CheckAsync(dto.Id, ProjectAbility.Create) == ProjectAccessOutcome.Allowed;
+            return dtos;
         }
 
         public async Task<ProjectDto?> GetProjectByIdAsync(int id)
@@ -81,7 +83,10 @@ namespace KhoiProjectManagement.Application
                 .Include(p => p.Tasks));
             var project = await visible.FirstOrDefaultAsync(p => p.Id == id);   // someone else's project does not exist here
 
-            return project == null ? null : MapToDto(project);
+            if (project == null) return null;
+            var dto = MapToDto(project);
+            dto.CanCreateTasks = await _scope.CheckAsync(project.Id, ProjectAbility.Create) == ProjectAccessOutcome.Allowed;
+            return dto;
         }
 
         public async Task<ProjectDto> CreateProjectAsync(CreateProjectDto createProjectDto, int actingUserId)

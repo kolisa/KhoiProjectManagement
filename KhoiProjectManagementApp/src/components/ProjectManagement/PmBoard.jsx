@@ -10,7 +10,6 @@ import { LabelChips } from './pmWidgets';
 import { useToast } from '../../contexts/ToastContext';
 import { reportApiError } from '../../utils/apiError';
 import { TYPE_STYLES, STATUS_DOT, can, denyReason } from './pmConstants';
-import { GateReason } from './pmUi';
 
 const DAY_MS = 86400000;
 
@@ -164,12 +163,12 @@ const PmBoard = ({ apiService, project, members }) => {
         {workflow && (
           <button onClick={() => setShowWorkflow(true)} disabled={!canConfigure} title={configureReason || undefined}
             className="ml-auto inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-300 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
-            <GitBranch className="h-4 w-4" aria-hidden="true" /> Workflow{workflow.isCustomised ? ' (custom)' : ''}<GateReason reason={configureReason} />
+            <GitBranch className="h-4 w-4" aria-hidden="true" /> Workflow{workflow.isCustomised ? ' (custom)' : ''}
           </button>
         )}
         <button onClick={() => setShowSettings(true)} disabled={!canConfigure} title={configureReason || undefined}
           className={`${workflow ? '' : 'ml-auto '}inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-300 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed`}>
-          <Settings2 className="h-4 w-4" aria-hidden="true" /> Columns &amp; WIP limits<GateReason reason={configureReason} />
+          <Settings2 className="h-4 w-4" aria-hidden="true" /> Columns &amp; WIP limits
         </button>
       </div>
 

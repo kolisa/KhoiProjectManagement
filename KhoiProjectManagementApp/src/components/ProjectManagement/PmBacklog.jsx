@@ -6,7 +6,7 @@ import PriorityBadge from '../Common/PriorityBadge';
 import StatusBadge from '../Common/StatusBadge';
 import WorkItemModal from './WorkItemModal';
 import { LabelChips, RollupBar } from './pmWidgets';
-import { EmptyState, GateReason } from './pmUi';
+import { EmptyState } from './pmUi';
 import { useToast } from '../../contexts/ToastContext';
 import { useConfirm } from '../../contexts/ConfirmContext';
 import { reportApiError } from '../../utils/apiError';
@@ -136,7 +136,7 @@ const PmBacklog = ({ apiService, project, members }) => {
         )}
         <button onClick={() => setEditing(null)} disabled={!canCreate} title={createReason || undefined}
           className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">
-          <Plus className="h-4 w-4" aria-hidden="true" /> New item<GateReason reason={createReason} />
+          <Plus className="h-4 w-4" aria-hidden="true" /> New item
         </button>
       </div>
 

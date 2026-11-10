@@ -154,10 +154,10 @@ const PmMembers = ({ apiService, project, onChanged, otherProjects = [], canGran
       <section aria-label="Members" className={cardClass}>
         <div className="flex flex-wrap items-center gap-3 border-b border-gray-100 px-4 py-3">
           <h2 className="text-sm font-semibold text-gray-900">Members <span className="font-normal text-gray-500">({members.length})</span></h2>
-          {canManage && members.length > 0 && (
+          {members.length > 0 && (
             <div className="ml-auto flex flex-wrap items-center gap-2 text-sm">
               <label className="inline-flex items-center gap-2 text-gray-700">
-                <input type="checkbox" className="h-4 w-4 rounded border-gray-300" aria-label="Select everyone" checked={everyoneSelected}
+                <input type="checkbox" className="h-4 w-4 rounded border-gray-300" aria-label="Select everyone" disabled={!canManage} title={manageReason || undefined} checked={everyoneSelected}
                   onChange={() => setSelected(everyoneSelected ? new Set() : new Set(members.map((m) => m.userId)))} />
                 {selected.size > 0 ? `${selected.size} selected` : 'Select'}
               </label>
