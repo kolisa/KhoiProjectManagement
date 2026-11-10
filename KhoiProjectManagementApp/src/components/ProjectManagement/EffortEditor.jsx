@@ -4,6 +4,7 @@ import LoadingSpinner from '../Common/LoadingSpinner';
 import { useToast } from '../../contexts/ToastContext';
 import { reportApiError } from '../../utils/apiError';
 import { EFFORT_CATEGORIES, fmtPoints } from './pmConstants';
+import Combobox, { peopleOptions } from './Combobox';
 
 const inputClass = 'w-full border border-gray-300 rounded-lg px-2 py-1 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed';
 
@@ -124,12 +125,9 @@ const EffortEditor = ({ apiService, item, members, canEdit, reason, onSaved }) =
 
       <div className="flex flex-wrap items-center gap-2 border-t border-gray-100 px-4 py-3" title={!canEdit ? reason || undefined : undefined}>
         <label htmlFor="effort-add-person" className="sr-only">Add a person to the effort</label>
-        <select id="effort-add-person" value="" disabled={!canEdit || available.length === 0}
-          onChange={(e) => { if (e.target.value) addPerson(Number(e.target.value)); }}
-          className="border border-gray-300 rounded-lg px-2.5 py-1.5 text-sm bg-white disabled:bg-gray-50 disabled:cursor-not-allowed">
-          <option value="">{available.length === 0 ? 'Everyone on the project is listed' : 'Add a person…'}</option>
-          {available.map((m) => <option key={m.userId} value={m.userId}>{m.name}</option>)}
-        </select>
+        <Combobox id="effort-add-person" value="" disabled={!canEdit || available.length === 0} className="w-60" size="sm"
+          onChange={(v) => { if (v !== '') addPerson(Number(v)); }} options={peopleOptions(available)} searchPlaceholder="Search people…"
+          placeholder={available.length === 0 ? 'Everyone on the project is listed' : 'Add a person…'} />
         <Plus className="h-4 w-4 text-gray-400" aria-hidden="true" />
         <button type="button" onClick={save} disabled={!canEdit || saving || !dirty || invalid}
           className="ml-auto rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">

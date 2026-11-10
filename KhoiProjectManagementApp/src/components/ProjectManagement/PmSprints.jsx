@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Plus, Play, CheckCircle2, Pencil, Trash2, Target } from 'lucide-react';
+import { Plus, Play, CheckCircle2, Pencil, Trash2, Target, GripVertical, X } from 'lucide-react';
 import LoadingSpinner from '../Common/LoadingSpinner';
 import ErrorMessage from '../Common/ErrorMessage';
 import StatusBadge from '../Common/StatusBadge';
 import { SprintModal, CompleteSprintModal } from './SprintModals';
 import RetroModal from './RetroModal';
 import SprintEffort from './SprintEffort';
+import Combobox from './Combobox';
 import { BurndownChart, VelocityChart } from './PmCharts';
 import { useToast } from '../../contexts/ToastContext';
 import { useConfirm } from '../../contexts/ConfirmContext';
@@ -20,20 +21,24 @@ const fmtRange = (s) => {
   return `${f(s.startDate)} – ${f(s.endDate)}`;
 };
 
-const ItemRow = ({ item, sprints, currentSprintId, canPlan, reason, onAssign }) => (
-  <li className="flex items-center gap-3 px-3 py-2">
+// One planned item. Tick it to move several at once, drag it onto any sprint (or the backlog), or use "Move to".
+const ItemRow = ({ item, sprints, currentSprintId, canPlan, reason, selected, onSelect, dragging, onDragStart, onDragEnd, onAssign }) => (
+  <li draggable={canPlan} onDragStart={onDragStart} onDragEnd={onDragEnd}
+    className={`flex items-center gap-3 px-3 py-2 hover:bg-gray-50 ${dragging ? 'opacity-40' : ''} ${selected ? 'bg-blue-50/60' : ''}`}>
+    <input type="checkbox" aria-label={`Select ${item.title}`} checked={selected} onChange={onSelect} disabled={!canPlan} title={reason || undefined}
+      className="h-4 w-4 rounded border-gray-300 disabled:cursor-not-allowed" />
+    <GripVertical className={`h-4 w-4 ${canPlan ? 'cursor-grab text-gray-300' : 'text-gray-200'}`} aria-hidden="true" />
     <span className={`px-2 py-0.5 rounded text-[11px] font-semibold ${TYPE_STYLES[item.type] || 'bg-gray-100 text-gray-700'}`}>{item.type}</span>
     <span className="flex-1 min-w-0 text-sm text-gray-900 truncate">{item.title}</span>
+    {item.assignedToName && <span className="hidden md:inline text-xs text-gray-500 w-28 truncate">{item.assignedToName}</span>}
     {item.storyPoints != null && <span className="text-xs font-semibold bg-gray-100 text-gray-700 rounded-full px-2 py-0.5" title="Story points">{item.storyPoints}</span>}
     <StatusBadge status={item.status} label={statusLabel(item.status)} colorMap={STATUS_STYLES} />
-    <label>
-      <span className="sr-only">Sprint for {item.title}</span>
-      <select value={currentSprintId ?? ''} onChange={(e) => onAssign(item, e.target.value === '' ? null : Number(e.target.value))}
-        disabled={!canPlan} title={reason || undefined} className={`${selectClass} disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed`}>
-        <option value="">Backlog</option>
-        {sprints.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-      </select>
-    </label>
+    <div className="w-40">
+      <label htmlFor={`move-${item.id}`} className="sr-only">Sprint for {item.title}</label>
+      <Combobox id={`move-${item.id}`} size="sm" value={currentSprintId ?? ''} disabled={!canPlan} title={reason || undefined}
+        onChange={(v) => onAssign(item, v === '' ? null : Number(v))} emptyLabel="Backlog" searchPlaceholder="Search sprints…"
+        options={sprints.map((sp) => ({ value: sp.id, label: sp.name, description: sp.state === 'Active' ? 'Active' : 'Planned' }))} />
+    </div>
   </li>
 );
 
@@ -51,6 +56,9 @@ const PmSprints = ({ apiService, project }) => {
   const [editing, setEditing] = useState(undefined); // undefined closed, null new, object edit
   const [completing, setCompleting] = useState(null);
   const [retroSprint, setRetroSprint] = useState(null);
+  const [selected, setSelected] = useState(new Set());
+  const [dragId, setDragId] = useState(null);
+  const [dropOver, setDropOver] = useState(null);   // 'backlog' or a sprint id
 
   const canPlan = can(project.myRole, 'sprint');
   const planReason = denyReason(project, 'sprint');
@@ -95,6 +103,39 @@ const PmSprints = ({ apiService, project }) => {
 
   const assign = (item, sprintId) => act(() => apiService.assignWorkItemSprint(item.id, sprintId));
 
+  const toggle = (id) => setSelected((p) => { const n = new Set(p); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  const nameOfTarget = (sprintId) => (sprintId == null ? 'the backlog' : sprints.find((x) => x.id === sprintId)?.name || 'the sprint');
+
+  // Moves several items one after another (the server checks each: completed sprints, container types...). Reports how many
+  // made it, so a partial failure is never silent.
+  const moveItems = async (ids, sprintId) => {
+    let moved = 0;
+    try {
+      for (const id of ids) { await apiService.assignWorkItemSprint(id, sprintId); moved += 1; }
+      toast.success(`Moved ${moved} item${moved === 1 ? '' : 's'} to ${nameOfTarget(sprintId)}.`);
+    } catch (err) {
+      reportApiError(toast, err, `Moved ${moved} of ${ids.length}, then something went wrong.`);
+    }
+    setSelected(new Set());
+    await load();
+  };
+
+  const dropOn = (target) => {
+    const ids = selected.has(dragId) ? [...selected] : [dragId];
+    setDragId(null);
+    setDropOver(null);
+    if (dragId != null && canPlan) moveItems(ids, target);
+  };
+  const dropProps = (target) => ({
+    onDragOver: (e) => { if (dragId != null && canPlan) { e.preventDefault(); setDropOver(target ?? 'backlog'); } },
+    onDragLeave: () => setDropOver((d) => (d === (target ?? 'backlog') ? null : d)),
+    onDrop: (e) => { e.preventDefault(); dropOn(target); },
+  });
+  const rowProps = (item) => ({
+    selected: selected.has(item.id), onSelect: () => toggle(item.id), dragging: dragId === item.id,
+    onDragStart: () => setDragId(item.id), onDragEnd: () => { setDragId(null); setDropOver(null); },
+  });
+
   const saveSprint = async (dto) => {
     if (editing) await apiService.updateSprint(editing.id, dto);
     else await apiService.createSprint(project.id, dto);
@@ -128,6 +169,17 @@ const PmSprints = ({ apiService, project }) => {
         </button>
       </div>
 
+      {selected.size > 0 && (
+        <div role="region" aria-label="Move selected items" className="sticky top-2 z-20 flex flex-wrap items-center gap-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-2.5 shadow-sm">
+          <span className="text-sm font-medium text-blue-900">{selected.size} selected</span>
+          <label htmlFor="bulk-move" className="sr-only">Move selected items to</label>
+          <Combobox id="bulk-move" className="w-56" value="__none__" placeholder="Move selected to…" searchPlaceholder="Search sprints…"
+            onChange={(v) => moveItems([...selected], v === '' ? null : Number(v))} emptyLabel="Backlog"
+            options={open.map((sp) => ({ value: sp.id, label: sp.name, description: sp.state === 'Active' ? 'Active' : 'Planned' }))} />
+          <button type="button" onClick={() => setSelected(new Set())} className="ml-auto inline-flex items-center gap-1 text-xs font-medium text-blue-800 hover:underline"><X className="h-3.5 w-3.5" aria-hidden="true" /> Clear selection</button>
+        </div>
+      )}
+
       {open.map((sprint) => {
         const sprintItems = items.filter((i) => i.sprintId === sprint.id);
         const unfinished = sprintItems.filter((i) => i.status !== 'completed').length;
@@ -135,7 +187,8 @@ const PmSprints = ({ apiService, project }) => {
         const pct = sprint.capacity ? Math.min(100, Math.round((sprint.totalPoints / sprint.capacity) * 100)) : 0;
         const otherSprints = open;
         return (
-          <section key={sprint.id} aria-label={sprint.name} className="bg-white border border-gray-200 rounded-xl">
+          <section key={sprint.id} aria-label={sprint.name} {...dropProps(sprint.id)}
+            className={`bg-white border rounded-xl ${dropOver === sprint.id ? 'border-blue-400 ring-2 ring-blue-200' : 'border-gray-200'}`}>
             <header className="flex flex-wrap items-start gap-3 p-4 border-b border-gray-100">
               <div className="flex-1 min-w-[200px]">
                 <div className="flex items-center gap-2">
@@ -184,11 +237,11 @@ const PmSprints = ({ apiService, project }) => {
               </div>
             </header>
             {sprintItems.length === 0 ? (
-              <p className="text-sm text-gray-400 text-center py-6">No items yet. Add some from the backlog below.</p>
+              <p className="text-sm text-gray-400 text-center py-6">No items yet. Drag items here from the backlog below, or tick them and use &ldquo;Move selected to&hellip;&rdquo;.</p>
             ) : (
               <ul className="divide-y divide-gray-100">
                 {sprintItems.map((item) => (
-                  <ItemRow key={item.id} item={item} sprints={otherSprints} currentSprintId={sprint.id} canPlan={canPlan} reason={planReason} onAssign={assign} />
+                  <ItemRow key={item.id} item={item} sprints={otherSprints} currentSprintId={sprint.id} canPlan={canPlan} reason={planReason} onAssign={assign} {...rowProps(item)} />
                 ))}
               </ul>
             )}
@@ -199,16 +252,23 @@ const PmSprints = ({ apiService, project }) => {
         );
       })}
 
-      <section aria-label="Backlog" className="bg-white border border-gray-200 rounded-xl">
-        <header className="px-4 py-3 border-b border-gray-100">
+      <section aria-label="Backlog" {...dropProps(null)}
+        className={`bg-white border rounded-xl ${dropOver === 'backlog' ? 'border-blue-400 ring-2 ring-blue-200' : 'border-gray-200'}`}>
+        <header className="flex items-center gap-3 px-4 py-3 border-b border-gray-100">
+          {backlogItems.length > 0 && (
+            <input type="checkbox" aria-label="Select all backlog items" disabled={!canPlan} className="h-4 w-4 rounded border-gray-300 disabled:cursor-not-allowed"
+              checked={backlogItems.every((i) => selected.has(i.id))}
+              onChange={(e) => setSelected((p) => { const n = new Set(p); backlogItems.forEach((i) => (e.target.checked ? n.add(i.id) : n.delete(i.id))); return n; })} />
+          )}
           <h3 className="text-base font-semibold text-gray-900">Backlog <span className="text-sm font-normal text-gray-500">· {backlogItems.length} unplanned item{backlogItems.length === 1 ? '' : 's'}</span></h3>
+          {canPlan && backlogItems.length > 0 && <span className="ml-auto text-xs text-gray-500">Drag onto a sprint, or tick items and move them together</span>}
         </header>
         {backlogItems.length === 0 ? (
           <p className="text-sm text-gray-400 text-center py-6">Nothing waiting to be planned.</p>
         ) : (
           <ul className="divide-y divide-gray-100">
             {backlogItems.map((item) => (
-              <ItemRow key={item.id} item={item} sprints={open} currentSprintId={null} canPlan={canPlan} reason={planReason} onAssign={assign} />
+              <ItemRow key={item.id} item={item} sprints={open} currentSprintId={null} canPlan={canPlan} reason={planReason} onAssign={assign} {...rowProps(item)} />
             ))}
           </ul>
         )}

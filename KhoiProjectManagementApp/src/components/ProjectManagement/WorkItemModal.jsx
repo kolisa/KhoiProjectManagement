@@ -4,6 +4,7 @@ import useModalA11y from '../Common/useModalA11y';
 import { WORK_ITEM_TYPES, STATUSES, TYPE_STYLES, allowedParentTypes, can, denyReason } from './pmConstants';
 import WorkItemCollab from './WorkItemCollab';
 import RichTextEditor from './RichTextEditor';
+import Combobox, { peopleOptions } from './Combobox';
 import SubtasksPanel from './SubtasksPanel';
 import EffortEditor from './EffortEditor';
 import { isEmptyHtml } from './richText';
@@ -140,10 +141,8 @@ const WorkItemModal = ({ item, items, members, canEdit, onSave, onClose, apiServ
               </div>
               <div>
                 <label htmlFor="wi-assignee" className={labelClass}>Assignee</label>
-                <select id="wi-assignee" className={fieldClass} value={form.assignedToId} onChange={set('assignedToId')} disabled={disabled}>
-                  <option value="">Unassigned</option>
-                  {members.map((m) => <option key={m.userId} value={m.userId}>{m.name}</option>)}
-                </select>
+                <Combobox id="wi-assignee" value={form.assignedToId} onChange={(v) => setForm((f) => ({ ...f, assignedToId: v }))}
+                  options={peopleOptions(members)} emptyLabel="Unassigned" disabled={disabled} searchPlaceholder="Search people…" />
               </div>
               <div>
                 <label htmlFor="wi-priority" className={labelClass}>Priority</label>
@@ -159,10 +158,9 @@ const WorkItemModal = ({ item, items, members, canEdit, onSave, onClose, apiServ
               </div>
               <div>
                 <label htmlFor="wi-parent" className={labelClass}>Parent</label>
-                <select id="wi-parent" className={fieldClass} value={form.parentId} onChange={set('parentId')} disabled={disabled || form.type === 'Epic'}>
-                  <option value="">{form.type === 'Subtask' ? 'Select a parent…' : 'None'}</option>
-                  {parentOptions.map((p) => <option key={p.id} value={p.id}>{p.type}: {p.title}</option>)}
-                </select>
+                <Combobox id="wi-parent" value={form.parentId} onChange={(v) => setForm((f) => ({ ...f, parentId: v }))}
+                  options={parentOptions.map((p) => ({ value: p.id, label: p.title, description: `${p.type} #${p.id}` }))}
+                  emptyLabel={form.type === 'Subtask' ? 'Select a parent…' : 'None'} disabled={disabled || form.type === 'Epic'} searchPlaceholder="Search items…" />
               </div>
               <div>
                 <label htmlFor="wi-points" className={labelClass}>Story points</label>

@@ -181,8 +181,9 @@ describe('PmMembers: labelled controls and access', () => {
     const form = await screen.findByRole('region', { name: 'Add people' });
     expect(within(form).getByRole('heading')).toHaveTextContent('Add people to Khoi');
     const person = within(form).getByLabelText('Person');
-    expect(within(person).getByRole('option', { name: 'Choose a person…' })).toBeInTheDocument();
-    expect(within(person).getByRole('option', { name: /Newcomer/ })).toBeInTheDocument();
+    expect(person).toHaveAttribute('role', 'combobox');
+    await userEvent.setup().click(person);
+    expect(screen.getByRole('option', { name: /Newcomer/ })).toBeInTheDocument();
     expect(within(form).getByLabelText('Role')).toBeInTheDocument();
     expect(within(form).getByRole('button', { name: 'Add to project' })).toBeDisabled();
   });
@@ -191,7 +192,8 @@ describe('PmMembers: labelled controls and access', () => {
     const api = makeApi();
     const user = userEvent.setup();
     wrap(<PmMembers apiService={api} project={project} onChanged={vi.fn()} />);
-    await user.selectOptions(await screen.findByLabelText('Person'), '9');
+    await user.click(await screen.findByLabelText('Person'));
+    await user.click(screen.getByRole('option', { name: /Newcomer/ }));
     await user.selectOptions(screen.getByLabelText('Role'), 'Tester');
 
     await user.click(screen.getByRole('button', { name: 'Add to project' }));

@@ -86,7 +86,8 @@ describe('SubtasksPanel', () => {
     const user = userEvent.setup();
     wrap(<SubtasksPanel apiService={api} {...base} />);
 
-    await user.selectOptions(screen.getByLabelText('Subtask assignee'), '2');
+    await user.click(screen.getByLabelText('Subtask assignee'));
+    await user.click(screen.getByRole('option', { name: /Ben Carter/ }));
     await user.type(screen.getByLabelText('New subtask'), 'Deploy to staging{Enter}');
 
     await waitFor(() => expect(api.createWorkItem).toHaveBeenCalledWith(5, expect.objectContaining({
@@ -172,7 +173,8 @@ describe('EffortEditor', () => {
     wrap(<EffortEditor apiService={api} item={item} members={members} canEdit />);
     await screen.findByRole('group', { name: 'Effort for Ada Lovelace' });
 
-    await user.selectOptions(screen.getByLabelText('Add a person to the effort'), '2');
+    await user.click(screen.getByLabelText('Add a person to the effort'));
+    await user.click(screen.getByRole('option', { name: /Ben Carter/ }));
     const ben = screen.getByRole('group', { name: 'Effort for Ben Carter' });
     await user.type(within(ben).getByLabelText('Dev effort'), '8');
     await user.click(within(ben).getByLabelText(/Training is not applicable/));

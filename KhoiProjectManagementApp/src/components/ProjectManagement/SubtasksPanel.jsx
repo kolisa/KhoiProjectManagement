@@ -4,6 +4,7 @@ import { useToast } from '../../contexts/ToastContext';
 import { reportApiError } from '../../utils/apiError';
 import { statusLabel } from './pmConstants';
 import { suggestSubtasks } from './richText';
+import Combobox, { peopleOptions } from './Combobox';
 
 const fieldClass = 'border border-gray-300 rounded-lg px-2.5 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:cursor-not-allowed';
 
@@ -145,10 +146,8 @@ const SubtasksPanel = ({ apiService, project, item, items, members, description,
           onChange={(e) => setTitle(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); add(); } }} />
         <label htmlFor="subtask-assignee" className="sr-only">Subtask assignee</label>
-        <select id="subtask-assignee" value={assignee} disabled={blocked} onChange={(e) => setAssignee(e.target.value)} className={fieldClass}>
-          <option value="">Unassigned</option>
-          {members.map((m) => <option key={m.userId} value={m.userId}>{m.name}</option>)}
-        </select>
+        <Combobox id="subtask-assignee" value={assignee} disabled={blocked} onChange={setAssignee} className="w-44"
+          options={peopleOptions(members)} emptyLabel="Unassigned" searchPlaceholder="Search people…" />
         <button type="button" onClick={add} disabled={blocked || busy || !title.trim()}
           className="inline-flex items-center gap-1 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">
           <Plus className="h-4 w-4" aria-hidden="true" /> Add
