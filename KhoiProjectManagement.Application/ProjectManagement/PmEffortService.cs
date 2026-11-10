@@ -97,9 +97,12 @@ namespace KhoiProjectManagement.Application
             // Effort can only be allocated to someone who is on the project.
             var ids = people.Select(p => p.UserId).Distinct().ToList();
             var onProject = await _members.Query().AsNoTracking().Where(m => m.ProjectId == item.ProjectId && ids.Contains(m.UserId)).Select(m => m.UserId).ToListAsync();
-            if (ids.Except(onProject).Any()) throw new InvalidOperationException("Effort can only be allocated to people on this project.");
+            var existing = await _efforts.Query().Where(e => e.TaskId == itemId).ToListAsync();
+            // Someone already on this item's effort who has since left the project may be kept (or removed) but not newly added.
+            var alreadyOnItem = existing.Select(e => e.UserId).ToHashSet();
+            if (ids.Except(onProject).Except(alreadyOnItem).Any()) throw new InvalidOperationException("Effort can only be allocated to people on this project.");
 
-            _efforts.RemoveRange(await _efforts.Query().Where(e => e.TaskId == itemId).ToListAsync());
+            _efforts.RemoveRange(existing);
             foreach (var p in people)
                 foreach (var c in p.Cells)
                     _efforts.Add(new WorkItemEffort { TaskId = itemId, UserId = p.UserId, Category = c.Category, Points = c.Points is null ? null : Math.Round(c.Points.Value, 2) });

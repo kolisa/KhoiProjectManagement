@@ -49,6 +49,7 @@ const Combobox = ({
     return () => el.removeEventListener('keydown', onEsc);
   }, [open, close]);
   useEffect(() => { setActive(0); }, [query, open]);
+  useEffect(() => { if (open) document.getElementById(`${id}-opt-${active}`)?.scrollIntoView?.({ block: 'nearest' }); }, [active, open, id]);
 
   const choose = (opt) => { onChange(opt.value); close(); };
 

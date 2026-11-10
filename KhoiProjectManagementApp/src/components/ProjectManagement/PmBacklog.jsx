@@ -215,7 +215,8 @@ const PmBacklog = ({ apiService, project, members }) => {
                   <label htmlFor={`sprint-${item.id}`} className="sr-only">Sprint for {item.title}</label>
                   <Combobox id={`sprint-${item.id}`} size="sm" value={item.sprintId ?? ''} disabled={!canPlan} title={planReason || undefined}
                     onChange={(v) => assignSprint(item, v === '' ? null : Number(v))} emptyLabel="No sprint" placeholder="Add to sprint…" searchPlaceholder="Search sprints…"
-                    options={sprints.map((sp) => ({ value: sp.id, label: sp.name, description: sp.state === 'Active' ? 'Active' : 'Planned' }))} />
+                    options={[...sprints.map((sp) => ({ value: sp.id, label: sp.name, description: sp.state === 'Active' ? 'Active' : 'Planned' })),
+                      ...(item.sprintId != null && !sprints.some((sp) => sp.id === item.sprintId) ? [{ value: item.sprintId, label: item.sprintName || 'Closed sprint', description: 'Completed' }] : [])]} />
                 </div>
               )}
               <span className="hidden md:inline text-xs text-gray-500 w-28 truncate">{item.assignedToName || 'Unassigned'}</span>

@@ -32,6 +32,7 @@ const WorkItemModal = ({ item, items, members, canEdit, onSave, onClose, apiServ
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
+  const [effortDirty, setEffortDirty] = useState(false);
 
   const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
   const setDescription = (html) => setForm((f) => ({ ...f, description: html }));
@@ -103,7 +104,7 @@ const WorkItemModal = ({ item, items, members, canEdit, onSave, onClose, apiServ
         </div>
 
         <div className="flex-1 overflow-y-auto">
-        <form id="work-item-form" onSubmit={submit}>
+        <form id="work-item-form" onSubmit={submit} noValidate>
           <div className="grid gap-6 p-6 lg:grid-cols-[minmax(0,1fr)_17rem]">
             <div className="space-y-5 min-w-0">
               {error && <div role="alert" className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</div>}
@@ -119,7 +120,7 @@ const WorkItemModal = ({ item, items, members, canEdit, onSave, onClose, apiServ
                 canCreate={can(role, 'create')} reason={denyReason(project, 'create')} onChanged={onChanged} />
 
               {item && apiService && (
-                <EffortEditor apiService={apiService} item={item} members={members} canEdit={can(role, 'edit')} reason={denyReason(project, 'edit')} onSaved={onChanged} />
+                <EffortEditor apiService={apiService} item={item} members={members} canEdit={can(role, 'edit')} reason={denyReason(project, 'edit')} onSaved={onChanged} onDirtyChange={setEffortDirty} />
               )}
             </div>
 
@@ -187,7 +188,8 @@ const WorkItemModal = ({ item, items, members, canEdit, onSave, onClose, apiServ
         )}
         </div>
 
-        <div className="flex justify-end gap-2 px-6 py-3 border-t border-gray-200 bg-gray-50 rounded-b-xl">
+        <div className="flex items-center justify-end gap-2 px-6 py-3 border-t border-gray-200 bg-gray-50 rounded-b-xl">
+          {effortDirty && <p role="status" className="mr-auto text-xs font-medium text-amber-700">You have unsaved effort changes - use &ldquo;Save effort&rdquo; first. Saving the item does not save them.</p>}
           <button type="button" onClick={onClose} className="px-4 py-2 text-sm rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-50">
             {canEdit ? 'Cancel' : 'Close'}
           </button>

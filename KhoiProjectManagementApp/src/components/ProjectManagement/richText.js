@@ -170,7 +170,7 @@ export const suggestSubtasks = (html, existing = []) => {
 
   const text = htmlToText(body.innerHTML);
   const bulletLines = text.split('\n').filter((l) => /^\s*(?:[-*•–]|\d+[.)]|\[[ xX]?\])\s+\S/.test(l)).map(tidyTitle);
-  const sentences = text.split(/\n|(?<=[.!?])\s+/).map((s) => s.trim())
+  const sentences = text.replace(/([.!?])\s+/g, '$1\n').split('\n').map((s) => s.trim())
     .filter((s) => s.length > 3 && ACTION_START.test(s.replace(/^\s*(?:[-*•–]|\d+[.)])\s*/, '')) && !/^\s*(?:[-*•–]|\d+[.)])\s+/.test(s))
     .map(tidyTitle);
 

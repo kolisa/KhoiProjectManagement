@@ -61,7 +61,12 @@ const RichTextEditor = ({ id, label, value, onChange, disabled = false, reason }
   const applyLink = (e) => {
     e.preventDefault();
     const url = linkUrl.trim();
-    if (/^(https?:\/\/|mailto:)/i.test(url)) exec('createLink', url);
+    if (/^(https?:\/\/|mailto:)/i.test(url)) {
+      const sel = window.getSelection?.();
+      // Nothing selected: createLink would insert nothing, so insert the address itself as the link text.
+      if (!sel || sel.isCollapsed) exec('insertHTML', `<a href="${url.replace(/"/g, '&quot;')}">${url.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</a>`);
+      else exec('createLink', url);
+    }
     setLinkOpen(false);
     setLinkUrl('');
   };
@@ -122,7 +127,7 @@ const RichTextEditor = ({ id, label, value, onChange, disabled = false, reason }
           suppressContentEditableWarning
           spellCheck={!disabled}
           lang="en"
-          onInput={emit}
+          onInput={() => { setTidyReport(null); emit(); }}
           onPaste={onPaste}
           className={`pm-richtext min-h-[8rem] max-h-72 overflow-y-auto px-3 py-2 text-sm text-gray-900 outline-none ${disabled ? 'text-gray-600 cursor-not-allowed' : ''}`}
         />

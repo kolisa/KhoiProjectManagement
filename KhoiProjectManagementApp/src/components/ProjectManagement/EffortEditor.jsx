@@ -26,7 +26,7 @@ const rowTotal = (row) => EFFORT_CATEGORIES.reduce((sum, c) => {
 
 // Per-person effort for one work item: one row per person, one column per category (Analysis & design, Dev effort, Dev
 // testing, Deployment, Demo, Monitoring, Training). N/A is distinct from 0. A person's sprint points are these numbers summed.
-const EffortEditor = ({ apiService, item, members, canEdit, reason, onSaved }) => {
+const EffortEditor = ({ apiService, item, members, canEdit, reason, onSaved, onDirtyChange }) => {
   const toast = useToast();
   const [rows, setRows] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -44,6 +44,7 @@ const EffortEditor = ({ apiService, item, members, canEdit, reason, onSaved }) =
   }, [apiService, item.id, toast]);
 
   useEffect(() => { load(); }, [load]);
+  useEffect(() => { onDirtyChange?.(dirty); }, [dirty, onDirtyChange]);
 
   const used = new Set((rows || []).map((r) => r.userId));
   const available = members.filter((m) => !used.has(m.userId));
@@ -108,7 +109,7 @@ const EffortEditor = ({ apiService, item, members, canEdit, reason, onSaved }) =
                 return (
                   <div key={c.key}>
                     <label htmlFor={id} className="mb-0.5 block text-[11px] font-medium text-gray-600">{c.label}</label>
-                    <input id={id} type="number" inputMode="decimal" min="0" max="1000" step="0.5" value={cell.na ? '' : cell.text}
+                    <input id={id} type="number" inputMode="decimal" step="any" value={cell.na ? '' : cell.text}
                       placeholder={cell.na ? 'N/A' : '0'} disabled={!canEdit || cell.na} title={!canEdit ? reason || undefined : undefined}
                       onChange={(e) => setCell(r.userId, c.key, { text: e.target.value })} className={inputClass} />
                     <label className="mt-0.5 flex items-center gap-1 text-[11px] text-gray-500">

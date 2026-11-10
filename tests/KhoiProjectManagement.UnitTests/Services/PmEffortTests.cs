@@ -147,6 +147,26 @@ namespace KhoiProjectManagement.UnitTests.Services
         }
 
         [Fact]
+        public async Task SomeoneWhoLeftTheProject_CanStayOnTheItemsEffort_ButNotBeNewlyAdded()
+        {
+            var sut = Sut(1, 2);
+            await sut.SetItemEffortAsync(_caller, Item, new SaveWorkItemEffortDto { People = { Person(1, (EffortCategories.DevEffort, 5)) } });
+
+            // Ada has since left the project (only Ben is a member now).
+            var after = Sut(2);
+            var kept = await after.SetItemEffortAsync(_caller, Item, new SaveWorkItemEffortDto
+            {
+                People = { Person(1, (EffortCategories.DevEffort, 6)), Person(2, (EffortCategories.DevTesting, 2)) },
+            });
+            Assert.Equal(2, kept.People.Count);                       // she is kept, and her edit saved
+
+            // Removing her works too, and once she is off the item she cannot be put back.
+            await after.SetItemEffortAsync(_caller, Item, new SaveWorkItemEffortDto { People = { Person(2, (EffortCategories.DevTesting, 2)) } });
+            await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                after.SetItemEffortAsync(_caller, Item, new SaveWorkItemEffortDto { People = { Person(1, (EffortCategories.DevEffort, 1)) } }));
+        }
+
+        [Fact]
         public async Task TheSprintTotalsArePerPerson_WithAnItemAndCategoryDrillDown()
         {
             var sut = Sut(1, 2);

@@ -121,10 +121,10 @@ const PmSprints = ({ apiService, project }) => {
   };
 
   const dropOn = (target) => {
-    const ids = selected.has(dragId) ? [...selected] : [dragId];
+    const ids = (selected.has(dragId) ? [...selected] : [dragId]).filter((id) => (items.find((i) => i.id === id)?.sprintId ?? null) !== target);
     setDragId(null);
     setDropOver(null);
-    if (dragId != null && canPlan) moveItems(ids, target);
+    if (dragId != null && canPlan && ids.length > 0) moveItems(ids, target);
   };
   const dropProps = (target) => ({
     onDragOver: (e) => { if (dragId != null && canPlan) { e.preventDefault(); setDropOver(target ?? 'backlog'); } },

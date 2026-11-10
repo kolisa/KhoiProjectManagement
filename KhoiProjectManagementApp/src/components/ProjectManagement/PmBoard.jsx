@@ -68,7 +68,8 @@ const PmBoard = ({ apiService, project, members }) => {
   const [people, setPeople] = useState(new Set());   // person filter: user ids as strings, or 'none' for unassigned
   const [sprints, setSprints] = useState([]);
   const [sprintId, setSprintId] = useState('');
-  const [sprintsReady, setSprintsReady] = useState(false);
+  const [readyFor, setReadyFor] = useState(null);   // the project id whose sprints have been loaded (and default sprint chosen)
+  const sprintsReady = readyFor === project.id;
   const [newSprint, setNewSprint] = useState(false);
   const picked = useRef(false);   // true once the person has chosen a sprint (or All work) themselves
   const [workflow, setWorkflow] = useState(null);
@@ -103,10 +104,16 @@ const PmBoard = ({ apiService, project, members }) => {
     setSprints(open);
     if (select != null) { picked.current = true; setSprintId(String(select)); }
     else if (!picked.current) setSprintId(String(open.find((s) => s.state === 'Active')?.id ?? ''));
-    setSprintsReady(true);
+    setReadyFor(project.id);
   }, [apiService, project.id]);
 
-  useEffect(() => { loadSprints(); }, [loadSprints]);
+  useEffect(() => {
+    // A different project: forget the previous project's sprint choice and people filter before anything loads.
+    picked.current = false;
+    setSprintId('');
+    setPeople(new Set());
+    loadSprints();
+  }, [loadSprints]);
 
   const createSprint = async (dto) => {
     const created = await apiService.createSprint(project.id, dto);

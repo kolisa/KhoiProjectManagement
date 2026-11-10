@@ -108,7 +108,7 @@ namespace KhoiProjectManagement.Application
             {
                 ProjectId = projectId,
                 Title = dto.Title.Trim(),
-                Description = RichText.Sanitize(dto.Description),
+                Description = RichText.SanitizeForStorage(dto.Description),
                 Type = dto.Type,
                 Status = dto.Status,
                 Priority = dto.Priority,
@@ -154,7 +154,7 @@ namespace KhoiProjectManagement.Application
             var oldStatus = item.Status;
             var wasCompleted = item.Status == "completed";
             item.Title = dto.Title.Trim();
-            item.Description = RichText.Sanitize(dto.Description);
+            item.Description = RichText.SanitizeForStorage(dto.Description);
             item.Type = dto.Type;
             item.Status = dto.Status;
             item.Priority = dto.Priority;
@@ -280,7 +280,10 @@ namespace KhoiProjectManagement.Application
             if (!string.IsNullOrWhiteSpace(filter.Search))
             {
                 var term = filter.Search.Trim().ToLower();
-                query = query.Where(t => t.Title.ToLower().Contains(term) || t.Description.ToLower().Contains(term));
+                // Descriptions are stored as HTML, so a word that only occurs in the markup ("strong", "href"...) must not match every one.
+                query = RichText.IsMarkupWord(term)
+                    ? query.Where(t => t.Title.ToLower().Contains(term))
+                    : query.Where(t => t.Title.ToLower().Contains(term) || t.Description.ToLower().Contains(term));
             }
             return query;
         }
