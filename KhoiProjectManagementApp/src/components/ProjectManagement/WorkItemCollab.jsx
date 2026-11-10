@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { MessageSquare, ListChecks, Link2, Paperclip, Trash2, Pencil, Download, X } from 'lucide-react';
+import { MessageSquare, ListChecks, Link2, Paperclip, Trash2, Pencil, Download, X, History } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import { useConfirm } from '../../contexts/ConfirmContext';
 import { reportApiError } from '../../utils/apiError';
@@ -408,6 +408,100 @@ const AttachmentsPanel = ({ apiService, itemId, canUpload, onCount, active }) =>
   );
 };
 
+// ---------------------------------------------------------------- activity
+
+const ActivityPanel = ({ apiService, itemId, active }) => {
+  const toast = useToast();
+  const [entries, setEntries] = useState(null);
+
+  // Loaded the first time the tab is opened, not with the modal.
+  useEffect(() => {
+    if (!active || entries !== null) return undefined;
+    let cancelled = false;
+    apiService.getWorkItemActivity(itemId)
+      .then((list) => { if (!cancelled) setEntries(list); })
+      .catch((err) => { if (!cancelled) { reportApiError(toast, err, 'Could not load the activity.'); setEntries([]); } });
+    return () => { cancelled = true; };
+  }, [active, entries, apiService, itemId, toast]);
+
+  if (entries === null) return <p className="text-sm text-gray-500">{active ? 'Loading…' : ''}</p>;
+  if (entries.length === 0) return <p className="text-sm text-gray-500">No activity recorded yet.</p>;
+  return (
+    <ol className="space-y-2">
+      {entries.map((e, i) => (
+        <li key={`${e.when}-${i}`} className="flex gap-2 text-sm">
+          <span className={`mt-1.5 h-2 w-2 rounded-full flex-shrink-0 ${e.kind === 'status' ? 'bg-blue-500' : 'bg-gray-300'}`} aria-hidden="true" />
+          <span className="flex-1 text-gray-800"><span className="font-medium">{e.actorName}</span> {e.text}</span>
+          <span className="text-xs text-gray-500 whitespace-nowrap">{formatWhen(e.when)}</span>
+        </li>
+      ))}
+    </ol>
+  );
+};
+
+// ---------------------------------------------------------------- labels
+
+// Labels are saved straight away (not with the form's Save): each change replaces the item's whole label set.
+const LabelsEditor = ({ apiService, item, canEdit, onChanged }) => {
+  const toast = useToast();
+  const [labels, setLabels] = useState(item.labels || []);
+  const [known, setKnown] = useState([]);
+  const [draft, setDraft] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (!canEdit) return;
+    apiService.getProjectLabels(item.projectId).then(setKnown).catch(() => setKnown([]));
+  }, [apiService, item.projectId, canEdit]);
+
+  const save = async (names) => {
+    setBusy(true);
+    try {
+      setLabels(await apiService.setWorkItemLabels(item.id, names));
+      onChanged?.();
+    } catch (err) {
+      reportApiError(toast, err, 'Could not update the labels.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const add = (e) => {
+    e.preventDefault();
+    const name = draft.trim();
+    if (!name || labels.some((l) => l.name.toLowerCase() === name.toLowerCase())) { setDraft(''); return; }
+    setDraft('');
+    save([...labels.map((l) => l.name), name]);
+  };
+
+  return (
+    <div className="px-5 pb-3">
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span className="text-sm font-medium text-gray-700 mr-1">Labels</span>
+        {labels.length === 0 && !canEdit && <span className="text-sm text-gray-500">None</span>}
+        {labels.map((l) => (
+          <span key={l.id} className="inline-flex items-center gap-1 text-xs font-medium rounded-full pl-2 pr-1 py-0.5 bg-gray-100 text-gray-700">
+            <span className="h-1.5 w-1.5 rounded-full" style={{ background: l.color }} aria-hidden="true" />
+            {l.name}
+            {canEdit && (
+              <button type="button" disabled={busy} aria-label={`Remove label ${l.name}`} onClick={() => save(labels.filter((x) => x.id !== l.id).map((x) => x.name))}
+                className="text-gray-400 hover:text-red-600 disabled:opacity-50"><X className="h-3 w-3" /></button>
+            )}
+          </span>
+        ))}
+        {canEdit && (
+          <form onSubmit={add} className="inline-flex">
+            <label htmlFor="pm-label-input" className="sr-only">Add a label</label>
+            <input id="pm-label-input" list="pm-label-options" value={draft} onChange={(e) => setDraft(e.target.value)} maxLength={30} disabled={busy}
+              placeholder="Add label…" className="border border-gray-300 rounded-full px-2.5 py-0.5 text-xs w-28 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            <datalist id="pm-label-options">{known.map((k) => <option key={k.id} value={k.name} />)}</datalist>
+          </form>
+        )}
+      </div>
+    </div>
+  );
+};
+
 // ---------------------------------------------------------------- container
 
 const TABS = [
@@ -415,11 +509,12 @@ const TABS = [
   { key: 'checklist', label: 'Checklist', Icon: ListChecks },
   { key: 'links', label: 'Links', Icon: Link2 },
   { key: 'files', label: 'Files', Icon: Paperclip },
+  { key: 'activity', label: 'History', Icon: History },
 ];
 
 // Discussion, checklist, dependencies and files for an existing work item. `can` carries the caller's
 // project-role abilities (mirrors the server matrix; the API is still the authority).
-const WorkItemCollab = ({ apiService, item, items, members, can: abilities }) => {
+const WorkItemCollab = ({ apiService, item, items, members, can: abilities, onChanged }) => {
   const [tab, setTab] = useState('comments');
   const [counts, setCounts] = useState({});
   const counter = (key) => (value) => setCounts((c) => (c[key] === value ? c : { ...c, [key]: value }));
@@ -430,6 +525,8 @@ const WorkItemCollab = ({ apiService, item, items, members, can: abilities }) =>
   const onFiles = useCallback(counter('files'), []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
+    <>
+    <div className="border-t border-gray-200 pt-3"><LabelsEditor apiService={apiService} item={item} canEdit={abilities.edit} onChanged={onChanged} /></div>
     <section aria-label="Collaboration" className="border-t border-gray-200 px-5 py-4">
       <div role="tablist" aria-label="Work item collaboration" className="flex gap-1 mb-4 overflow-x-auto">
         {TABS.map(({ key, label, Icon }) => (
@@ -452,10 +549,14 @@ const WorkItemCollab = ({ apiService, item, items, members, can: abilities }) =>
       <div role="tabpanel" id="collab-panel-links" aria-labelledby="collab-tab-links" hidden={tab !== 'links'}>
         <LinksPanel apiService={apiService} item={item} items={items} canEdit={abilities.edit} onCount={onLinks} />
       </div>
+      <div role="tabpanel" id="collab-panel-activity" aria-labelledby="collab-tab-activity" hidden={tab !== 'activity'}>
+        <ActivityPanel apiService={apiService} itemId={item.id} active={tab === 'activity'} />
+      </div>
       <div role="tabpanel" id="collab-panel-files" aria-labelledby="collab-tab-files" hidden={tab !== 'files'}>
         <AttachmentsPanel apiService={apiService} itemId={item.id} canUpload={abilities.collaborate} onCount={onFiles} active={tab === 'files'} />
       </div>
     </section>
+    </>
   );
 };
 

@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Http.Json;
 using KhoiProjectManagement.IntegrationTests.Infrastructure;
 using Xunit;
 
@@ -21,6 +22,10 @@ namespace KhoiProjectManagement.FunctionalTests
         [InlineData("/api/pm/projects/1/reports/workload")]
         [InlineData("/api/pm/projects/1/workflow")]
         [InlineData("/api/pm/attachments/1/download")]
+        [InlineData("/api/pm/my-work")]
+        [InlineData("/api/pm/projects/1/overview")]
+        [InlineData("/api/pm/work-items/1/activity")]
+        [InlineData("/api/pm/projects/1/labels")]
         public async Task Routes_WithoutAToken_Return401(string url)
         {
             var response = await _fixture.Factory.CreateClient().GetAsync(url);
@@ -58,6 +63,9 @@ namespace KhoiProjectManagement.FunctionalTests
         [InlineData("/api/pm/projects/999999/workflow")]
         [InlineData("/api/pm/projects/999999/reports/cumulative-flow")]
         [InlineData("/api/pm/projects/999999/export/work-items")]
+        [InlineData("/api/pm/projects/999999/overview")]
+        [InlineData("/api/pm/projects/999999/labels")]
+        [InlineData("/api/pm/work-items/999999/activity")]
         public async Task UnknownIds_Return404_ForBothAdminsAndMembers(string url)
         {
             foreach (var user in new[] { SeededUsers.Admin, SeededUsers.Member })
@@ -68,6 +76,36 @@ namespace KhoiProjectManagement.FunctionalTests
 
                 Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
             }
+        }
+
+        [Fact]
+        public async Task MyWork_AsAUserWithoutModuleAccess_Returns403()
+        {
+            var client = await _fixture.Factory.CreateClient().AuthenticateAsAsync(SeededUsers.Member);
+
+            Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync("/api/pm/my-work")).StatusCode);
+        }
+
+        [Fact]
+        public async Task Writes_OnUnknownItemsAndProjects_Return404_NotAnythingThatRevealsThem()
+        {
+            var client = await _fixture.Factory.CreateClient().AuthenticateAsAsync(SeededUsers.Member);
+
+            var labels = await client.PutAsJsonAsync("/api/pm/work-items/999999/labels", new { labels = new[] { "ui" } });
+            var import = await client.PostAsJsonAsync("/api/pm/projects/999999/members/import", new { rows = new[] { new { email = "a@b.com", role = "Developer" } } });
+
+            Assert.Equal(HttpStatusCode.NotFound, labels.StatusCode);
+            Assert.Equal(HttpStatusCode.NotFound, import.StatusCode);
+        }
+
+        [Fact]
+        public async Task ImportMembers_WithNoRows_Returns400()
+        {
+            var client = await _fixture.Factory.CreateClient().AuthenticateAsAsync(SeededUsers.Admin);
+
+            var response = await client.PostAsJsonAsync("/api/pm/projects/1/members/import", new { rows = Array.Empty<object>() });
+
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         }
 
         [Fact]

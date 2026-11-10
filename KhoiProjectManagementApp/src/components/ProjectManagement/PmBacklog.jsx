@@ -5,6 +5,7 @@ import ErrorMessage from '../Common/ErrorMessage';
 import PriorityBadge from '../Common/PriorityBadge';
 import StatusBadge from '../Common/StatusBadge';
 import WorkItemModal from './WorkItemModal';
+import { LabelChips, RollupBar } from './pmWidgets';
 import { useToast } from '../../contexts/ToastContext';
 import { useConfirm } from '../../contexts/ConfirmContext';
 import { reportApiError } from '../../utils/apiError';
@@ -21,7 +22,8 @@ const PmBacklog = ({ apiService, project, members }) => {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [filters, setFilters] = useState({ search: '', type: '', status: '', assigneeId: '' });
+  const [filters, setFilters] = useState({ search: '', type: '', status: '', assigneeId: '', labelId: '' });
+  const [labels, setLabels] = useState([]);
   const [editing, setEditing] = useState(undefined); // undefined = closed, null = new, object = edit
   const [dragId, setDragId] = useState(null);
 
@@ -49,6 +51,12 @@ const PmBacklog = ({ apiService, project, members }) => {
     const handle = setTimeout(load, filters.search ? 250 : 0); // debounce typing only
     return () => clearTimeout(handle);
   }, [load, filters.search]);
+
+  const loadLabels = useCallback(() => {
+    apiService.getProjectLabels(project.id).then(setLabels).catch(() => setLabels([]));
+  }, [apiService, project.id]);
+
+  useEffect(() => { loadLabels(); }, [loadLabels]);
 
   const totalPoints = useMemo(() => items.reduce((sum, i) => sum + (i.storyPoints || 0), 0), [items]);
 
@@ -116,6 +124,12 @@ const PmBacklog = ({ apiService, project, members }) => {
           <option value="">Everyone</option>
           {members.map((m) => <option key={m.userId} value={m.userId}>{m.name}</option>)}
         </select>
+        {labels.length > 0 && (
+          <select aria-label="Filter by label" className={selectClass} value={filters.labelId} onChange={setFilter('labelId')}>
+            <option value="">All labels</option>
+            {labels.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+          </select>
+        )}
         {canCreate && (
           <button onClick={() => setEditing(null)} className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700">
             <Plus className="h-4 w-4" aria-hidden="true" /> New item
@@ -170,6 +184,12 @@ const PmBacklog = ({ apiService, project, members }) => {
                   {item.childCount > 0 && ` · ${item.childCount} child item${item.childCount === 1 ? '' : 's'}`}
                   {item.isOverdue && <span className="text-red-600 font-medium"> · overdue</span>}
                 </span>
+                {(item.rollupTotal > 0 || item.labels?.length > 0) && (
+                  <span className="mt-1 flex flex-wrap items-center gap-2">
+                    <RollupBar done={item.rollupDone} total={item.rollupTotal} />
+                    <LabelChips labels={item.labels} />
+                  </span>
+                )}
               </button>
 
               <span className="hidden md:inline text-xs text-gray-500 w-28 truncate">{item.assignedToName || 'Unassigned'}</span>
@@ -196,6 +216,7 @@ const PmBacklog = ({ apiService, project, members }) => {
           members={members}
           apiService={apiService}
           role={project.myRole}
+          onChanged={() => { load(); loadLabels(); }}
           canEdit={editing ? canEdit : canCreate}
           onSave={save}
           onClose={() => setEditing(undefined)}

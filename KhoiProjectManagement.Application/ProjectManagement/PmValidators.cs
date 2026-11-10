@@ -20,6 +20,26 @@ namespace KhoiProjectManagement.Application
         }
     }
 
+    public class ImportMembersDtoValidator : AbstractValidator<ImportMembersDto>
+    {
+        public ImportMembersDtoValidator()
+        {
+            RuleFor(x => x.Rows).NotNull().NotEmpty().WithMessage("There are no rows to import.");
+            RuleFor(x => x.Rows.Count).LessThanOrEqualTo(PmProjectService.MaxImportRows)
+                .When(x => x.Rows != null).WithMessage($"An import can have at most {PmProjectService.MaxImportRows} rows.");
+        }
+    }
+
+    public class SetLabelsDtoValidator : AbstractValidator<SetLabelsDto>
+    {
+        public SetLabelsDtoValidator()
+        {
+            RuleFor(x => x.Labels).NotNull();
+            RuleFor(x => x.Labels.Count).LessThanOrEqualTo(PmLabelService.MaxLabelsPerItem)
+                .When(x => x.Labels != null).WithMessage($"An item can have at most {PmLabelService.MaxLabelsPerItem} labels.");
+        }
+    }
+
     public class SetProjectMemberDtoValidator : AbstractValidator<SetProjectMemberDto>
     {
         public SetProjectMemberDtoValidator()

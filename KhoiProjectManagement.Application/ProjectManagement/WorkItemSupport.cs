@@ -17,6 +17,51 @@ namespace KhoiProjectManagement.Application
         }
     }
 
+    // Progress of a container (Epic / Feature / Story with subtasks) measured over the work underneath it:
+    // only leaf descendants count, so a Feature is "3 of 8" in terms of the real tasks, not of its stories.
+    public static class WorkItemRollup
+    {
+        public readonly record struct Node(int Id, int? ParentId, string Status, int? Points);
+        public readonly record struct Result(int Done, int Total, int PointsDone, int PointsTotal);
+
+        // One entry for every item that has at least one child.
+        public static Dictionary<int, Result> Compute(IReadOnlyCollection<Node> nodes)
+        {
+            var childrenOf = nodes.Where(n => n.ParentId != null).ToLookup(n => n.ParentId!.Value);
+            var memo = new Dictionary<int, Result>();
+
+            Result Leaves(Node node)
+            {
+                if (memo.TryGetValue(node.Id, out var cached)) return cached;
+                var kids = childrenOf[node.Id].ToList();
+                Result result;
+                if (kids.Count == 0)
+                {
+                    var done = node.Status == "completed";
+                    var points = node.Points ?? 0;
+                    result = new Result(done ? 1 : 0, 1, done ? points : 0, points);
+                }
+                else
+                {
+                    var sum = new Result(0, 0, 0, 0);
+                    foreach (var kid in kids)
+                    {
+                        var r = Leaves(kid);
+                        sum = new Result(sum.Done + r.Done, sum.Total + r.Total, sum.PointsDone + r.PointsDone, sum.PointsTotal + r.PointsTotal);
+                    }
+                    result = sum;
+                }
+                memo[node.Id] = result;
+                return result;
+            }
+
+            var output = new Dictionary<int, Result>();
+            foreach (var node in nodes.Where(n => childrenOf.Contains(n.Id)))
+                output[node.Id] = Leaves(node);
+            return output;
+        }
+    }
+
     public static class RankCalculator
     {
         public const double Step = 1000;

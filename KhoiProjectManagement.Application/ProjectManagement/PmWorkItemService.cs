@@ -70,20 +70,25 @@ namespace KhoiProjectManagement.Application
             if (filter.ParentId.HasValue) query = query.Where(t => t.ParentId == filter.ParentId);
             if (filter.SprintId.HasValue) query = query.Where(t => t.SprintId == filter.SprintId);
             if (filter.Unplanned == true) query = query.Where(t => t.SprintId == null);
+            if (filter.LabelId.HasValue) query = query.Where(t => t.TaskTags.Any(x => x.TagId == filter.LabelId));
             if (!string.IsNullOrWhiteSpace(filter.Search))
             {
                 var term = filter.Search.Trim().ToLower();
                 query = query.Where(t => t.Title.ToLower().Contains(term) || t.Description.ToLower().Contains(term));
             }
 
-            return await Project(query.OrderBy(t => t.Rank).ThenBy(t => t.Id)).ToListAsync();
+            var list = await Project(query.OrderBy(t => t.Rank).ThenBy(t => t.Id)).ToListAsync();
+            await ApplyRollupAsync(projectId, list);
+            return list;
         }
 
         public async Task<WorkItemDto> GetAsync(PmCaller caller, int itemId)
         {
             var projectId = await ProjectIdOfAsync(itemId);
             await _access.RequireAsync(caller, projectId, PmAction.View);
-            return await Project(_tasks.Query().AsNoTracking().Where(t => t.Id == itemId)).FirstAsync();
+            var dto = await Project(_tasks.Query().AsNoTracking().Where(t => t.Id == itemId)).FirstAsync();
+            await ApplyRollupAsync(projectId, new[] { dto });
+            return dto;
         }
 
         public async Task<WorkItemDto> CreateAsync(PmCaller caller, int projectId, SaveWorkItemDto dto)
@@ -228,6 +233,26 @@ namespace KhoiProjectManagement.Application
                 throw new InvalidOperationException("The assignee is not a member of this project.");
         }
 
+        // Fills in the Rollup* fields for the items that have children. Needs the whole project's (id, parent,
+        // status, points) rows because a filtered list may not contain an item's descendants.
+        private async Task ApplyRollupAsync(int projectId, IReadOnlyCollection<WorkItemDto> dtos)
+        {
+            if (!dtos.Any(d => d.ChildCount > 0)) return;
+
+            var rows = await _tasks.Query().AsNoTracking().Where(t => t.ProjectId == projectId)
+                .Select(t => new { t.Id, t.ParentId, t.Status, t.StoryPoints }).ToListAsync();
+            var rollup = WorkItemRollup.Compute(rows.Select(r => new WorkItemRollup.Node(r.Id, r.ParentId, r.Status, r.StoryPoints)).ToList());
+
+            foreach (var dto in dtos.Where(d => rollup.ContainsKey(d.Id)))
+            {
+                var r = rollup[dto.Id];
+                dto.RollupDone = r.Done;
+                dto.RollupTotal = r.Total;
+                dto.RollupPointsDone = r.PointsDone;
+                dto.RollupPointsTotal = r.PointsTotal;
+            }
+        }
+
         private async Task<int> ProjectIdOfAsync(int itemId) =>
             await _tasks.Query().AsNoTracking().Where(t => t.Id == itemId).Select(t => (int?)t.ProjectId).FirstOrDefaultAsync()
                 ?? throw new KeyNotFoundException();
@@ -251,6 +276,7 @@ namespace KhoiProjectManagement.Application
                 ParentId = t.ParentId,
                 ParentTitle = t.Parent != null ? t.Parent.Title : null,
                 ChildCount = t.Children.Count,
+                Labels = t.TaskTags.Select(x => new LabelDto { Id = x.TagId, Name = x.Tag.Name, Color = x.Tag.Color }).ToList(),
                 DueDate = t.DueDate,
                 Rank = t.Rank,
                 IsOverdue = t.Status != "completed" && t.DueDate < DateTime.UtcNow,

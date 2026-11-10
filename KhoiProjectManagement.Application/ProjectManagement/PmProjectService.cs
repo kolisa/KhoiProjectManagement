@@ -10,6 +10,7 @@ namespace KhoiProjectManagement.Application
         Task<List<PmMemberDto>> GetMembersAsync(PmCaller caller, int projectId);
         Task SetMemberAsync(PmCaller caller, int projectId, int userId, string role);
         Task RemoveMemberAsync(PmCaller caller, int projectId, int userId);
+        Task<ImportMembersResultDto> ImportMembersAsync(PmCaller caller, int projectId, ImportMembersDto dto);
         Task<List<PmUserLookupDto>> GetAssignableUsersAsync(PmCaller caller);
 
         // SuperAdmin module-access administration (controller gates on the pm.admin permission).
@@ -106,6 +107,99 @@ namespace KhoiProjectManagement.Application
 
             await _unitOfWork.SaveChangesAsync();
             await _activity.LogAsync("Project", projectId, $"{target.Name} -> {role}", caller.UserId, "member-role-set");
+        }
+
+        public const int MaxImportRows = 500;
+
+        // Bulk-adds (or re-roles) people on a project from a pasted/uploaded list of "email, role" rows. Matching is
+        // by email against EXISTING accounts - this never creates accounts. Rows that cannot be applied are
+        // reported with the reason and skipped; the rest are applied together, and a DryRun applies nothing.
+        public async Task<ImportMembersResultDto> ImportMembersAsync(PmCaller caller, int projectId, ImportMembersDto dto)
+        {
+            await _access.RequireAsync(caller, projectId, PmAction.ManageMembers);
+            if (dto.Rows.Count == 0) throw new InvalidOperationException("There are no rows to import.");
+            if (dto.Rows.Count > MaxImportRows) throw new InvalidOperationException($"An import can have at most {MaxImportRows} rows.");
+            if (dto.GrantModuleAccess && !caller.IsPmAdmin && !caller.IsSuperAdmin)
+                throw new ForbiddenException("Only a SuperAdmin can grant Project Management module access.");
+            if (dto.ModuleOnly && !dto.GrantModuleAccess)
+                throw new InvalidOperationException("Module-only accounts must also be granted module access.");
+
+            var wantedEmails = dto.Rows.Select(r => (r.Email ?? string.Empty).Trim().ToLowerInvariant()).Where(e => e.Length > 0).Distinct().ToList();
+            var users = await _users.Query().Where(u => wantedEmails.Contains(u.Email.ToLower())).ToListAsync();
+            var userByEmail = users.GroupBy(u => u.Email.ToLowerInvariant()).ToDictionary(g => g.Key, g => g.First());
+            var roster = await _members.Query().Where(m => m.ProjectId == projectId).ToListAsync();
+            var memberByUser = roster.ToDictionary(m => m.UserId);
+            var hadAdmin = roster.Any(m => m.ProjectRole == ProjectRoles.ProjectAdmin);
+            var finalRoles = roster.ToDictionary(m => m.UserId, m => m.ProjectRole);
+
+            var result = new ImportMembersResultDto { DryRun = dto.DryRun };
+            var seen = new HashSet<string>();
+            var rowNumber = 0;
+
+            foreach (var raw in dto.Rows)
+            {
+                rowNumber++;
+                var email = (raw.Email ?? string.Empty).Trim();
+                var row = new ImportMemberResultRowDto { Row = rowNumber, Email = email };
+                result.Rows.Add(row);
+
+                void Reject(string outcome, string message) { row.Outcome = outcome; row.Message = message; }
+
+                if (email.Length == 0 || email.Length > 254 || !email.Contains('@') || email.Any(char.IsWhiteSpace))
+                { Reject(ImportOutcomes.InvalidEmail, "That is not a valid email address."); continue; }
+
+                var key = email.ToLowerInvariant();
+                if (!seen.Add(key))
+                { Reject(ImportOutcomes.Duplicate, "This email appears earlier in the list; the first row wins."); continue; }
+
+                string role;
+                if (string.IsNullOrWhiteSpace(raw.Role)) role = ProjectRoles.Developer;
+                else
+                {
+                    var parsed = ProjectRoles.Parse(raw.Role);
+                    if (parsed == null)
+                    { Reject(ImportOutcomes.InvalidRole, $"\"{raw.Role}\" is not a known role (use Project Admin, Project Manager, Scrum Master, Developer, Tester or Viewer)."); continue; }
+                    role = parsed;
+                }
+                row.Role = role;
+
+                if (!userByEmail.TryGetValue(key, out var user))
+                { Reject(ImportOutcomes.NotFound, "No account with this email. Accounts are created by an administrator, not by this import."); continue; }
+                if (!user.IsActive)
+                { Reject(ImportOutcomes.Inactive, "This account is deactivated."); continue; }
+
+                var grant = !user.PmAccess && dto.GrantModuleAccess;
+                if (!user.PmAccess && !dto.GrantModuleAccess)
+                { Reject(ImportOutcomes.NoModuleAccess, "This person has no Project Management module access yet. A SuperAdmin can enable it, or tick the grant option."); continue; }
+
+                memberByUser.TryGetValue(user.Id, out var existing);
+                if (existing != null && existing.ProjectRole == role && !grant)
+                { row.Outcome = ImportOutcomes.Unchanged; row.Message = "Already on the project with this role."; continue; }
+
+                row.Applied = true;
+                row.Outcome = existing == null ? ImportOutcomes.Added : ImportOutcomes.Updated;
+                row.Message = existing == null ? "Added to the project." : $"Role changed from {existing.ProjectRole} to {role}.";
+                if (grant) { row.Message += " Module access granted."; result.ModuleAccessGranted++; }
+                if (existing == null) result.Added++; else result.Updated++;
+                finalRoles[user.Id] = role;
+
+                if (dto.DryRun) continue;
+                if (grant) { user.PmAccess = true; user.PmOnly = dto.ModuleOnly; }
+                if (existing == null) _members.Add(new ProjectUser { ProjectId = projectId, UserId = user.Id, ProjectRole = role });
+                else existing.ProjectRole = role;
+            }
+
+            if (hadAdmin && !finalRoles.Values.Any(r => r == ProjectRoles.ProjectAdmin))
+                throw new InvalidOperationException("This import would leave the project without a Project Admin. Keep at least one.");
+
+            result.Skipped = result.Rows.Count(r => !r.Applied);
+            if (!dto.DryRun && result.Rows.Any(r => r.Applied))
+            {
+                await _unitOfWork.SaveChangesAsync();
+                await _activity.LogAsync("Project", projectId, "Members", caller.UserId, "members-imported",
+                    $"{result.Added} added, {result.Updated} updated" + (result.ModuleAccessGranted > 0 ? $", {result.ModuleAccessGranted} granted module access" : string.Empty));
+            }
+            return result;
         }
 
         public async Task RemoveMemberAsync(PmCaller caller, int projectId, int userId)

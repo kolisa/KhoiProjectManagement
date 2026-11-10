@@ -1473,6 +1473,31 @@ class ApiService {
     return await this.request(`/pm/attachments/${attachmentId}`, { method: 'DELETE' });
   }
 
+  // ---- PM overview, my work, activity, labels, member import ----
+  async getPmOverview(projectId) {
+    return await this.request(`/pm/projects/${projectId}/overview`);
+  }
+
+  async getMyWork() {
+    return await this.request('/pm/my-work');
+  }
+
+  async getWorkItemActivity(itemId) {
+    return await this.request(`/pm/work-items/${itemId}/activity`);
+  }
+
+  async getProjectLabels(projectId) {
+    return await this.request(`/pm/projects/${projectId}/labels`);
+  }
+
+  async setWorkItemLabels(itemId, labels) {
+    return await this.request(`/pm/work-items/${itemId}/labels`, { method: 'PUT', body: JSON.stringify({ labels }) });
+  }
+
+  async importPmMembers(projectId, payload) {
+    return await this.request(`/pm/projects/${projectId}/members/import`, { method: 'POST', body: JSON.stringify(payload) });
+  }
+
   // ---- PM workflow rules and retrospectives ----
   async getWorkflow(projectId) {
     return await this.request(`/pm/projects/${projectId}/workflow`);

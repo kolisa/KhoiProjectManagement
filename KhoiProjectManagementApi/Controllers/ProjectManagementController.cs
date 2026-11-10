@@ -23,14 +23,18 @@ namespace KhoiProjectManagementApi.Controllers
         private readonly IPmReportService _reports;
         private readonly IPmWorkflowService _workflow;
         private readonly IPmRetroService _retro;
+        private readonly IPmInsightsService _insights;
+        private readonly IPmLabelService _labels;
 
-        public ProjectManagementController(IPmProjectService projects, IPmWorkItemService workItems, IPmBoardService board, IPmSprintService sprints, IPmCollaborationService collab, IPmReportService reports, IPmWorkflowService workflow, IPmRetroService retro)
+        public ProjectManagementController(IPmProjectService projects, IPmWorkItemService workItems, IPmBoardService board, IPmSprintService sprints, IPmCollaborationService collab, IPmReportService reports, IPmWorkflowService workflow, IPmRetroService retro, IPmInsightsService insights, IPmLabelService labels)
         {
             _sprints = sprints;
             _collab = collab;
             _reports = reports;
             _workflow = workflow;
             _retro = retro;
+            _insights = insights;
+            _labels = labels;
             _board = board;
             _projects = projects;
             _workItems = workItems;
@@ -38,7 +42,8 @@ namespace KhoiProjectManagementApi.Controllers
 
         private PmCaller Caller => new(
             int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value),
-            User.HasClaim("superadmin", "true"));
+            User.HasClaim("superadmin", "true"),
+            User.HasClaim("superadmin", "true") || User.HasClaim("permission", "pm.admin"));
 
         [HttpGet("projects")]
         public async Task<ActionResult<List<PmProjectSummaryDto>>> GetProjects() =>
@@ -279,6 +284,32 @@ namespace KhoiProjectManagementApi.Controllers
             await _retro.DeleteAsync(Caller, itemId);
             return NoContent();
         }
+
+        // ---- Phase 7: overview, my work, activity, labels, member import ----
+
+        [HttpGet("projects/{projectId:int}/overview")]
+        public async Task<ActionResult<ProjectOverviewDto>> GetOverview(int projectId) =>
+            Ok(await _insights.GetOverviewAsync(Caller, projectId));
+
+        [HttpGet("my-work")]
+        public async Task<ActionResult<List<MyWorkItemDto>>> GetMyWork() =>
+            Ok(await _insights.GetMyWorkAsync(Caller));
+
+        [HttpGet("work-items/{itemId:int}/activity")]
+        public async Task<ActionResult<List<ActivityEntryDto>>> GetItemActivity(int itemId) =>
+            Ok(await _insights.GetItemActivityAsync(Caller, itemId));
+
+        [HttpGet("projects/{projectId:int}/labels")]
+        public async Task<ActionResult<List<LabelDto>>> GetLabels(int projectId) =>
+            Ok(await _labels.GetProjectLabelsAsync(Caller, projectId));
+
+        [HttpPut("work-items/{itemId:int}/labels")]
+        public async Task<ActionResult<List<LabelDto>>> SetLabels(int itemId, SetLabelsDto dto) =>
+            Ok(await _labels.SetLabelsAsync(Caller, itemId, dto));
+
+        [HttpPost("projects/{projectId:int}/members/import")]
+        public async Task<ActionResult<ImportMembersResultDto>> ImportMembers(int projectId, ImportMembersDto dto) =>
+            Ok(await _projects.ImportMembersAsync(Caller, projectId, dto));
 
         [HttpDelete("work-items/{itemId:int}")]
         public async Task<IActionResult> DeleteWorkItem(int itemId)

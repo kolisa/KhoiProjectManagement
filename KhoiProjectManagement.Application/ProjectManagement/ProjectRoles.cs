@@ -3,7 +3,8 @@ namespace KhoiProjectManagement.Application
     public enum PmAction { View, CreateItem, EditItem, DeleteItem, RankItem, ManageMembers, ManageBoard, ManageSprint, Collaborate }
 
     // The caller of a PM-module operation; IsSuperAdmin comes from the "superadmin" JWT claim.
-    public sealed record PmCaller(int UserId, bool IsSuperAdmin);
+    // IsPmAdmin: SuperAdmin or a pm.admin holder - the people allowed to switch module access on for others.
+    public sealed record PmCaller(int UserId, bool IsSuperAdmin, bool IsPmAdmin = false);
 
     public static class ProjectRoles
     {
@@ -25,6 +26,24 @@ namespace KhoiProjectManagement.Application
             [Tester] = new[] { PmAction.View, PmAction.CreateItem, PmAction.EditItem, PmAction.Collaborate },
             [Viewer] = new[] { PmAction.View },
         };
+
+        // Turns the wording people actually type ("Scrum Master", "dev", "QA", "read-only") into a role key;
+        // null when it is not recognisable. Case, spaces, hyphens and underscores are ignored.
+        public static string? Parse(string? text)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return null;
+            var key = new string(text.Where(char.IsLetterOrDigit).ToArray()).ToLowerInvariant();
+            return key switch
+            {
+                "projectadmin" or "admin" or "owner" => ProjectAdmin,
+                "projectmanager" or "manager" or "pm" => ProjectManager,
+                "scrummaster" or "scrum" or "sm" => ScrumMaster,
+                "developer" or "dev" or "engineer" => Developer,
+                "tester" or "qa" or "test" => Tester,
+                "viewer" or "readonly" or "stakeholder" or "observer" => Viewer,
+                _ => null,
+            };
+        }
 
         public static bool Allows(string? role, PmAction action) =>
             role != null && Matrix.TryGetValue(role, out var actions) && actions.Contains(action);

@@ -33,6 +33,7 @@ const makeApi = (overrides = {}) => ({
     { id: 4, title: 'DB', type: 'Task' },
     { id: 8, title: 'Platform epic', type: 'Epic' },
   ]),
+  getProjectLabels: vi.fn().mockResolvedValue([]),
   getWorkItemAttachments: vi.fn().mockResolvedValue([]),
   getWorkItemAttachmentObjectUrl: vi.fn().mockResolvedValue('blob:thumb'),
   uploadWorkItemAttachment: vi.fn().mockResolvedValue({}),

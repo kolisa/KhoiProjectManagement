@@ -9,7 +9,7 @@ const labelClass = 'block text-sm font-medium text-gray-700 mb-1';
 
 // Create/edit a backlog work item. `item` is null for create. `items` is the project's current
 // backlog (for the parent picker); `members` feeds the assignee picker.
-const WorkItemModal = ({ item, items, members, canEdit, onSave, onClose, apiService, role }) => {
+const WorkItemModal = ({ item, items, members, canEdit, onSave, onClose, apiService, role, onChanged }) => {
   const modalRef = useModalA11y(onClose);
   const [form, setForm] = useState({
     title: item?.title || '',
@@ -170,6 +170,7 @@ const WorkItemModal = ({ item, items, members, canEdit, onSave, onClose, apiServ
             items={items}
             members={members}
             can={{ collaborate: can(role, 'collaborate'), edit: can(role, 'edit') }}
+            onChanged={onChanged}
           />
         )}
       </div>

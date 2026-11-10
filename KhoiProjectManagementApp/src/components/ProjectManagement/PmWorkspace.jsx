@@ -5,6 +5,8 @@ import PmBacklog from './PmBacklog';
 import PmBoard from './PmBoard';
 import PmSprints from './PmSprints';
 import PmReports from './PmReports';
+import PmOverview from './PmOverview';
+import PmMyWork from './PmMyWork';
 import PmMembers from './PmMembers';
 import PmAccessAdmin from './PmAccessAdmin';
 import { hasPermission } from '../../utils/permissions';
@@ -22,7 +24,7 @@ const readLastProject = () => {
 const PmWorkspace = ({ apiService, user }) => {
   const [projects, setProjects] = useState([]);
   const [projectId, setProjectId] = useState(readLastProject);
-  const [tab, setTab] = useState('backlog');
+  const [tab, setTab] = useState('overview');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const isPmAdmin = hasPermission(user?.permissions, 'pm.admin');
@@ -48,7 +50,16 @@ const PmWorkspace = ({ apiService, user }) => {
     try { localStorage.setItem(LAST_PROJECT_KEY, String(id)); } catch { /* private mode - non-essential */ }
   };
 
+  // "My work" lists items from every project; clicking one jumps to that project's backlog.
+  const openProject = (id) => {
+    setProjectId(id);
+    try { localStorage.setItem(LAST_PROJECT_KEY, String(id)); } catch { /* private mode - non-essential */ }
+    setTab('backlog');
+  };
+
   const tabs = [
+    { key: 'overview', label: 'Overview' },
+    { key: 'mywork', label: 'My work' },
     { key: 'backlog', label: 'Backlog' },
     { key: 'sprints', label: 'Sprints' },
     { key: 'board', label: 'Board' },
@@ -56,7 +67,7 @@ const PmWorkspace = ({ apiService, user }) => {
     { key: 'members', label: 'Members' },
     ...(isPmAdmin ? [{ key: 'access', label: 'Module access' }] : []),
   ];
-  const activeTab = tabs.some((t) => t.key === tab) ? tab : 'backlog';
+  const activeTab = tabs.some((t) => t.key === tab) ? tab : 'overview';
 
   if (loading) return <LoadingSpinner />;
   if (error) return <ErrorMessage message={error} onRetry={loadProjects} />;
@@ -90,12 +101,17 @@ const PmWorkspace = ({ apiService, user }) => {
 
       {activeTab === 'access' ? (
         <PmAccessAdmin apiService={apiService} />
+      ) : activeTab === 'mywork' ? (
+        <PmMyWork apiService={apiService} onOpenProject={openProject} />
       ) : !project ? (
         <div className="text-center py-16 text-gray-500 bg-white border border-dashed border-gray-300 rounded-xl">
           You are not a member of any project yet. Ask a Project Admin or SuperAdmin to add you.
         </div>
+      ) : activeTab === 'overview' ? (
+        <PmOverview key={project.id} apiService={apiService} project={project} />
       ) : activeTab === 'members' ? (
-        <PmMembers key={project.id} apiService={apiService} project={project} onChanged={loadProjects} />
+        <PmMembers key={project.id} apiService={apiService} project={project} onChanged={loadProjects}
+          otherProjects={projects.filter((p) => p.id !== project.id)} canGrantAccess={isPmAdmin} />
       ) : (
         <PmWithMembers key={`${tab}-${project.id}`} apiService={apiService} project={project} view={activeTab} />
       )}

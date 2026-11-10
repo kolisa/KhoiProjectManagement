@@ -6,6 +6,7 @@ import PriorityBadge from '../Common/PriorityBadge';
 import WorkItemModal from './WorkItemModal';
 import BoardSettingsModal from './BoardSettingsModal';
 import WorkflowModal from './WorkflowModal';
+import { LabelChips } from './pmWidgets';
 import { useToast } from '../../contexts/ToastContext';
 import { reportApiError } from '../../utils/apiError';
 import { TYPE_STYLES, can } from './pmConstants';
@@ -217,6 +218,7 @@ const PmBoard = ({ apiService, project, members }) => {
                         {item.storyPoints != null && <span className="text-[11px] font-semibold bg-gray-100 text-gray-700 rounded-full px-2 py-0.5" title="Story points">{item.storyPoints}</span>}
                         {item.isOverdue && <span className="text-[11px] font-medium text-red-600">overdue</span>}
                       </div>
+                      {item.labels?.length > 0 && <div className="mt-2"><LabelChips labels={item.labels} max={2} /></div>}
                       <div className="flex items-center justify-between mt-2 text-xs text-gray-500">
                         <span className="truncate">{item.assignedToName || 'Unassigned'}</span>
                         {timing && <span title="Time since work started">{timing}</span>}
@@ -244,7 +246,7 @@ const PmBoard = ({ apiService, project, members }) => {
 
       {showWorkflow && workflow && <WorkflowModal workflow={workflow} onSave={saveWorkflow} onClose={() => setShowWorkflow(false)} />}
       {editing && (
-        <WorkItemModal item={editing} items={allCards} members={members} canEdit={canEdit} apiService={apiService} role={project.myRole} onSave={saveItem} onClose={() => setEditing(null)} />
+        <WorkItemModal item={editing} items={allCards} members={members} canEdit={canEdit} apiService={apiService} role={project.myRole} onChanged={load} onSave={saveItem} onClose={() => setEditing(null)} />
       )}
       {showSettings && (
         <BoardSettingsModal columns={board.columns} onSave={saveColumns} onClose={() => setShowSettings(false)} />

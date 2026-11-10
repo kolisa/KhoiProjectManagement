@@ -49,6 +49,12 @@ namespace KhoiProjectManagement.Application
         public int? ParentId { get; set; }
         public string? ParentTitle { get; set; }
         public int ChildCount { get; set; }
+        // Progress over the leaf work underneath this item (zero when it has no children).
+        public int RollupDone { get; set; }
+        public int RollupTotal { get; set; }
+        public int RollupPointsDone { get; set; }
+        public int RollupPointsTotal { get; set; }
+        public List<LabelDto> Labels { get; set; } = new();
         public DateTime DueDate { get; set; }
         public double Rank { get; set; }
         public bool IsOverdue { get; set; }
@@ -66,6 +72,7 @@ namespace KhoiProjectManagement.Application
         public int? SprintId { get; set; }
         // True restricts the list to items not in any sprint (the unplanned backlog).
         public bool? Unplanned { get; set; }
+        public int? LabelId { get; set; }
         public string? Search { get; set; }
     }
 
