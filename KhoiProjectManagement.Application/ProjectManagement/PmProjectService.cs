@@ -54,6 +54,8 @@ namespace KhoiProjectManagement.Application
             if (!await _access.HasModuleAccessAsync(caller))
                 throw new ForbiddenException("You do not have access to the Project Management module.");
 
+            await EnsureCreatorMembershipAsync(caller);
+
             var readOnly = await _access.IsReadOnlyAsync(caller);
             var projects = _projects.Query().AsNoTracking();
             if (!caller.IsSuperAdmin)
@@ -79,6 +81,30 @@ namespace KhoiProjectManagement.Application
                 TotalItems = r.Total,
                 OpenItems = r.Open,
             }).ToList();
+        }
+
+        // The classic "new project" screen does not add the creator to the team. Without a membership row they would
+        // have no role here and could not see their own project, so the first time they open the module each project
+        // they created (and are not already on) gets them as a Project Admin. Idempotent; safe if two requests race.
+        private async Task EnsureCreatorMembershipAsync(PmCaller caller)
+        {
+            if (caller.IsSuperAdmin) return;   // a SuperAdmin sees every project anyway
+
+            var orphaned = await _projects.Query().AsNoTracking()
+                .Where(p => p.CreatedBy == caller.UserId && !p.ProjectUsers.Any(m => m.UserId == caller.UserId))
+                .Select(p => p.Id).ToListAsync();
+            if (orphaned.Count == 0) return;
+
+            foreach (var projectId in orphaned)
+                _members.Add(new ProjectUser { ProjectId = projectId, UserId = caller.UserId, ProjectRole = ProjectRoles.ProjectAdmin });
+            try
+            {
+                await _unitOfWork.SaveChangesAsync();
+            }
+            catch (DbUpdateException)
+            {
+                // A concurrent request added the same rows first; the person is a member either way.
+            }
         }
 
         public async Task<List<PmMemberDto>> GetMembersAsync(PmCaller caller, int projectId)
@@ -298,7 +324,7 @@ namespace KhoiProjectManagement.Application
             await _users.Query().AsNoTracking()
                 .Where(u => u.IsActive)
                 .OrderBy(u => u.Name)
-                .Select(u => new PmAccessUserDto { Id = u.Id, Name = u.Name, Email = u.Email, PmAccess = u.PmAccess, PmOnly = u.PmOnly, PmReadOnly = u.PmReadOnly })
+                .Select(u => new PmAccessUserDto { Id = u.Id, Name = u.Name, Email = u.Email, PmAccess = u.PmAccess, PmOnly = u.PmOnly, PmReadOnly = u.PmReadOnly, ProjectCount = u.ProjectUsers.Count() })
                 .ToListAsync();
 
         public async Task SetAccessAsync(int actingUserId, int userId, SetPmAccessDto dto)

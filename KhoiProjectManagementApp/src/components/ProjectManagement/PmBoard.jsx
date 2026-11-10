@@ -9,7 +9,7 @@ import WorkflowModal from './WorkflowModal';
 import { LabelChips } from './pmWidgets';
 import { useToast } from '../../contexts/ToastContext';
 import { reportApiError } from '../../utils/apiError';
-import { TYPE_STYLES, can } from './pmConstants';
+import { TYPE_STYLES, STATUS_DOT, can } from './pmConstants';
 
 const DAY_MS = 86400000;
 
@@ -185,10 +185,10 @@ const PmBoard = ({ apiService, project, members }) => {
               onDragOver={(e) => { if (drag && canEdit && moveAllowed(drag.fromStatus, col.status)) { e.preventDefault(); setOverStatus(col.status); } }}
               onDragLeave={() => setOverStatus((s) => (s === col.status ? null : s))}
               onDrop={(e) => { e.preventDefault(); dropOn(col.status, null); }}
-              className={`w-72 flex-shrink-0 rounded-xl bg-gray-100 border ${overStatus === col.status ? 'border-blue-400 ring-2 ring-blue-200' : 'border-transparent'}`}
+              className={`w-72 flex-shrink-0 rounded-xl bg-gray-50 border ${overStatus === col.status ? 'border-blue-400 ring-2 ring-blue-200' : 'border-gray-200'}`}
             >
               <header className="flex items-center justify-between px-3 py-2.5">
-                <h3 className="text-sm font-semibold text-gray-800">{col.name}</h3>
+                <h3 className="flex items-center gap-2 text-sm font-semibold text-gray-800"><span className={`h-2.5 w-2.5 rounded-full ${STATUS_DOT[col.status] || 'bg-gray-400'}`} aria-hidden="true" />{col.name}</h3>
                 <span className={`inline-flex items-center gap-1 text-xs font-semibold rounded-full px-2 py-0.5 ${col.overWip ? 'bg-red-100 text-red-700' : atLimit ? 'bg-amber-100 text-amber-700' : 'bg-white text-gray-600'}`}
                   title={`${laneMode === 'none' ? '' : `${cards.length} in this lane · `}${col.count} in the column${col.wipLimit != null ? ` · WIP limit ${col.wipLimit}` : ' · no WIP limit'}`}>
                   {(col.overWip || atLimit) && <AlertTriangle className="h-3 w-3" aria-hidden="true" />}
@@ -207,7 +207,7 @@ const PmBoard = ({ apiService, project, members }) => {
                       onDragEnd={() => { setDrag(null); setOverStatus(null); }}
                       onDragOver={(e) => { if (drag && drag.id !== item.id && canEdit && moveAllowed(drag.fromStatus, col.status)) e.preventDefault(); }}
                       onDrop={(e) => { e.preventDefault(); e.stopPropagation(); if (drag && drag.id !== item.id) dropOn(col.status, item.id); }}
-                      className={`bg-white rounded-lg border border-gray-200 shadow-sm p-3 ${canEdit ? 'cursor-grab' : ''} ${drag?.id === item.id ? 'opacity-40' : ''}`}
+                      className={`bg-white rounded-lg border border-gray-200 shadow-sm p-3 transition-shadow hover:border-gray-300 hover:shadow-md ${canEdit ? 'cursor-grab' : ''} ${drag?.id === item.id ? 'opacity-40' : ''}`}
                     >
                       <button onClick={() => setEditing(item)} className="block w-full text-left">
                         <span className="block text-sm font-medium text-gray-900 break-words">{item.title}</span>

@@ -39,6 +39,9 @@ export const STATUS_STYLES = {
   completed: 'bg-green-100 text-green-700',
 };
 
+// The dot beside a status wherever a column or group is headed by it.
+export const STATUS_DOT = { todo: 'bg-gray-400', 'in-progress': 'bg-blue-500', blocked: 'bg-red-500', completed: 'bg-green-500' };
+
 export const statusLabel = (key) => STATUSES.find((s) => s.key === key)?.label || key;
 
 // Which parent types a child type may sit under (strictly higher level) - same rule as the backend.
@@ -56,3 +59,36 @@ const CAN = {
   Viewer: [],
 };
 export const can = (role, action) => role === 'SuperAdmin' || (CAN[role] || []).includes(action);
+
+// ---- Access levels ("policies") ------------------------------------------------------------------------
+// A person's access in a project is the combination of two things: their per-project ROLE, and their module-wide
+// access LEVEL (read only vs read & write, set by a SuperAdmin). Read-only wins over any role. These helpers
+// describe the result in one word; the server enforces it.
+export const ACCESS_LEVEL_LABELS = { read: 'Read only', write: 'Read & write', full: 'Full control' };
+
+export const accessLevel = (role, readOnly = false) => {
+  if (role === 'SuperAdmin') return 'full';
+  if (readOnly || role === 'Viewer' || !role) return 'read';
+  return role === 'ProjectAdmin' ? 'full' : 'write';
+};
+
+// What each ability means in plain words, in the order the roles table lists them. `key` is a can() action.
+export const ABILITY_ROWS = [
+  { key: 'view', label: 'See the backlog, board, sprints and reports' },
+  { key: 'create', label: 'Create work items' },
+  { key: 'edit', label: 'Edit work items, checklists and links' },
+  { key: 'collaborate', label: 'Comment and attach files' },
+  { key: 'rank', label: 'Re-order the backlog' },
+  { key: 'delete', label: 'Delete work items' },
+  { key: 'board', label: 'Configure board columns, WIP limits and workflow' },
+  { key: 'sprint', label: 'Plan, start and complete sprints' },
+  { key: 'members', label: 'Manage members and roles' },
+];
+
+export const roleCan = (role, key) => key === 'view' || can(role, key);
+
+// The project as the screens should treat it: a person whose module access is read-only gets the Viewer
+// abilities everywhere, while `actualRole` keeps the real role for display.
+export const effectiveProject = (project) => (project
+  ? { ...project, actualRole: project.myRole, myRole: project.readOnly ? 'Viewer' : project.myRole }
+  : project);

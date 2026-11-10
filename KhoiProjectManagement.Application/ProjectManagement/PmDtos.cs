@@ -119,6 +119,9 @@ namespace KhoiProjectManagement.Application
         public bool PmAccess { get; set; }
         public bool PmOnly { get; set; }
         public bool PmReadOnly { get; set; }
+        // How many projects the person belongs to - lets an admin spot someone who is on projects but cannot see them
+        // because module access was never switched on.
+        public int ProjectCount { get; set; }
     }
 
     public class SetPmAccessDto
