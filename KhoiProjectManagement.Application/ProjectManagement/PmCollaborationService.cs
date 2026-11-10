@@ -70,6 +70,10 @@ namespace KhoiProjectManagement.Application
             _activity = activity; _storage = storage; _config = config; _uow = uow; _logger = logger;
         }
 
+        // Only attachments this module wrote (see PmKeyPrefix). A static builder so its SQL translation is testable.
+        public static IQueryable<Attachment> PmAttachmentsQuery(IQueryable<Attachment> attachments) =>
+            attachments.Where(a => a.TaskId != null && a.FilePath.StartsWith(PmKeyPrefix));
+
         private sealed record ItemRef(int Id, int ProjectId, string Title, int? AssignedToId);
 
         private async Task<ItemRef> ItemAsync(int itemId) =>
@@ -376,7 +380,7 @@ namespace KhoiProjectManagement.Application
             await _access.RequireAsync(caller, item.ProjectId, PmAction.View);
             var canModerate = await CanAsync(caller, item.ProjectId, PmAction.DeleteItem);
 
-            var rows = await _attachments.Query().AsNoTracking().Where(a => a.TaskId == itemId && a.FilePath.StartsWith(PmKeyPrefix))
+            var rows = await PmAttachmentsQuery(_attachments.Query()).AsNoTracking().Where(a => a.TaskId == itemId)
                 .OrderBy(a => a.UploadedAt)
                 .Select(a => new { a.Id, a.FileName, a.FileSize, a.ContentType, a.UploadedBy, Name = a.UploadedByUser.Name, a.UploadedAt })
                 .ToListAsync();
@@ -437,7 +441,7 @@ namespace KhoiProjectManagement.Application
 
         public async Task<AttachmentDownload> DownloadAttachmentAsync(PmCaller caller, int attachmentId)
         {
-            var attachment = await _attachments.Query().AsNoTracking().FirstOrDefaultAsync(a => a.Id == attachmentId && a.TaskId != null && a.FilePath.StartsWith(PmKeyPrefix))
+            var attachment = await PmAttachmentsQuery(_attachments.Query().AsNoTracking()).FirstOrDefaultAsync(a => a.Id == attachmentId)
                 ?? throw new KeyNotFoundException();
             var item = await ItemAsync(attachment.TaskId!.Value);
             await _access.RequireAsync(caller, item.ProjectId, PmAction.View);
@@ -447,7 +451,7 @@ namespace KhoiProjectManagement.Application
 
         public async Task DeleteAttachmentAsync(PmCaller caller, int attachmentId)
         {
-            var attachment = await _attachments.Query().FirstOrDefaultAsync(a => a.Id == attachmentId && a.TaskId != null && a.FilePath.StartsWith(PmKeyPrefix))
+            var attachment = await PmAttachmentsQuery(_attachments.Query()).FirstOrDefaultAsync(a => a.Id == attachmentId)
                 ?? throw new KeyNotFoundException();
             var item = await ItemAsync(attachment.TaskId!.Value);
             await _access.RequireAsync(caller, item.ProjectId, PmAction.View);

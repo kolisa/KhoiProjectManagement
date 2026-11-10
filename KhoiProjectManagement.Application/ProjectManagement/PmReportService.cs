@@ -75,6 +75,18 @@ namespace KhoiProjectManagement.Application
             _access = access;
         }
 
+        public sealed record TransitionRow(int TaskId, string? FromStatus, string ToStatus, DateTime ChangedAt);
+        public sealed record WorkloadRow(int? AssignedToId, string? Name, string Status, int? StoryPoints, DateTime DueDate, bool HasExplicitDueDate);
+
+        // Static query builders: their SQL translation is covered by tests that need no database.
+        public static IQueryable<TransitionRow> TransitionsQuery(IQueryable<TaskStatusHistory> history, IReadOnlyCollection<int> taskIds, DateTime from) =>
+            history.AsNoTracking().Where(h => taskIds.Contains(h.TaskId) && h.ChangedAt >= from)
+                .Select(h => new TransitionRow(h.TaskId, h.FromStatus, h.ToStatus, h.ChangedAt));
+
+        public static IQueryable<WorkloadRow> WorkloadQuery(IQueryable<ProjectTask> flowItems, DateTime recent) =>
+            flowItems.Where(t => t.Status != "completed" || (t.CompletedAt != null && t.CompletedAt >= recent))
+                .Select(t => new WorkloadRow(t.AssignedToId, t.AssignedTo != null ? t.AssignedTo.Name : null, t.Status, t.StoryPoints, t.DueDate, t.HasExplicitDueDate));
+
         private IQueryable<ProjectTask> FlowItems(int projectId) =>
             _tasks.Query().AsNoTracking().Where(t => t.ProjectId == projectId && !Containers.Contains(t.Type));
 
@@ -92,9 +104,7 @@ namespace KhoiProjectManagement.Application
             // Only the transitions inside the window are loaded - not the project's whole history. What an item
             // looked like before the window is recovered from the first in-window transition's FromStatus, and
             // an item with no transitions in the window has simply kept its current status throughout.
-            var transitions = await _history.Query().AsNoTracking()
-                .Where(h => ids.Contains(h.TaskId) && h.ChangedAt >= from)
-                .Select(h => new { h.TaskId, h.FromStatus, h.ToStatus, h.ChangedAt }).ToListAsync();
+            var transitions = await TransitionsQuery(_history.Query(), ids, from).ToListAsync();
             var byTask = transitions.GroupBy(h => h.TaskId)
                 .ToDictionary(g => g.Key, g => g.OrderBy(h => h.ChangedAt).ToList());
 
@@ -164,15 +174,7 @@ namespace KhoiProjectManagement.Application
             var now = DateTime.UtcNow;
             var recent = now.AddDays(-30);
 
-            var rows = await FlowItems(projectId)
-                .Where(t => t.Status != "completed" || (t.CompletedAt != null && t.CompletedAt >= recent))
-                .Select(t => new
-                {
-                    t.AssignedToId,
-                    Name = t.AssignedTo != null ? t.AssignedTo.Name : null,
-                    t.Status, t.StoryPoints, t.DueDate, t.HasExplicitDueDate,
-                })
-                .ToListAsync();
+            var rows = await WorkloadQuery(FlowItems(projectId), recent).ToListAsync();
 
             return rows.GroupBy(r => r.AssignedToId)
                 .Select(g =>

@@ -66,19 +66,7 @@ namespace KhoiProjectManagement.Application
         {
             await _access.RequireAsync(caller, projectId, PmAction.View);
 
-            var query = _tasks.Query().AsNoTracking().Where(t => t.ProjectId == projectId);
-            if (!string.IsNullOrWhiteSpace(filter.Type)) query = query.Where(t => t.Type == filter.Type);
-            if (!string.IsNullOrWhiteSpace(filter.Status)) query = query.Where(t => t.Status == filter.Status);
-            if (filter.AssigneeId.HasValue) query = query.Where(t => t.AssignedToId == filter.AssigneeId);
-            if (filter.ParentId.HasValue) query = query.Where(t => t.ParentId == filter.ParentId);
-            if (filter.SprintId.HasValue) query = query.Where(t => t.SprintId == filter.SprintId);
-            if (filter.Unplanned == true) query = query.Where(t => t.SprintId == null);
-            if (filter.LabelId.HasValue) query = query.Where(t => t.TaskTags.Any(x => x.TagId == filter.LabelId));
-            if (!string.IsNullOrWhiteSpace(filter.Search))
-            {
-                var term = filter.Search.Trim().ToLower();
-                query = query.Where(t => t.Title.ToLower().Contains(term) || t.Description.ToLower().Contains(term));
-            }
+            var query = ApplyFilter(_tasks.Query().AsNoTracking().Where(t => t.ProjectId == projectId), filter);
 
             var list = await Project(query.OrderBy(t => t.Rank).ThenBy(t => t.Id)).ToListAsync();
             if (includeRollup) await ApplyRollupAsync(projectId, list);
@@ -274,7 +262,26 @@ namespace KhoiProjectManagement.Application
             await _tasks.Query().AsNoTracking().Where(t => t.Id == itemId).Select(t => (int?)t.ProjectId).FirstOrDefaultAsync()
                 ?? throw new KeyNotFoundException();
 
-        private static IQueryable<WorkItemDto> Project(IQueryable<ProjectTask> query) =>
+        // The backlog's filters, kept as a static query builder so the translation to SQL can be tested without
+        // a database (see PmQueryTranslationTests).
+        public static IQueryable<ProjectTask> ApplyFilter(IQueryable<ProjectTask> query, WorkItemFilterDto filter)
+        {
+            if (!string.IsNullOrWhiteSpace(filter.Type)) query = query.Where(t => t.Type == filter.Type);
+            if (!string.IsNullOrWhiteSpace(filter.Status)) query = query.Where(t => t.Status == filter.Status);
+            if (filter.AssigneeId.HasValue) query = query.Where(t => t.AssignedToId == filter.AssigneeId);
+            if (filter.ParentId.HasValue) query = query.Where(t => t.ParentId == filter.ParentId);
+            if (filter.SprintId.HasValue) query = query.Where(t => t.SprintId == filter.SprintId);
+            if (filter.Unplanned == true) query = query.Where(t => t.SprintId == null);
+            if (filter.LabelId.HasValue) query = query.Where(t => t.TaskTags.Any(x => x.TagId == filter.LabelId));
+            if (!string.IsNullOrWhiteSpace(filter.Search))
+            {
+                var term = filter.Search.Trim().ToLower();
+                query = query.Where(t => t.Title.ToLower().Contains(term) || t.Description.ToLower().Contains(term));
+            }
+            return query;
+        }
+
+        public static IQueryable<WorkItemDto> Project(IQueryable<ProjectTask> query) =>
             query.Select(t => new WorkItemDto
             {
                 Id = t.Id,

@@ -40,11 +40,23 @@ namespace KhoiProjectManagement.Application
             return Palette[Math.Abs(hash % Palette.Length)];
         }
 
+        public sealed record ProjectLabelRow(int TagId, string Name, string Color);
+
+        // Static query builders: their SQL translation is covered by tests that need no database.
+        public static IQueryable<ProjectLabelRow> ProjectLabelsQuery(IQueryable<TaskTag> taskTags, int projectId) =>
+            taskTags.AsNoTracking().Where(tt => tt.Task.ProjectId == projectId)
+                .Select(tt => new ProjectLabelRow(tt.TagId, tt.Tag.Name, tt.Tag.Color)).Distinct();
+
+        public static IQueryable<Tag> FindTagsQuery(IQueryable<Tag> tags, IReadOnlyCollection<string> lowerCaseNames) =>
+            tags.Where(t => lowerCaseNames.Contains(t.Name.ToLower()));
+
+        public static IQueryable<TaskTag> CurrentLabelsQuery(IQueryable<TaskTag> taskTags, int itemId) =>
+            taskTags.Where(tt => tt.TaskId == itemId).Include(tt => tt.Tag);
+
         public async Task<List<LabelDto>> GetProjectLabelsAsync(PmCaller caller, int projectId)
         {
             await _access.RequireAsync(caller, projectId, PmAction.View);
-            var rows = await _taskTags.Query().AsNoTracking().Where(tt => tt.Task.ProjectId == projectId)
-                .Select(tt => new { tt.TagId, tt.Tag.Name, tt.Tag.Color }).Distinct().ToListAsync();
+            var rows = await ProjectLabelsQuery(_taskTags.Query(), projectId).ToListAsync();
             return rows.OrderBy(r => r.Name, StringComparer.OrdinalIgnoreCase)
                 .Select(r => new LabelDto { Id = r.TagId, Name = r.Name, Color = r.Color }).ToList();
         }
@@ -66,10 +78,10 @@ namespace KhoiProjectManagement.Application
                 throw new InvalidOperationException($"A label can be at most {MaxLabelLength} characters.");
 
             var lowered = names.Select(n => n.ToLower()).ToList();
-            var known = await _tags.Query().Where(t => lowered.Contains(t.Name.ToLower())).ToListAsync();
+            var known = await FindTagsQuery(_tags.Query(), lowered).ToListAsync();
             var byName = known.GroupBy(t => t.Name.ToLowerInvariant()).ToDictionary(g => g.Key, g => g.First());
 
-            var current = await _taskTags.Query().Where(tt => tt.TaskId == itemId).Include(tt => tt.Tag).ToListAsync();
+            var current = await CurrentLabelsQuery(_taskTags.Query(), itemId).ToListAsync();
             var wanted = new List<Tag>();
             foreach (var name in names)
             {

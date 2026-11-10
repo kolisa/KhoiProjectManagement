@@ -91,8 +91,42 @@ namespace KhoiProjectManagement.Application
             _tasks = tasks; _sprints = sprints; _projects = projects; _history = history; _log = log; _access = access;
         }
 
-        private sealed record Row(int Id, string Title, string Type, string Status, string Priority, DateTime DueDate,
+        public sealed record Row(int Id, string Title, string Type, string Status, string Priority, DateTime DueDate,
             int? StoryPoints, int? SprintId, int? AssignedToId, string? AssigneeName, bool HasDue);
+
+        public sealed record ActivityRow(string EntityType, int? EntityId, string EntityNameSnapshot, string ActorNameSnapshot, string Action, string? Details, DateTime Timestamp);
+        public sealed record TransitionRow(string? FromStatus, string ToStatus, DateTime ChangedAt, string? Name);
+        public sealed record MyWorkRow(int Id, int ProjectId, string ProjectName, string Title, string Type, string Status, string Priority,
+            int? StoryPoints, DateTime DueDate, bool HasExplicitDueDate, string? SprintName);
+
+        // The queries below are static builders so their translation to SQL is covered by tests that need no database.
+        public static IQueryable<Row> OverviewRowsQuery(IQueryable<ProjectTask> tasks, int projectId) =>
+            tasks.AsNoTracking().Where(t => t.ProjectId == projectId)
+                .Select(t => new Row(t.Id, t.Title, t.Type, t.Status, t.Priority, t.DueDate, t.StoryPoints, t.SprintId, t.AssignedToId,
+                    t.AssignedTo != null ? t.AssignedTo.Name : null, t.HasExplicitDueDate));
+
+        public static IQueryable<ActivityRow> RecentActivityQuery(IQueryable<ActivityLogEntry> log, int projectId, IReadOnlyCollection<int> itemIds, int take) =>
+            log.AsNoTracking()
+                .Where(a => (a.EntityType == "WorkItem" && a.EntityId != null && itemIds.Contains(a.EntityId.Value))
+                         || (a.EntityType == "Project" && a.EntityId == projectId))
+                .OrderByDescending(a => a.Timestamp).Take(take)
+                .Select(a => new ActivityRow(a.EntityType, a.EntityId, a.EntityNameSnapshot, a.ActorNameSnapshot, a.Action, a.Details, a.Timestamp));
+
+        // "moved" log rows are skipped: every move is already a recorded status transition.
+        public static IQueryable<ActivityRow> ItemLogQuery(IQueryable<ActivityLogEntry> log, int itemId) =>
+            log.AsNoTracking().Where(a => a.EntityType == "WorkItem" && a.EntityId == itemId && a.Action != "moved")
+                .Select(a => new ActivityRow(a.EntityType, a.EntityId, a.EntityNameSnapshot, a.ActorNameSnapshot, a.Action, a.Details, a.Timestamp));
+
+        // Each item's first row (FromStatus null) is its creation, covered by the "created" log entry.
+        public static IQueryable<TransitionRow> ItemTransitionsQuery(IQueryable<TaskStatusHistory> history, int itemId) =>
+            history.AsNoTracking().Where(h => h.TaskId == itemId && h.FromStatus != null)
+                .Select(h => new TransitionRow(h.FromStatus, h.ToStatus, h.ChangedAt, h.ChangedBy != null ? h.ChangedBy.Name : null));
+
+        public static IQueryable<MyWorkRow> MyWorkQuery(IQueryable<ProjectTask> tasks, int userId) =>
+            tasks.AsNoTracking()
+                .Where(t => t.AssignedToId == userId && t.Status != "completed" && !Containers.Contains(t.Type))
+                .Select(t => new MyWorkRow(t.Id, t.ProjectId, t.Project.Name, t.Title, t.Type, t.Status, t.Priority, t.StoryPoints,
+                    t.DueDate, t.HasExplicitDueDate, t.Sprint != null ? t.Sprint.Name : null));
 
         private static int PriorityRank(string priority)
         {
@@ -107,9 +141,7 @@ namespace KhoiProjectManagement.Application
 
             var projectName = await _projects.Query().AsNoTracking().Where(p => p.Id == projectId).Select(p => p.Name).FirstAsync();
 
-            var all = await _tasks.Query().AsNoTracking().Where(t => t.ProjectId == projectId)
-                .Select(t => new Row(t.Id, t.Title, t.Type, t.Status, t.Priority, t.DueDate, t.StoryPoints, t.SprintId, t.AssignedToId,
-                    t.AssignedTo != null ? t.AssignedTo.Name : null, t.HasExplicitDueDate)).ToListAsync();
+            var all = await OverviewRowsQuery(_tasks.Query(), projectId).ToListAsync();
             var flow = all.Where(t => !Containers.Contains(t.Type)).ToList();
             var open = flow.Where(t => t.Status != "completed").ToList();
 
@@ -153,12 +185,7 @@ namespace KhoiProjectManagement.Application
 
             var titles = all.ToDictionary(t => t.Id, t => t.Title);
             var ids = titles.Keys.ToList();
-            var entries = await _log.Query().AsNoTracking()
-                .Where(a => (a.EntityType == "WorkItem" && a.EntityId != null && ids.Contains(a.EntityId.Value))
-                         || (a.EntityType == "Project" && a.EntityId == projectId))
-                .OrderByDescending(a => a.Timestamp).Take(10)
-                .Select(a => new { a.EntityType, a.EntityId, a.EntityNameSnapshot, a.ActorNameSnapshot, a.Action, a.Details, a.Timestamp })
-                .ToListAsync();
+            var entries = await RecentActivityQuery(_log.Query(), projectId, ids, 10).ToListAsync();
             overview.RecentActivity = entries.Select(a => new ActivityEntryDto
             {
                 When = a.Timestamp, ActorName = a.ActorNameSnapshot,
@@ -176,13 +203,7 @@ namespace KhoiProjectManagement.Application
                 throw new ForbiddenException("You do not have access to the Project Management module.");
 
             var now = DateTime.UtcNow;
-            var rows = await _tasks.Query().AsNoTracking()
-                .Where(t => t.AssignedToId == caller.UserId && t.Status != "completed" && !Containers.Contains(t.Type))
-                .Select(t => new
-                {
-                    t.Id, t.ProjectId, ProjectName = t.Project.Name, t.Title, t.Type, t.Status, t.Priority, t.StoryPoints, t.DueDate, t.HasExplicitDueDate,
-                    SprintName = t.Sprint != null ? t.Sprint.Name : null,
-                }).ToListAsync();
+            var rows = await MyWorkQuery(_tasks.Query(), caller.UserId).ToListAsync();
 
             return rows
                 .OrderBy(r => r.HasExplicitDueDate && r.DueDate < now ? 0 : 1).ThenBy(r => r.HasExplicitDueDate ? 0 : 1).ThenBy(r => r.DueDate).ThenBy(r => PriorityRank(r.Priority))
@@ -201,16 +222,10 @@ namespace KhoiProjectManagement.Application
             await _access.RequireAsync(caller, projectId, PmAction.View);
 
             // "moved" log rows are skipped: every move is already a recorded status transition below.
-            var logged = await _log.Query().AsNoTracking()
-                .Where(a => a.EntityType == "WorkItem" && a.EntityId == itemId && a.Action != "moved")
-                .Select(a => new { a.EntityType, a.EntityNameSnapshot, a.ActorNameSnapshot, a.Action, a.Details, a.Timestamp })
-                .ToListAsync();
+            var logged = await ItemLogQuery(_log.Query(), itemId).ToListAsync();
 
             // Skip each item's first row (FromStatus null): that is its creation, covered by the "created" entry.
-            var transitions = await _history.Query().AsNoTracking()
-                .Where(h => h.TaskId == itemId && h.FromStatus != null)
-                .Select(h => new { h.FromStatus, h.ToStatus, h.ChangedAt, Name = h.ChangedBy != null ? h.ChangedBy.Name : null })
-                .ToListAsync();
+            var transitions = await ItemTransitionsQuery(_history.Query(), itemId).ToListAsync();
 
             return logged.Select(a => new ActivityEntryDto
                 {

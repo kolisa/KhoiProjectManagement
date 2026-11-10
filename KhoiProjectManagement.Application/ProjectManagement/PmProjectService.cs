@@ -114,6 +114,16 @@ namespace KhoiProjectManagement.Application
 
         public const int MaxImportRows = 500;
 
+        public sealed record PermissionCountRow(int UserId, int Count);
+
+        // Static query builders: their SQL translation is covered by tests that need no database.
+        public static IQueryable<User> UsersByEmailQuery(IQueryable<User> users, IReadOnlyCollection<string> lowerCaseEmails) =>
+            users.Where(u => lowerCaseEmails.Contains(u.Email.ToLower()));
+
+        public static IQueryable<PermissionCountRow> PermissionCountsQuery(IQueryable<UserRole> userRoles, IReadOnlyCollection<int> userIds) =>
+            userRoles.AsNoTracking().Where(ur => userIds.Contains(ur.UserId))
+                .Select(ur => new PermissionCountRow(ur.UserId, ur.Role.RolePermissions.Count()));
+
         // Bulk-adds (or re-roles) people on a project from a pasted/uploaded list of "email, role" rows. Matching is
         // by email against EXISTING accounts - this never creates accounts. Rows that cannot be applied are
         // reported with the reason and skipped; the rest are applied together, and a DryRun applies nothing.
@@ -128,7 +138,7 @@ namespace KhoiProjectManagement.Application
                 throw new InvalidOperationException("Module-only accounts must also be granted module access.");
 
             var wantedEmails = dto.Rows.Select(r => (r.Email ?? string.Empty).Trim().ToLowerInvariant()).Where(e => e.Length > 0).Distinct().ToList();
-            var users = await _users.Query().Where(u => wantedEmails.Contains(u.Email.ToLower())).ToListAsync();
+            var users = await UsersByEmailQuery(_users.Query(), wantedEmails).ToListAsync();
             var userByEmail = users.GroupBy(u => u.Email.ToLowerInvariant()).ToDictionary(g => g.Key, g => g.First());
             var roster = await _members.Query().Where(m => m.ProjectId == projectId).ToListAsync();
             var memberByUser = roster.ToDictionary(m => m.UserId);
@@ -145,8 +155,7 @@ namespace KhoiProjectManagement.Application
             if (dto.GrantModuleAccess && dto.ModuleOnly && users.Count > 0)
             {
                 var ids = users.Select(u => u.Id).ToList();
-                var counts = await _userRoles.Query().AsNoTracking().Where(ur => ids.Contains(ur.UserId))
-                    .Select(ur => new { ur.UserId, Count = ur.Role.RolePermissions.Count() }).ToListAsync();
+                var counts = await PermissionCountsQuery(_userRoles.Query(), ids).ToListAsync();
                 otherPermissions = counts.GroupBy(c => c.UserId).ToDictionary(g => g.Key, g => g.Sum(c => c.Count));
             }
 
