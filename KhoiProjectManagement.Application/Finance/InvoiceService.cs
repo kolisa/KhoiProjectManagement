@@ -174,7 +174,7 @@ namespace KhoiProjectManagement.Application
                     File.Delete(oldPath);
             }
 
-            invoice.OriginalFileName = Path.GetFileName(file.FileName);
+            invoice.OriginalFileName = UploadFileNaming.SanitizeFileName(file.FileName);
             invoice.StoredFileName = storedFileName;
             invoice.FileContentType = file.ContentType;
             invoice.FileSize = file.Length;

@@ -406,7 +406,7 @@ namespace KhoiProjectManagement.Application
             var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
             if (!allowed.Contains(extension)) throw new InvalidOperationException("That file type is not allowed.");
 
-            var displayName = Path.GetFileName(file.FileName);
+            var displayName = UploadFileNaming.SanitizeFileName(file.FileName);
             if (displayName.Length > MaxFileNameLength)
                 throw new InvalidOperationException($"The file name is too long (maximum {MaxFileNameLength} characters).");
 

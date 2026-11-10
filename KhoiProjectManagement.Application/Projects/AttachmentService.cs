@@ -43,7 +43,7 @@ namespace KhoiProjectManagement.Application
 
             var attachment = new Attachment
             {
-                FileName = Path.GetFileName(file.FileName),
+                FileName = UploadFileNaming.SanitizeFileName(file.FileName),
                 FilePath = fileName,
                 FileSize = file.Length,
                 ContentType = file.ContentType,
