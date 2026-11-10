@@ -1,12 +1,13 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi } from 'vitest';
+import { useToast } from '../../contexts/ToastContext';
 import { ToastProvider } from '../../contexts/ToastContext';
 import { ConfirmProvider } from '../../contexts/ConfirmContext';
 import WorkItemCollab from './WorkItemCollab';
 
 const members = [{ userId: 1, name: 'Dana Dev' }, { userId: 2, name: 'Sam Smith' }];
-const item = { id: 7, title: 'Login page' };
+const item = { id: 7, projectId: 5, title: 'Login page' };
 
 const makeApi = (overrides = {}) => ({
   getWorkItemComments: vi.fn().mockResolvedValue([
@@ -25,7 +26,15 @@ const makeApi = (overrides = {}) => ({
   ]),
   addWorkItemLink: vi.fn().mockResolvedValue({}),
   deleteWorkItemLink: vi.fn().mockResolvedValue(null),
+  // Everything in the project - including an Epic and an item the opening screen would not have had.
+  getWorkItems: vi.fn().mockResolvedValue([
+    { id: 7, title: 'Login page', type: 'Story' },
+    { id: 3, title: 'API', type: 'Task' },
+    { id: 4, title: 'DB', type: 'Task' },
+    { id: 8, title: 'Platform epic', type: 'Epic' },
+  ]),
   getWorkItemAttachments: vi.fn().mockResolvedValue([]),
+  getWorkItemAttachmentObjectUrl: vi.fn().mockResolvedValue('blob:thumb'),
   uploadWorkItemAttachment: vi.fn().mockResolvedValue({}),
   ...overrides,
 });
@@ -104,7 +113,7 @@ describe('WorkItemCollab', () => {
     await screen.findByText(/blocked by 1/i);
 
     const target = screen.getByLabelText('Item to link');
-    expect(Array.from(target.options).map((o) => o.textContent)).toEqual(['Select an item…', '#4 DB']);
+    await waitFor(() => expect(Array.from(target.options).map((o) => o.textContent)).toEqual(['Select an item…', '#4 DB', '#8 Platform epic']));
 
     await user.selectOptions(screen.getByLabelText('Link type'), 'Blocks');
     await user.selectOptions(target, '4');
@@ -123,5 +132,50 @@ describe('WorkItemCollab', () => {
     await user.click(screen.getByRole('tab', { name: /links/i }));
     await screen.findByText(/blocked by 1/i);
     expect(screen.queryByLabelText('Item to link')).not.toBeInTheDocument();
+  });
+
+  it('does not refetch when an unrelated toast appears (a stable toast reference)', async () => {
+    const api = makeApi();
+    const user = userEvent.setup();
+    const ToastButton = () => {
+      const toast = useToast();
+      return <button onClick={() => toast.info('hello')}>show toast</button>;
+    };
+    render(
+      <ToastProvider>
+        <ConfirmProvider>
+          <ToastButton />
+          <WorkItemCollab apiService={api} item={item} items={[item]} members={members} can={{ collaborate: true, edit: true }} />
+        </ConfirmProvider>
+      </ToastProvider>
+    );
+    await screen.findByText(/please look/i);
+    expect(api.getWorkItemComments).toHaveBeenCalledTimes(1);
+
+    await user.click(screen.getByRole('button', { name: 'show toast' }));
+    await screen.findByText('hello');
+
+    expect(api.getWorkItemComments).toHaveBeenCalledTimes(1);
+    expect(api.getWorkItemChecklist).toHaveBeenCalledTimes(1);
+    expect(api.getWorkItemLinks).toHaveBeenCalledTimes(1);
+  });
+
+  it('only fetches image thumbnails once the Files tab is open, and skips large images', async () => {
+    const api = makeApi({
+      getWorkItemAttachments: vi.fn().mockResolvedValue([
+        { id: 1, fileName: 'small.png', fileSize: 1000, isImage: true, uploadedBy: 'Dana', uploadedAt: '2026-11-10T08:00:00Z', canDelete: false },
+        { id: 2, fileName: 'huge.png', fileSize: 6 * 1024 * 1024, isImage: true, uploadedBy: 'Dana', uploadedAt: '2026-11-10T08:00:00Z', canDelete: false },
+      ]),
+    });
+    window.URL.revokeObjectURL = vi.fn(); // jsdom does not implement it
+    const user = userEvent.setup();
+    renderCollab(api);
+    await waitFor(() => expect(api.getWorkItemAttachments).toHaveBeenCalled());
+    expect(api.getWorkItemAttachmentObjectUrl).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole('tab', { name: /files/i }));
+
+    await waitFor(() => expect(api.getWorkItemAttachmentObjectUrl).toHaveBeenCalledTimes(1));
+    expect(api.getWorkItemAttachmentObjectUrl).toHaveBeenCalledWith(1);
   });
 });

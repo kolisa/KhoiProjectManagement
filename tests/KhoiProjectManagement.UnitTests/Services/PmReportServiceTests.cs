@@ -110,6 +110,37 @@ namespace KhoiProjectManagement.UnitTests.Services
         }
 
         [Fact]
+        public async Task CumulativeFlow_ItemWithNoTransitionsInTheWindow_KeepsItsCurrentStatus_FromItsCreation()
+        {
+            SetTasks(
+                new ProjectTask { Id = 1, ProjectId = 1, Type = "Task", Status = "in-progress", CreatedAt = Ago(40) },   // long-lived, untouched
+                new ProjectTask { Id = 2, ProjectId = 1, Type = "Task", Status = "completed", CreatedAt = Ago(3) });    // created in window: has its own creation row
+            SetHistory(new TaskStatusHistory { TaskId = 2, FromStatus = null, ToStatus = "todo", ChangedAt = Ago(3) },
+                       new TaskStatusHistory { TaskId = 2, FromStatus = "todo", ToStatus = "completed", ChangedAt = Ago(1) });
+
+            var cfd = await CreateSut().GetCumulativeFlowAsync(Dev, 1, 7);
+
+            var byAgo = cfd.Points.ToDictionary(p => (DateTime.UtcNow.Date - p.Date).Days);
+            Assert.All(cfd.Points, p => Assert.Equal(1, p.Counts["in-progress"]));
+            Assert.Equal(0, byAgo[4].Counts["todo"] + byAgo[4].Counts["completed"]);   // item 2 not created yet
+            Assert.Equal(1, byAgo[3].Counts["todo"]);
+            Assert.Equal(1, byAgo[0].Counts["completed"]);
+        }
+
+        [Fact]
+        public async Task CumulativeFlow_UsesTheFromStatusOfTheFirstInWindowTransition_ForTheStartOfTheWindow()
+        {
+            SetTasks(new ProjectTask { Id = 1, ProjectId = 1, Type = "Task", Status = "completed", CreatedAt = Ago(60) });
+            SetHistory(new TaskStatusHistory { TaskId = 1, FromStatus = "blocked", ToStatus = "completed", ChangedAt = Ago(2) });
+
+            var cfd = await CreateSut().GetCumulativeFlowAsync(Dev, 1, 7);
+
+            var byAgo = cfd.Points.ToDictionary(p => (DateTime.UtcNow.Date - p.Date).Days);
+            Assert.Equal(1, byAgo[6].Counts["blocked"]);
+            Assert.Equal(1, byAgo[2].Counts["completed"]);
+        }
+
+        [Fact]
         public async Task CumulativeFlow_ExcludesEpicsAndFeatures_AndClampsTheRange()
         {
             SetTasks(new ProjectTask { Id = 1, ProjectId = 1, Type = "Epic" }, new ProjectTask { Id = 2, ProjectId = 1, Type = "Feature" });

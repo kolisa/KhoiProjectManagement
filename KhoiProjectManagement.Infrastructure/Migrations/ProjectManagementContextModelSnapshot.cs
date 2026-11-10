@@ -2943,6 +2943,11 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
                     b.Property<int>("CreatedBy")
                         .HasColumnType("integer");
 
+                    b.Property<string>("PairKey")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .HasColumnType("character varying(24)");
+
                     b.Property<int>("SourceId")
                         .HasColumnType("integer");
 
@@ -2956,10 +2961,12 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("TargetId");
-
-                    b.HasIndex("SourceId", "TargetId")
+                    b.HasIndex("PairKey")
                         .IsUnique();
+
+                    b.HasIndex("SourceId");
+
+                    b.HasIndex("TargetId");
 
                     b.ToTable("WorkItemLinks");
                 });

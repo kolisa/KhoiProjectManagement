@@ -68,7 +68,7 @@ namespace KhoiProjectManagement.UnitTests.Services
         private readonly IActivityLogService _activity = Substitute.For<IActivityLogService>();
         private readonly IUnitOfWork _uow = Substitute.For<IUnitOfWork>();
 
-        private PmWorkItemService CreateSut() => new(_tasks, _projects, _members, _history, _attachments, _storage, _workflow, _access, _activity, _uow);
+        private PmWorkItemService CreateSut() => new(_tasks, _projects, _members, _history, _attachments, _storage, _workflow, _access, _activity, _uow, Microsoft.Extensions.Logging.Abstractions.NullLogger<PmWorkItemService>.Instance);
 
         private void SetTasks(params ProjectTask[] items) => _tasks.Query().Returns(_ => items.ToList().BuildMock());
 
@@ -177,6 +177,29 @@ namespace KhoiProjectManagement.UnitTests.Services
 
             await Assert.ThrowsAsync<InvalidOperationException>(() => CreateSut().DeleteAsync(Dev, 1));
             _tasks.DidNotReceiveWithAnyArgs().Remove(default!);
+        }
+
+        [Fact]
+        public async Task CreateAsync_InAStatusTheWorkflowForbidsFromTodo_IsRejected_AndNothingIsAdded()
+        {
+            _workflow.EnsureTransitionAllowedAsync(1, "todo", "completed").Returns(Task.FromException(new InvalidOperationException("workflow")));
+
+            await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                CreateSut().CreateAsync(Dev, 1, new SaveWorkItemDto { Title = "T", Type = "Task", Status = "completed" }));
+
+            _tasks.DidNotReceiveWithAnyArgs().Add(default!);
+        }
+
+        [Fact]
+        public async Task DeleteAsync_WhenAStoredObjectCannotBeDeleted_StillSucceeds()
+        {
+            SetTasks(new ProjectTask { Id = 1, ProjectId = 1, Type = "Task", Title = "T" });
+            _attachments.Query().Returns(_ => new List<Attachment> { new() { Id = 5, TaskId = 1, FilePath = "pm/1/a.png" } }.BuildMock());
+            _storage.DeleteAsync("pm/1/a.png", Arg.Any<CancellationToken>()).Returns(Task.FromException(new IOException("r2 down")));
+
+            await CreateSut().DeleteAsync(Dev, 1);
+
+            _tasks.Received(1).Remove(Arg.Any<ProjectTask>());
         }
 
         [Fact]

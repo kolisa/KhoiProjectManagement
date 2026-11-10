@@ -17,6 +17,7 @@ namespace KhoiProjectManagement.Application
         private readonly IEmailService _emailService;
         private readonly IActivityLogService _activityLogService;
         private readonly IRepository<TaskStatusHistory> _statusHistoryRepo;
+        private readonly IPmWorkflowService _workflow;
 
         public TaskService(
             IRepository<ProjectTask> taskRepo,
@@ -28,9 +29,11 @@ namespace KhoiProjectManagement.Application
             INotificationService notificationService,
             IEmailService emailService,
             IActivityLogService activityLogService,
-            IRepository<TaskStatusHistory> statusHistoryRepo)
+            IRepository<TaskStatusHistory> statusHistoryRepo,
+            IPmWorkflowService workflow)
         {
             _statusHistoryRepo = statusHistoryRepo;
+            _workflow = workflow;
             _taskRepo = taskRepo;
             _userRepo = userRepo;
             _projectRepo = projectRepo;
@@ -192,6 +195,8 @@ namespace KhoiProjectManagement.Application
 
                 var oldStatus = task.Status;
                 var oldAssignedTo = task.AssignedToId;
+                // Project workflow rules apply on the classic Tasks tab as well as in the PM module.
+                await _workflow.EnsureTransitionAllowedAsync(task.ProjectId, oldStatus, updateTaskDto.Status);
 
                 task.Title = updateTaskDto.Title;
                 task.Description = updateTaskDto.Description;
@@ -284,6 +289,7 @@ namespace KhoiProjectManagement.Application
                 return false;
 
             var oldStatus = task.Status;
+            await _workflow.EnsureTransitionAllowedAsync(task.ProjectId, oldStatus, status);
             task.Status = status;
             WorkItemStatusTracker.Record(task, oldStatus, status, actingUserId, _statusHistoryRepo);
 

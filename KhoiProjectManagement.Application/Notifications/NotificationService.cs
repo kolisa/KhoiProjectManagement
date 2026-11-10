@@ -147,10 +147,10 @@ namespace KhoiProjectManagement.Application
                 .ToListAsync();
         }
 
-        public async Task MarkAsReadAsync(int notificationId)
+        public async Task MarkAsReadAsync(int notificationId, int? userId = null)
         {
             var notification = await _notificationRepo.FindAsync(notificationId);
-            if (notification != null)
+            if (notification != null && (userId == null || notification.UserId == userId))
             {
                 notification.IsRead = true;
                 notification.ReadAt = DateTime.UtcNow;

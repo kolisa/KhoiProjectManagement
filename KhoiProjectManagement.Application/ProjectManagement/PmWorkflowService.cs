@@ -57,9 +57,13 @@ namespace KhoiProjectManagement.Application
                 if (!CanReach(status, Done, blocked))
                     throw new InvalidOperationException($"Work in \"{Label(status)}\" must still be able to reach \"{Label(Done)}\" (directly or through other statuses).");
 
+            // Apply only the difference. Re-saving an unchanged rule must not delete and re-insert the same
+            // (project, from, to) key inside one SaveChanges, which would lean on the provider ordering the
+            // delete ahead of the insert to satisfy the unique index.
             var existing = await _restrictions.Query().Where(r => r.ProjectId == projectId).ToListAsync();
-            _restrictions.RemoveRange(existing);
-            foreach (var (from, to) in blocked)
+            var existingKeys = existing.Select(r => (r.FromStatus, r.ToStatus)).ToHashSet();
+            _restrictions.RemoveRange(existing.Where(r => !blocked.Contains((r.FromStatus, r.ToStatus))).ToList());
+            foreach (var (from, to) in blocked.Where(b => !existingKeys.Contains(b)))
                 _restrictions.Add(new WorkflowRestriction { ProjectId = projectId, FromStatus = from, ToStatus = to });
             await _uow.SaveChangesAsync();
 

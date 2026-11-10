@@ -107,6 +107,17 @@ namespace KhoiProjectManagement.UnitTests.Services
             await sut.EnsureTransitionAllowedAsync(1, "todo", "todo");
             await sut.EnsureTransitionAllowedAsync(2, "todo", "completed"); // a rule belongs to its own project
         }
+
+        [Fact]
+        public async Task Save_OfAnUnchangedRule_NeitherDeletesNorReinsertsIt()
+        {
+            SetRestrictions(new WorkflowRestriction { ProjectId = 1, FromStatus = "todo", ToStatus = "completed" });
+
+            await CreateSut().SaveAsync(Sm, 1, new SaveWorkflowDto { Transitions = { T("todo", "completed", false) } });
+
+            _restrictions.Received(1).RemoveRange(Arg.Is<IEnumerable<WorkflowRestriction>>(e => !e.Any()));
+            _restrictions.DidNotReceiveWithAnyArgs().Add(default!);
+        }
     }
 
     public class PmRetroServiceTests

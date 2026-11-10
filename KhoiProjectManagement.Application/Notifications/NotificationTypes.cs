@@ -10,6 +10,8 @@ namespace KhoiProjectManagement.Application
         public const string Overdue = "overdue";
         public const string ProjectCreated = "project_created";
         public const string Mention = "mention";
+        // In-app only (no email counterpart), so deliberately not part of Catalog / the preferences UI.
+        public const string Comment = "comment";
         public const string ReminderDue = "reminder_due";
         public const string LoginReminder = "login_reminder";
         public const string WeeklyDigest = "weekly_digest";

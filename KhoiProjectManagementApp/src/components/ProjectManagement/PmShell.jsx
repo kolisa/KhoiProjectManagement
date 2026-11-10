@@ -3,6 +3,7 @@ import { LogOut } from 'lucide-react';
 import ApiService from '../../services/ApiService';
 import { useAuth } from '../../contexts/AuthContext';
 import PmWorkspace from './PmWorkspace';
+import PmNotifications from './PmNotifications';
 
 // The whole UI for a module-only account: a minimal header and the PM workspace - no sidebar, no
 // other modules to navigate to. (The API enforces the same confinement; this is just the matching UX.)
@@ -19,6 +20,7 @@ const PmShell = () => {
             <span className="font-bold tracking-tight">KhoiHub · Projects</span>
           </div>
           <div className="flex items-center gap-4 text-sm">
+            <PmNotifications apiService={apiService} />
             <span className="hidden sm:inline text-blue-100">{user?.name}</span>
             <button onClick={() => logout()} className="inline-flex items-center gap-1.5 text-blue-100 hover:text-white">
               <LogOut className="h-4 w-4" aria-hidden="true" /> Sign out

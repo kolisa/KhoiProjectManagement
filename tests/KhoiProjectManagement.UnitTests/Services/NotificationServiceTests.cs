@@ -436,5 +436,29 @@ namespace KhoiProjectManagement.UnitTests.Services
             _notificationRepo.DidNotReceive().Add(Arg.Any<Notification>());
             await _emailService.DidNotReceive().SendBirthdayEmailAsync(Arg.Any<string>(), Arg.Any<string>());
         }
+
+        [Fact]
+        public async Task MarkAsReadAsync_ForAnotherUsersNotification_LeavesItUnread()
+        {
+            var note = new Notification { Id = 5, UserId = 1 };
+            _notificationRepo.FindAsync(5).Returns(note);
+
+            await CreateSut().MarkAsReadAsync(5, userId: 2);
+
+            Assert.False(note.IsRead);
+            await _unitOfWork.DidNotReceive().SaveChangesAsync();
+        }
+
+        [Fact]
+        public async Task MarkAsReadAsync_ForTheOwner_MarksItRead()
+        {
+            var note = new Notification { Id = 5, UserId = 1 };
+            _notificationRepo.FindAsync(5).Returns(note);
+
+            await CreateSut().MarkAsReadAsync(5, userId: 1);
+
+            Assert.True(note.IsRead);
+            Assert.NotNull(note.ReadAt);
+        }
     }
 }

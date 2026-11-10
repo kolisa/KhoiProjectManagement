@@ -230,6 +230,17 @@ const LINK_TYPES = [
 const LinksPanel = ({ apiService, item, items, canEdit, onCount }) => {
   const toast = useToast();
   const [links, setLinks] = useState(null);
+  // The picker offers every item in the project (Epics, Features and other sprints included), not just
+  // whatever list the opener happened to have on screen - the board, for one, only holds sprint cards.
+  const [projectItems, setProjectItems] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    apiService.getWorkItems(item.projectId)
+      .then((list) => { if (!cancelled) setProjectItems(list); })
+      .catch(() => { if (!cancelled) setProjectItems(null); });
+    return () => { cancelled = true; };
+  }, [apiService, item.projectId]);
   const [type, setType] = useState('Relates');
   const [targetId, setTargetId] = useState('');
 
@@ -264,7 +275,7 @@ const LinksPanel = ({ apiService, item, items, canEdit, onCount }) => {
 
   if (links === null) return <p className="text-sm text-gray-500">Loading…</p>;
   const linked = new Set(links.map((l) => l.otherId));
-  const candidates = items.filter((i) => i.id !== item.id && !linked.has(i.id));
+  const candidates = (projectItems || items).filter((i) => i.id !== item.id && !linked.has(i.id));
   const openBlockers = links.filter((l) => l.relation === 'Is blocked by' && l.otherStatus !== 'completed');
 
   return (
@@ -304,6 +315,9 @@ const LinksPanel = ({ apiService, item, items, canEdit, onCount }) => {
 
 // ---------------------------------------------------------------- attachments
 
+// Thumbnails are fetched at full size, so only small images get one; bigger ones show the file icon.
+const THUMB_MAX_BYTES = 2 * 1024 * 1024;
+
 const ImageThumb = ({ apiService, attachment }) => {
   const [src, setSrc] = useState(null);
   useEffect(() => {
@@ -318,7 +332,7 @@ const ImageThumb = ({ apiService, attachment }) => {
   return <img src={src} alt={attachment.fileName} className="h-12 w-12 rounded object-cover flex-shrink-0" />;
 };
 
-const AttachmentsPanel = ({ apiService, itemId, canUpload, onCount }) => {
+const AttachmentsPanel = ({ apiService, itemId, canUpload, onCount, active }) => {
   const toast = useToast();
   const confirm = useConfirm();
   const [files, setFiles] = useState(null);
@@ -371,7 +385,7 @@ const AttachmentsPanel = ({ apiService, itemId, canUpload, onCount }) => {
       <ul className="space-y-1.5">
         {files.map((f) => (
           <li key={f.id} className="flex items-center gap-3 bg-gray-50 rounded-lg px-3 py-2">
-            {f.isImage ? <ImageThumb apiService={apiService} attachment={f} /> : <Paperclip className="h-5 w-5 text-gray-400 flex-shrink-0" aria-hidden="true" />}
+            {f.isImage && active && f.fileSize <= THUMB_MAX_BYTES ? <ImageThumb apiService={apiService} attachment={f} /> : <Paperclip className="h-5 w-5 text-gray-400 flex-shrink-0" aria-hidden="true" />}
             <div className="flex-1 min-w-0">
               <div className="text-sm text-gray-800 truncate" title={f.fileName}>{f.fileName}</div>
               <div className="text-xs text-gray-500">{formatSize(f.fileSize)} · {f.uploadedBy} · {formatWhen(f.uploadedAt)}</div>
@@ -439,7 +453,7 @@ const WorkItemCollab = ({ apiService, item, items, members, can: abilities }) =>
         <LinksPanel apiService={apiService} item={item} items={items} canEdit={abilities.edit} onCount={onLinks} />
       </div>
       <div role="tabpanel" id="collab-panel-files" aria-labelledby="collab-tab-files" hidden={tab !== 'files'}>
-        <AttachmentsPanel apiService={apiService} itemId={item.id} canUpload={abilities.collaborate} onCount={onFiles} />
+        <AttachmentsPanel apiService={apiService} itemId={item.id} canUpload={abilities.collaborate} onCount={onFiles} active={tab === 'files'} />
       </div>
     </section>
   );

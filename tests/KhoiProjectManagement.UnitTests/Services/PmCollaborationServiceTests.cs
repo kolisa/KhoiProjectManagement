@@ -1,6 +1,7 @@
 using KhoiProjectManagement.Application;
 using KhoiProjectManagement.Application.Abstractions;
 using KhoiProjectManagement.Domain;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 using MockQueryable;
@@ -33,6 +34,7 @@ namespace KhoiProjectManagement.UnitTests.Services
             ["FileUpload:MaxFileSize"] = "1000",
             ["FileUpload:AllowedExtensions:0"] = ".png",
             ["FileUpload:AllowedExtensions:1"] = ".pdf",
+            ["FileUpload:AllowedExtensions:2"] = ".odt",
         }).Build();
 
         public PmCollaborationServiceTests()
@@ -326,6 +328,120 @@ namespace KhoiProjectManagement.UnitTests.Services
 
             await Assert.ThrowsAsync<KeyNotFoundException>(() => CreateSut().DownloadAttachmentAsync(Dev, 1));
             await _storage.DidNotReceiveWithAnyArgs().OpenReadAsync(default!);
+        }
+
+        // ---- hardening
+
+        [Fact]
+        public async Task AddAttachment_WithAVeryLongFileName_IsRejectedBeforeAnythingIsStored()
+        {
+            var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => CreateSut().AddAttachmentAsync(Dev, 1, Upload(new string('a', 200) + ".png", 10)));
+            Assert.Contains("too long", ex.Message);
+            await _storage.DidNotReceiveWithAnyArgs().SaveAsync(default!, default!, default!);
+        }
+
+        [Fact]
+        public async Task AddAttachment_PrefersTheExtensionsTypeOverWhatTheClientClaims()
+        {
+            Attachment? saved = null;
+            _attachments.When(r => r.Add(Arg.Any<Attachment>())).Do(ci => saved = ci.Arg<Attachment>());
+            var file = new AttachmentUploadDto { Content = new MemoryStream(new byte[10]), FileName = "a.png", ContentType = "text/html", Length = 10 };
+
+            await CreateSut().AddAttachmentAsync(Dev, 1, file);
+
+            Assert.Equal("image/png", saved!.ContentType);
+        }
+
+        [Theory]
+        [InlineData("not a media type")]
+        [InlineData("")]
+        public async Task AddAttachment_MalformedClientType_ForAnUnmappedExtension_FallsBackToOctetStream(string claimed)
+        {
+            Attachment? saved = null;
+            _attachments.When(r => r.Add(Arg.Any<Attachment>())).Do(ci => saved = ci.Arg<Attachment>());
+            var file = new AttachmentUploadDto { Content = new MemoryStream(new byte[10]), FileName = "notes.odt", ContentType = claimed, Length = 10 };
+
+            await CreateSut().AddAttachmentAsync(Dev, 1, file);
+
+            Assert.Equal("application/octet-stream", saved!.ContentType);
+        }
+
+        [Fact]
+        public async Task AddAttachment_WellFormedClientType_ForAnUnmappedExtension_IsKept()
+        {
+            Attachment? saved = null;
+            _attachments.When(r => r.Add(Arg.Any<Attachment>())).Do(ci => saved = ci.Arg<Attachment>());
+            var file = new AttachmentUploadDto { Content = new MemoryStream(new byte[10]), FileName = "notes.odt", ContentType = "application/vnd.oasis.opendocument.text", Length = 10 };
+
+            await CreateSut().AddAttachmentAsync(Dev, 1, file);
+
+            Assert.Equal("application/vnd.oasis.opendocument.text", saved!.ContentType);
+        }
+
+        [Fact]
+        public async Task Attachments_UploadedThroughTheClassicTasksTab_AreNotListedServedOrDeletedHere()
+        {
+            _attachments.Query().Returns(_ => new List<Attachment> { new() { Id = 1, TaskId = 1, UploadedBy = 10, FilePath = "3f2a_legacy.png", FileName = "legacy.png" } }.BuildMock());
+            var sut = CreateSut();
+
+            Assert.Empty(await sut.GetAttachmentsAsync(Dev, 1));
+            await Assert.ThrowsAsync<KeyNotFoundException>(() => sut.DownloadAttachmentAsync(Dev, 1));
+            await Assert.ThrowsAsync<KeyNotFoundException>(() => sut.DeleteAttachmentAsync(Dev, 1));
+            await _storage.DidNotReceiveWithAnyArgs().DeleteAsync(default!);
+        }
+
+        [Fact]
+        public async Task DeleteAttachment_WhenTheObjectDeleteFails_StillSucceeds()
+        {
+            _attachments.Query().Returns(_ => new List<Attachment> { new() { Id = 1, TaskId = 1, UploadedBy = 10, FilePath = "pm/1/x.png" } }.BuildMock());
+            _storage.DeleteAsync("pm/1/x.png", Arg.Any<CancellationToken>()).Returns(Task.FromException(new IOException("r2 down")));
+
+            await CreateSut().DeleteAttachmentAsync(Dev, 1);
+
+            _attachments.Received(1).Remove(Arg.Any<Attachment>());
+        }
+
+        [Fact]
+        public async Task AddLink_StoresADirectionIndependentPairKey()
+        {
+            WorkItemLink? added = null;
+            _links.When(r => r.Add(Arg.Any<WorkItemLink>())).Do(ci => { added = ci.Arg<WorkItemLink>(); added.Id = 9; SetLinks(added); });
+
+            await CreateSut().AddLinkAsync(Dev, 3, new CreateWorkItemLinkDto { TargetId = 1, Type = "Relates" });
+
+            Assert.Equal("1-3", added!.PairKey);
+            Assert.Equal(WorkItemLink.KeyFor(1, 3), WorkItemLink.KeyFor(3, 1));
+        }
+
+        [Fact]
+        public async Task AddLink_WhenTheUniquePairIndexRejectsIt_ReportsAlreadyLinked()
+        {
+            _uow.SaveChangesAsync().Returns<int>(_ => throw new DbUpdateException("duplicate key"));
+
+            var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => CreateSut().AddLinkAsync(Dev, 1, new CreateWorkItemLinkDto { TargetId = 2, Type = "Blocks" }));
+            Assert.Contains("already linked", ex.Message);
+        }
+
+        [Fact]
+        public async Task AddLink_WhenARacingRequestClosedALoopMeanwhile_BacksTheNewEdgeOut()
+        {
+            // Both pre-checks pass (no edges yet). After this request's edge is stored, the other request's
+            // edges 2->3 and 3->1 are visible, so 1->2 now closes a loop and must be removed again.
+            var saves = 0;
+            _uow.SaveChangesAsync().Returns(_ =>
+            {
+                if (++saves == 1)
+                    SetLinks(
+                        new WorkItemLink { Id = 1, SourceId = 2, TargetId = 3, Type = "Blocks", Source = new ProjectTask { Id = 2, ProjectId = 1 } },
+                        new WorkItemLink { Id = 2, SourceId = 3, TargetId = 1, Type = "Blocks", Source = new ProjectTask { Id = 3, ProjectId = 1 } });
+                return Task.FromResult(1);
+            });
+
+            var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => CreateSut().AddLinkAsync(Dev, 1, new CreateWorkItemLinkDto { TargetId = 2, Type = "Blocks" }));
+
+            Assert.Contains("circular", ex.Message);
+            _links.Received(1).Remove(Arg.Is<WorkItemLink>(l => l.SourceId == 1 && l.TargetId == 2));
+            Assert.Equal(2, saves);
         }
     }
 }

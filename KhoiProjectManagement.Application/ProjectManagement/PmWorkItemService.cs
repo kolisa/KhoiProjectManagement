@@ -1,6 +1,7 @@
 using KhoiProjectManagement.Application.Abstractions;
 using KhoiProjectManagement.Domain;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace KhoiProjectManagement.Application
 {
@@ -27,6 +28,7 @@ namespace KhoiProjectManagement.Application
         private readonly IRepository<Attachment> _attachments;
         private readonly IFileStorage _storage;
         private readonly IPmWorkflowService _workflow;
+        private readonly ILogger<PmWorkItemService> _logger;
         private readonly IProjectAccessService _access;
         private readonly IActivityLogService _activity;
         private readonly IUnitOfWork _unitOfWork;
@@ -41,7 +43,8 @@ namespace KhoiProjectManagement.Application
             IPmWorkflowService workflow,
             IProjectAccessService access,
             IActivityLogService activity,
-            IUnitOfWork unitOfWork)
+            IUnitOfWork unitOfWork,
+            ILogger<PmWorkItemService> logger)
         {
             _tasks = tasks;
             _projects = projects;
@@ -50,6 +53,7 @@ namespace KhoiProjectManagement.Application
             _attachments = attachments;
             _storage = storage;
             _workflow = workflow;
+            _logger = logger;
             _access = access;
             _activity = activity;
             _unitOfWork = unitOfWork;
@@ -85,6 +89,9 @@ namespace KhoiProjectManagement.Application
         public async Task<WorkItemDto> CreateAsync(PmCaller caller, int projectId, SaveWorkItemDto dto)
         {
             await _access.RequireAsync(caller, projectId, PmAction.CreateItem);
+            // A new item starts in To do, so creating one directly in another status is a To do -> X move
+            // and must obey the same workflow rules.
+            await _workflow.EnsureTransitionAllowedAsync(projectId, "todo", dto.Status);
             var project = await _projects.Query().AsNoTracking().FirstAsync(p => p.Id == projectId);
 
             await ValidateRelationsAsync(projectId, null, dto);
@@ -183,8 +190,18 @@ namespace KhoiProjectManagement.Application
             _attachments.RemoveRange(attachments);
             _tasks.Remove(item);
             await _unitOfWork.SaveChangesAsync();
+            // The rows are already gone, so a failed object delete is logged, not surfaced.
             foreach (var attachment in attachments)
-                await _storage.DeleteAsync(attachment.FilePath);
+            {
+                try
+                {
+                    await _storage.DeleteAsync(attachment.FilePath);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Could not delete stored object {Key} for deleted work item {ItemId}", attachment.FilePath, itemId);
+                }
+            }
             await _activity.LogAsync("WorkItem", null, item.Title, caller.UserId, "deleted", item.Type);
         }
 

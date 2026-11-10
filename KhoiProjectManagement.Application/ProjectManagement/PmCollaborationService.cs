@@ -35,6 +35,12 @@ namespace KhoiProjectManagement.Application
     public class PmCollaborationService : IPmCollaborationService
     {
         private const long DefaultMaxFileSize = 10 * 1024 * 1024;
+        // Attachments written by this module live under this key prefix. Rows without it were uploaded
+        // through the classic Tasks tab (local disk, bare filename) and are not this module's to list,
+        // serve or delete.
+        private const string PmKeyPrefix = "pm/";
+        // Keeps "pm/{projectId}/{guid}_{name}" inside Attachment.FilePath's 255-character column.
+        private const int MaxFileNameLength = 150;
 
         private readonly IRepository<ProjectTask> _tasks;
         private readonly IRepository<WorkItemComment> _comments;
@@ -195,7 +201,7 @@ namespace KhoiProjectManagement.Application
 
             if (isNewComment && item.AssignedToId is int assignee && assignee != caller.UserId && !mentioned.Contains(assignee))
             {
-                await _notifications.CreateNotificationAsync(assignee, "comment",
+                await _notifications.CreateNotificationAsync(assignee, NotificationTypes.Comment,
                     $"{authorName} commented on '{item.Title}'", taskId: item.Id, projectId: item.ProjectId);
             }
         }
@@ -303,9 +309,30 @@ namespace KhoiProjectManagement.Application
             if (dto.Type == WorkItemLinkTypes.Blocks && await WouldCreateBlockCycleAsync(item.ProjectId, itemId, dto.TargetId))
                 throw new InvalidOperationException("That would create a circular dependency.");
 
-            var link = new WorkItemLink { SourceId = itemId, TargetId = dto.TargetId, Type = dto.Type, CreatedBy = caller.UserId };
+            var link = new WorkItemLink
+            {
+                SourceId = itemId, TargetId = dto.TargetId, Type = dto.Type, CreatedBy = caller.UserId,
+                PairKey = WorkItemLink.KeyFor(itemId, dto.TargetId),
+            };
             _links.Add(link);
-            await _uow.SaveChangesAsync();
+            try
+            {
+                await _uow.SaveChangesAsync();
+            }
+            catch (DbUpdateException)
+            {
+                // The unique pair index caught a concurrent request linking the same two items.
+                throw new InvalidOperationException("These items are already linked.");
+            }
+
+            // Two simultaneous "blocks" requests can each pass the check above and together close a loop.
+            // Re-check once the edge is stored; the loser (possibly both) backs out.
+            if (dto.Type == WorkItemLinkTypes.Blocks && await WouldCreateBlockCycleAsync(item.ProjectId, itemId, dto.TargetId))
+            {
+                _links.Remove(link);
+                await _uow.SaveChangesAsync();
+                throw new InvalidOperationException("That would create a circular dependency.");
+            }
             await _activity.LogAsync("WorkItem", item.Id, item.Title, caller.UserId, "linked", $"{dto.Type} #{dto.TargetId}");
 
             return (await GetLinksAsync(caller, itemId)).First(l => l.Id == link.Id);
@@ -349,7 +376,7 @@ namespace KhoiProjectManagement.Application
             await _access.RequireAsync(caller, item.ProjectId, PmAction.View);
             var canModerate = await CanAsync(caller, item.ProjectId, PmAction.DeleteItem);
 
-            var rows = await _attachments.Query().AsNoTracking().Where(a => a.TaskId == itemId)
+            var rows = await _attachments.Query().AsNoTracking().Where(a => a.TaskId == itemId && a.FilePath.StartsWith(PmKeyPrefix))
                 .OrderBy(a => a.UploadedAt)
                 .Select(a => new { a.Id, a.FileName, a.FileSize, a.ContentType, a.UploadedBy, Name = a.UploadedByUser.Name, a.UploadedAt })
                 .ToListAsync();
@@ -375,13 +402,18 @@ namespace KhoiProjectManagement.Application
             var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
             if (!allowed.Contains(extension)) throw new InvalidOperationException("That file type is not allowed.");
 
-            var key = $"pm/{item.ProjectId}/{UploadFileNaming.BuildStoredFileName(file.FileName)}";
-            await _storage.SaveAsync(key, file.Content, file.ContentType);
+            var displayName = Path.GetFileName(file.FileName);
+            if (displayName.Length > MaxFileNameLength)
+                throw new InvalidOperationException($"The file name is too long (maximum {MaxFileNameLength} characters).");
+
+            var contentType = ResolveContentType(file.ContentType, displayName);
+            var key = $"{PmKeyPrefix}{item.ProjectId}/{UploadFileNaming.BuildStoredFileName(file.FileName)}";
+            await _storage.SaveAsync(key, file.Content, contentType);
 
             var attachment = new Attachment
             {
-                FileName = Path.GetFileName(file.FileName), FilePath = key, FileSize = file.Length,
-                ContentType = file.ContentType, TaskId = itemId, UploadedBy = caller.UserId,
+                FileName = displayName, FilePath = key, FileSize = file.Length,
+                ContentType = contentType, TaskId = itemId, UploadedBy = caller.UserId,
             };
             _attachments.Add(attachment);
             try
@@ -405,7 +437,7 @@ namespace KhoiProjectManagement.Application
 
         public async Task<AttachmentDownload> DownloadAttachmentAsync(PmCaller caller, int attachmentId)
         {
-            var attachment = await _attachments.Query().AsNoTracking().FirstOrDefaultAsync(a => a.Id == attachmentId && a.TaskId != null)
+            var attachment = await _attachments.Query().AsNoTracking().FirstOrDefaultAsync(a => a.Id == attachmentId && a.TaskId != null && a.FilePath.StartsWith(PmKeyPrefix))
                 ?? throw new KeyNotFoundException();
             var item = await ItemAsync(attachment.TaskId!.Value);
             await _access.RequireAsync(caller, item.ProjectId, PmAction.View);
@@ -415,7 +447,7 @@ namespace KhoiProjectManagement.Application
 
         public async Task DeleteAttachmentAsync(PmCaller caller, int attachmentId)
         {
-            var attachment = await _attachments.Query().FirstOrDefaultAsync(a => a.Id == attachmentId && a.TaskId != null)
+            var attachment = await _attachments.Query().FirstOrDefaultAsync(a => a.Id == attachmentId && a.TaskId != null && a.FilePath.StartsWith(PmKeyPrefix))
                 ?? throw new KeyNotFoundException();
             var item = await ItemAsync(attachment.TaskId!.Value);
             await _access.RequireAsync(caller, item.ProjectId, PmAction.View);
@@ -424,7 +456,28 @@ namespace KhoiProjectManagement.Application
 
             _attachments.Remove(attachment);
             await _uow.SaveChangesAsync();
-            await _storage.DeleteAsync(attachment.FilePath);
+            try
+            {
+                await _storage.DeleteAsync(attachment.FilePath);
+            }
+            catch (Exception ex)
+            {
+                // The row is already gone; a failed object delete must not turn that into an error.
+                _logger.LogWarning(ex, "Could not delete stored object {Key} for attachment {AttachmentId}", attachment.FilePath, attachment.Id);
+            }
+        }
+
+        // The browser-supplied type is untrusted: it is stored and later handed to File(), where a malformed
+        // value would throw on every download. Prefer the type implied by the (allow-listed) extension, and
+        // only fall back to the client's when it is a well-formed media type that fits the column.
+        private static string ResolveContentType(string? clientType, string fileName)
+        {
+            var fromExtension = ContentTypeResolver.Resolve(null, fileName);
+            if (fromExtension != "application/octet-stream") return fromExtension;
+            return !string.IsNullOrWhiteSpace(clientType) && clientType.Length <= 100
+                && System.Net.Http.Headers.MediaTypeHeaderValue.TryParse(clientType, out _)
+                ? clientType
+                : "application/octet-stream";
         }
 
         private static bool IsImage(string contentType) => contentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase);

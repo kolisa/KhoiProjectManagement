@@ -24,11 +24,16 @@ const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 
 const buildLanes = (mode, cards) => {
   if (mode === 'none') return [{ key: 'all', label: null, match: () => true }];
-  const keyOf = { assignee: (i) => i.assignedToName || 'Unassigned', priority: (i) => i.priority, type: (i) => i.type }[mode];
-  const labelOf = mode === 'priority' ? (k) => `${cap(k)} priority` : (k) => k;
+  // People are grouped by id, not display name, so two people who share a name get separate lanes.
+  const keyOf = { assignee: (i) => String(i.assignedToId ?? 'none'), priority: (i) => i.priority, type: (i) => i.type }[mode];
+  const labelOf = (k) => {
+    if (mode === 'priority') return `${cap(k)} priority`;
+    if (mode === 'assignee') return cards.find((i) => keyOf(i) === k)?.assignedToName || 'Unassigned';
+    return k;
+  };
   const keys = [...new Set(cards.map(keyOf))];
   if (mode === 'priority') keys.sort((a, b) => PRIORITY_ORDER.indexOf(a) - PRIORITY_ORDER.indexOf(b));
-  else keys.sort((a, b) => (a === 'Unassigned') - (b === 'Unassigned') || a.localeCompare(b));
+  else keys.sort((a, b) => (a === 'none') - (b === 'none') || labelOf(a).localeCompare(labelOf(b)));
   return keys.map((k) => ({ key: k, label: labelOf(k), match: (i) => keyOf(i) === k }));
 };
 
@@ -184,9 +189,9 @@ const PmBoard = ({ apiService, project, members }) => {
               <header className="flex items-center justify-between px-3 py-2.5">
                 <h3 className="text-sm font-semibold text-gray-800">{col.name}</h3>
                 <span className={`inline-flex items-center gap-1 text-xs font-semibold rounded-full px-2 py-0.5 ${col.overWip ? 'bg-red-100 text-red-700' : atLimit ? 'bg-amber-100 text-amber-700' : 'bg-white text-gray-600'}`}
-                  title={col.wipLimit != null ? `WIP limit ${col.wipLimit}` : 'No WIP limit'}>
+                  title={`${laneMode === 'none' ? '' : `${cards.length} in this lane · `}${col.count} in the column${col.wipLimit != null ? ` · WIP limit ${col.wipLimit}` : ' · no WIP limit'}`}>
                   {(col.overWip || atLimit) && <AlertTriangle className="h-3 w-3" aria-hidden="true" />}
-                  {col.count}{col.wipLimit != null && ` / ${col.wipLimit}`}
+                  {laneMode === 'none' ? col.count : cards.length}{laneMode === 'none' && col.wipLimit != null && ` / ${col.wipLimit}`}
                 </span>
               </header>
 

@@ -12,6 +12,12 @@ namespace KhoiProjectManagement.Domain
 
         public string Type { get; set; } = "Relates"; // Blocks, Relates, Duplicates
 
+        // Direction-independent identity of the two items ("low-high"). Unique in the database so the same
+        // pair can't be linked twice - in either direction - by concurrent requests.
+        public string PairKey { get; set; } = string.Empty;
+
+        public static string KeyFor(int a, int b) => a < b ? $"{a}-{b}" : $"{b}-{a}";
+
         public int CreatedBy { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }

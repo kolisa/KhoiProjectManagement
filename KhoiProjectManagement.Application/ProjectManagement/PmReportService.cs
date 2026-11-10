@@ -83,26 +83,42 @@ namespace KhoiProjectManagement.Application
             await _access.RequireAsync(caller, projectId, PmAction.View);
             days = Math.Clamp(days, 7, 180);
 
-            var ids = await FlowItems(projectId).Select(t => t.Id).ToListAsync();
-            var transitions = await _history.Query().AsNoTracking()
-                .Where(h => ids.Contains(h.TaskId))
-                .Select(h => new { h.TaskId, h.ToStatus, h.ChangedAt }).ToListAsync();
-            var byTask = transitions.GroupBy(h => h.TaskId)
-                .Select(g => g.OrderBy(h => h.ChangedAt).ToList()).ToList();
-
             var to = DateTime.UtcNow.Date;
             var from = to.AddDays(-(days - 1));
+
+            var items = await FlowItems(projectId).Select(t => new { t.Id, t.Status, t.CreatedAt }).ToListAsync();
+            var ids = items.Select(i => i.Id).ToList();
+
+            // Only the transitions inside the window are loaded - not the project's whole history. What an item
+            // looked like before the window is recovered from the first in-window transition's FromStatus, and
+            // an item with no transitions in the window has simply kept its current status throughout.
+            var transitions = await _history.Query().AsNoTracking()
+                .Where(h => ids.Contains(h.TaskId) && h.ChangedAt >= from)
+                .Select(h => new { h.TaskId, h.FromStatus, h.ToStatus, h.ChangedAt }).ToListAsync();
+            var byTask = transitions.GroupBy(h => h.TaskId)
+                .ToDictionary(g => g.Key, g => g.OrderBy(h => h.ChangedAt).ToList());
+
             var result = new CumulativeFlowDto { From = from, To = to, Statuses = FlowStatuses.ToList() };
 
             for (var day = from; day <= to; day = day.AddDays(1))
             {
                 var cutoff = day.AddDays(1);
                 var counts = FlowStatuses.ToDictionary(s => s, _ => 0);
-                foreach (var rows in byTask)
+                foreach (var item in items)
                 {
-                    // The item's status at the end of that day; items that did not exist yet are skipped.
-                    var last = rows.LastOrDefault(r => r.ChangedAt < cutoff);
-                    if (last != null && counts.ContainsKey(last.ToStatus)) counts[last.ToStatus]++;
+                    string? status;
+                    if (!byTask.TryGetValue(item.Id, out var rows))
+                    {
+                        status = item.CreatedAt < cutoff ? item.Status : null;
+                    }
+                    else
+                    {
+                        var last = rows.LastOrDefault(r => r.ChangedAt < cutoff);
+                        // Before its first in-window transition an item is in that transition's FromStatus -
+                        // or did not exist yet when the transition is its creation (FromStatus null).
+                        status = last != null ? last.ToStatus : rows[0].FromStatus;
+                    }
+                    if (status != null && counts.ContainsKey(status)) counts[status]++;
                 }
                 result.Points.Add(new CumulativeFlowPointDto { Date = day, Counts = counts });
             }

@@ -218,7 +218,8 @@ namespace KhoiProjectManagement.Infrastructure.Data
             modelBuilder.Entity<WorkItemLink>(e =>
             {
                 e.Property(l => l.Type).IsRequired().HasMaxLength(20);
-                e.HasIndex(l => new { l.SourceId, l.TargetId }).IsUnique();
+                e.Property(l => l.PairKey).IsRequired().HasMaxLength(24);
+                e.HasIndex(l => l.PairKey).IsUnique();
                 e.HasIndex(l => l.TargetId);
                 e.HasOne(l => l.Source).WithMany().HasForeignKey(l => l.SourceId).OnDelete(DeleteBehavior.Cascade);
                 e.HasOne(l => l.Target).WithMany().HasForeignKey(l => l.TargetId).OnDelete(DeleteBehavior.Cascade);
