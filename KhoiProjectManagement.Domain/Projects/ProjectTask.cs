@@ -29,11 +29,31 @@ namespace KhoiProjectManagement.Domain
         // for its scheduled time; other types just carry midnight and are rendered/edited as a plain
         // date in the UI. No separate "MeetingTime" field needed since this column already supports it.
         public DateTime DueDate { get; set; }
+        // DueDate is required, so a Project Management item created without one is given its project's end date.
+        // That placeholder is not a real deadline: this flag is false for it, and "overdue" / "due soon" ignore it
+        // (otherwise every undated item would read as overdue the day the project's end date passes).
+        public bool HasExplicitDueDate { get; set; } = true;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? CompletedAt { get; set; }
 
-        public bool IsOverdue => Status != "completed" && DueDate < DateTime.Now;
+        // Project Management module (Scrum/Kanban) - the same row serves the classic Tasks tab and the
+        // PM backlog/boards, so no second work-item table. Type additionally allows Epic/Feature/Story/
+        // Bug/Subtask; ParentId models that hierarchy (level rules enforced in PmWorkItemService).
+        public int? ParentId { get; set; }
+        public virtual ProjectTask? Parent { get; set; }
+        public virtual ICollection<ProjectTask> Children { get; set; } = new List<ProjectTask>();
+        public int? StoryPoints { get; set; }
+        public int? SprintId { get; set; }
+        public virtual Sprint? Sprint { get; set; }
+        // First time the item entered "in-progress" (see WorkItemStatusTracker) - cycle time is
+        // CompletedAt - StartedAt. Null for work that predates the PM module or never started.
+        public DateTime? StartedAt { get; set; }
+        // Backlog ordering within a project - lower sorts first. A double so a drag-reorder can take
+        // the midpoint of its neighbours without renumbering every row.
+        public double Rank { get; set; }
+
+        public bool IsOverdue => Status != "completed" && HasExplicitDueDate && DueDate < DateTime.Now;
 
         // Navigation properties
         public virtual ICollection<TaskTag> TaskTags { get; set; } = new List<TaskTag>();

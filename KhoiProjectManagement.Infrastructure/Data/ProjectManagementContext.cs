@@ -24,6 +24,14 @@ namespace KhoiProjectManagement.Infrastructure.Data
         public DbSet<Attachment> Attachments { get; set; }
         public DbSet<Notification> Notifications { get; set; }
         public DbSet<ProjectUser> ProjectUsers { get; set; }
+        public DbSet<BoardColumn> BoardColumns { get; set; }
+        public DbSet<Sprint> Sprints { get; set; }
+        public DbSet<TaskStatusHistory> TaskStatusHistories { get; set; }
+        public DbSet<WorkItemComment> WorkItemComments { get; set; }
+        public DbSet<ChecklistItem> ChecklistItems { get; set; }
+        public DbSet<WorkItemLink> WorkItemLinks { get; set; }
+        public DbSet<WorkflowRestriction> WorkflowRestrictions { get; set; }
+        public DbSet<RetroItem> RetroItems { get; set; }
         public DbSet<ProjectTag> ProjectTags { get; set; }
         public DbSet<TaskTag> TaskTags { get; set; }
         public DbSet<EmailLog> EmailLogs { get; set; }
@@ -167,7 +175,85 @@ namespace KhoiProjectManagement.Infrastructure.Data
                 e.Property(t => t.Status).IsRequired();
                 e.Property(t => t.Priority).IsRequired();
                 e.Property(t => t.Type).IsRequired().HasMaxLength(20).HasDefaultValue("Task");
+                e.HasOne(t => t.Parent).WithMany(t => t.Children).HasForeignKey(t => t.ParentId).OnDelete(DeleteBehavior.Restrict);
+                e.HasIndex(t => new { t.ProjectId, t.Rank });
+                e.HasIndex(t => t.ParentId);
             });
+
+            modelBuilder.Entity<BoardColumn>(e =>
+            {
+                e.Property(c => c.Status).IsRequired().HasMaxLength(20);
+                e.Property(c => c.Name).IsRequired().HasMaxLength(40);
+                e.HasIndex(c => new { c.ProjectId, c.Status }).IsUnique();
+                e.HasOne(c => c.Project).WithMany().HasForeignKey(c => c.ProjectId).OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<Sprint>(e =>
+            {
+                e.Property(s => s.Name).IsRequired().HasMaxLength(100);
+                e.Property(s => s.Goal).HasMaxLength(500);
+                e.Property(s => s.State).IsRequired().HasMaxLength(20);
+                e.HasIndex(s => new { s.ProjectId, s.State });
+                // At most one active sprint per project, enforced by the database as well as the service.
+                e.HasIndex(s => s.ProjectId).IsUnique().HasFilter("\"State\" = 'Active'").HasDatabaseName("IX_Sprints_ProjectId_Active");
+                e.HasOne(s => s.Project).WithMany().HasForeignKey(s => s.ProjectId).OnDelete(DeleteBehavior.Cascade);
+                e.HasMany(s => s.Tasks).WithOne(t => t.Sprint).HasForeignKey(t => t.SprintId).OnDelete(DeleteBehavior.SetNull);
+            });
+
+            modelBuilder.Entity<WorkItemComment>(e =>
+            {
+                e.Property(c => c.Body).IsRequired().HasMaxLength(4000);
+                e.HasIndex(c => new { c.TaskId, c.CreatedAt });
+                e.HasOne(c => c.Task).WithMany().HasForeignKey(c => c.TaskId).OnDelete(DeleteBehavior.Cascade);
+                e.HasOne(c => c.Author).WithMany().HasForeignKey(c => c.AuthoredBy).OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<ChecklistItem>(e =>
+            {
+                e.Property(c => c.Text).IsRequired().HasMaxLength(300);
+                e.HasIndex(c => new { c.TaskId, c.Position });
+                e.HasOne(c => c.Task).WithMany().HasForeignKey(c => c.TaskId).OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<WorkItemLink>(e =>
+            {
+                e.Property(l => l.Type).IsRequired().HasMaxLength(20);
+                e.Property(l => l.PairKey).IsRequired().HasMaxLength(24);
+                e.HasIndex(l => l.PairKey).IsUnique();
+                e.HasIndex(l => l.TargetId);
+                e.HasOne(l => l.Source).WithMany().HasForeignKey(l => l.SourceId).OnDelete(DeleteBehavior.Cascade);
+                e.HasOne(l => l.Target).WithMany().HasForeignKey(l => l.TargetId).OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<WorkflowRestriction>(e =>
+            {
+                e.Property(r => r.FromStatus).IsRequired().HasMaxLength(20);
+                e.Property(r => r.ToStatus).IsRequired().HasMaxLength(20);
+                e.HasIndex(r => new { r.ProjectId, r.FromStatus, r.ToStatus }).IsUnique();
+                e.HasOne(r => r.Project).WithMany().HasForeignKey(r => r.ProjectId).OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<RetroItem>(e =>
+            {
+                e.Property(r => r.Category).IsRequired().HasMaxLength(20);
+                e.Property(r => r.Text).IsRequired().HasMaxLength(500);
+                e.HasIndex(r => r.SprintId);
+                e.HasOne(r => r.Sprint).WithMany().HasForeignKey(r => r.SprintId).OnDelete(DeleteBehavior.Cascade);
+                e.HasOne(r => r.Author).WithMany().HasForeignKey(r => r.AuthoredBy).OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<TaskStatusHistory>(e =>
+            {
+                e.Property(h => h.FromStatus).HasMaxLength(20);
+                e.Property(h => h.ToStatus).IsRequired().HasMaxLength(20);
+                e.HasIndex(h => new { h.TaskId, h.ChangedAt });
+                e.HasIndex(h => h.ChangedAt);
+                e.HasOne(h => h.Task).WithMany().HasForeignKey(h => h.TaskId).OnDelete(DeleteBehavior.Cascade);
+                e.HasOne(h => h.ChangedBy).WithMany().HasForeignKey(h => h.ChangedById).OnDelete(DeleteBehavior.SetNull);
+            });
+
+            modelBuilder.Entity<ProjectUser>()
+                .Property(pu => pu.ProjectRole).IsRequired().HasMaxLength(20).HasDefaultValue("Developer");
 
             modelBuilder.Entity<Tag>(e =>
             {
@@ -980,7 +1066,8 @@ namespace KhoiProjectManagement.Infrastructure.Data
                 new Permission { Id = 25, Resource = "groups", Action = "manage", Name = "groups.manage", Description = "Create groups and manage their membership" },
                 new Permission { Id = 26, Resource = "audit", Action = "view", Name = "audit.view", Description = "View sent-email history and application error logs" },
                 new Permission { Id = 27, Resource = "email", Action = "broadcast", Name = "email.broadcast", Description = "Send a broadcast email to users filtered by role" },
-                new Permission { Id = 28, Resource = "email", Action = "manage_overview", Name = "email.manage_overview", Description = "Configure the weekly system-overview email's on/off switch and schedule" }
+                new Permission { Id = 28, Resource = "email", Action = "manage_overview", Name = "email.manage_overview", Description = "Configure the weekly system-overview email's on/off switch and schedule" },
+                new Permission { Id = 29, Resource = "pm", Action = "admin", Name = "pm.admin", Description = "Grant or revoke Project Management module access (and module-only confinement) for users" }
             );
 
             modelBuilder.Entity<Role>().HasData(
@@ -991,7 +1078,7 @@ namespace KhoiProjectManagement.Infrastructure.Data
 
             // Admin: all permissions.
             modelBuilder.Entity<RolePermission>().HasData(
-                Enumerable.Range(1, 28).Select(permissionId => new RolePermission { RoleId = 1, PermissionId = permissionId }).ToArray()
+                Enumerable.Range(1, 29).Select(permissionId => new RolePermission { RoleId = 1, PermissionId = permissionId }).ToArray()
             );
 
             // Manager: projects.create/edit, tasks.delete, attachments.delete, notifications.check_overdue,

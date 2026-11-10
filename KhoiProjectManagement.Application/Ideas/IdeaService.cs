@@ -278,7 +278,7 @@ namespace KhoiProjectManagement.Application
             var attachment = new IdeaAttachment
             {
                 IdeaId = ideaId,
-                OriginalFileName = Path.GetFileName(file.FileName),
+                OriginalFileName = UploadFileNaming.SanitizeFileName(file.FileName),
                 StoredFileName = storedFileName,
                 ContentType = file.ContentType,
                 FileSize = file.Length,

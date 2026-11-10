@@ -1,5 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
+	<PropertyGroup>
+		<!-- Local-dev secrets (e.g. the R2 keys) live in the user-secrets store, outside the repo. -->
+		<UserSecretsId>4d3ddf5e-73ed-4275-a18c-cdde237e6a91</UserSecretsId>
+	</PropertyGroup>
+
 	<ItemGroup>
 		<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
 		<PackageReference Include="Microsoft.AspNetCore.OpenApi" />

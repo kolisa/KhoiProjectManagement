@@ -48,7 +48,7 @@ namespace KhoiProjectManagement.FunctionalTests
 
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             var permissions = await response.Content.ReadFromJsonAsync<List<PermissionDto>>();
-            Assert.Equal(28, permissions!.Count); // DatabaseSeeder/OnModelCreating seeds exactly 28 (26 + email.broadcast + email.manage_overview).
+            Assert.Equal(29, permissions!.Count); // DatabaseSeeder/OnModelCreating seeds exactly 29 (26 + email.broadcast + email.manage_overview + pm.admin).
         }
 
         // Role.Name is Fluent-configured HasMaxLength(50) in OnModelCreating (a real varchar(50) DB

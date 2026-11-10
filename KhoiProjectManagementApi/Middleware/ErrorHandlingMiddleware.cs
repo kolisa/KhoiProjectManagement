@@ -53,6 +53,11 @@ namespace KhoiProjectManagementApi.Middleware
                     };
                     break;
 
+                case KhoiProjectManagement.Application.ForbiddenException:
+                    context.Response.StatusCode = (int)HttpStatusCode.Forbidden;
+                    response = new { message = exception.Message };
+                    break;
+
                 case UnauthorizedAccessException:
                     context.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
                     response = new { message = "Unauthorized access" };

@@ -42,6 +42,12 @@ namespace KhoiProjectManagement.Domain
         public int? ManagerId { get; set; }
         public virtual User? Manager { get; set; }
 
+        // Project Management module access - granted/revoked only by a pm.admin holder (SuperAdmin).
+        // PmOnly confines the account to the PM module: every non-PM API endpoint rejects it
+        // (see ModuleOnlyAccessFilter) and the frontend renders only the PM workspace.
+        public bool PmAccess { get; set; }
+        public bool PmOnly { get; set; }
+
         // Navigation properties
         public virtual ICollection<ProjectUser> ProjectUsers { get; set; } = new List<ProjectUser>();
         public virtual ICollection<ProjectTask> AssignedTasks { get; set; } = new List<ProjectTask>();

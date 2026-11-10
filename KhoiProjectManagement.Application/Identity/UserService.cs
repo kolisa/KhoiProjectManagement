@@ -321,6 +321,8 @@ namespace KhoiProjectManagement.Application
                 CreatedAt = user.CreatedAt,
                 LastLoginAt = user.LastLoginAt,
                 MustChangePassword = user.MustChangePassword,
+                PmAccess = user.PmAccess,
+                PmOnly = user.PmOnly,
                 ManagerId = user.ManagerId,
                 ManagerName = user.ManagerId.HasValue && managerNames != null
                     ? managerNames.GetValueOrDefault(user.ManagerId.Value)

@@ -1,0 +1,195 @@
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { describe, it, expect, vi } from 'vitest';
+import { useToast } from '../../contexts/ToastContext';
+import { ToastProvider } from '../../contexts/ToastContext';
+import { ConfirmProvider } from '../../contexts/ConfirmContext';
+import WorkItemCollab from './WorkItemCollab';
+
+const members = [{ userId: 1, name: 'Dana Dev' }, { userId: 2, name: 'Sam Smith' }];
+const item = { id: 7, projectId: 5, title: 'Login page' };
+
+const makeApi = (overrides = {}) => ({
+  getWorkItemComments: vi.fn().mockResolvedValue([
+    { id: 1, authorName: 'Sam Smith', body: 'Please look @Dana Dev', createdAt: '2026-11-10T08:00:00Z', canEdit: false, canDelete: false },
+  ]),
+  addWorkItemComment: vi.fn().mockResolvedValue({}),
+  getWorkItemChecklist: vi.fn().mockResolvedValue([
+    { id: 1, text: 'Write tests', isDone: true, position: 1 },
+    { id: 2, text: 'Update docs', isDone: false, position: 2 },
+  ]),
+  addChecklistItem: vi.fn().mockResolvedValue({}),
+  updateChecklistItem: vi.fn().mockResolvedValue({}),
+  deleteChecklistItem: vi.fn().mockResolvedValue(null),
+  getWorkItemLinks: vi.fn().mockResolvedValue([
+    { id: 1, relation: 'Is blocked by', type: 'Blocks', isOutgoing: false, otherId: 3, otherTitle: 'API', otherType: 'Task', otherStatus: 'in-progress' },
+  ]),
+  addWorkItemLink: vi.fn().mockResolvedValue({}),
+  deleteWorkItemLink: vi.fn().mockResolvedValue(null),
+  // Everything in the project - including an Epic and an item the opening screen would not have had.
+  getWorkItemLookup: vi.fn().mockResolvedValue([
+    { id: 7, title: 'Login page', type: 'Story' },
+    { id: 3, title: 'API', type: 'Task' },
+    { id: 4, title: 'DB', type: 'Task' },
+    { id: 8, title: 'Platform epic', type: 'Epic' },
+  ]),
+  getProjectLabels: vi.fn().mockResolvedValue([]),
+  getWorkItemAttachments: vi.fn().mockResolvedValue([]),
+  getWorkItemAttachmentObjectUrl: vi.fn().mockResolvedValue('blob:thumb'),
+  uploadWorkItemAttachment: vi.fn().mockResolvedValue({}),
+  ...overrides,
+});
+
+const renderCollab = (api, abilities = { collaborate: true, edit: true }) =>
+  render(
+    <ToastProvider>
+      <ConfirmProvider>
+        <WorkItemCollab apiService={api} item={item} items={[item, { id: 3, title: 'API' }, { id: 4, title: 'DB' }]} members={members} can={abilities} />
+      </ConfirmProvider>
+    </ToastProvider>
+  );
+
+describe('WorkItemCollab', () => {
+  it('shows tab counts and highlights @mentions of project members', async () => {
+    renderCollab(makeApi());
+
+    // The name also appears as a mention chip button, so pick the highlighted span inside the comment.
+    const highlighted = await waitFor(() => {
+      const el = screen.getAllByText('@Dana Dev').find((e) => e.tagName === 'SPAN');
+      expect(el).toBeDefined();
+      return el;
+    });
+    expect(highlighted).toHaveClass('text-blue-700');
+    expect(screen.getByRole('tab', { name: /comments \(1\)/i })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /checklist \(1\/2\)/i })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /links \(1\)/i })).toBeInTheDocument();
+  });
+
+  it('posts a trimmed comment and inserts a mention from the chips', async () => {
+    const api = makeApi();
+    const user = userEvent.setup();
+    renderCollab(api);
+    await screen.findByText(/please look/i);
+
+    await user.click(screen.getByRole('button', { name: '@Sam Smith' }));
+    expect(screen.getByLabelText(/add a comment/i)).toHaveValue('@Sam Smith ');
+    await user.type(screen.getByLabelText(/add a comment/i), 'thanks  ');
+    await user.click(screen.getByRole('button', { name: 'Comment' }));
+
+    await waitFor(() => expect(api.addWorkItemComment).toHaveBeenCalledWith(7, '@Sam Smith thanks'));
+  });
+
+  it('hides the comment box for a role that cannot collaborate', async () => {
+    renderCollab(makeApi(), { collaborate: false, edit: false });
+    await screen.findByText(/please look/i);
+
+    expect(screen.queryByLabelText(/add a comment/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/can read this discussion but not post/i)).toBeInTheDocument();
+  });
+
+  it('toggles a checklist item and reports the new state', async () => {
+    const api = makeApi();
+    const user = userEvent.setup();
+    renderCollab(api);
+    await user.click(screen.getByRole('tab', { name: /checklist/i }));
+
+    await user.click(await screen.findByRole('checkbox', { name: 'Update docs' }));
+
+    await waitFor(() => expect(api.updateChecklistItem).toHaveBeenCalledWith(2, 'Update docs', true));
+  });
+
+  it('warns when an item is blocked by unfinished work', async () => {
+    const user = userEvent.setup();
+    renderCollab(makeApi());
+    await user.click(screen.getByRole('tab', { name: /links/i }));
+
+    expect(await screen.findByText(/blocked by 1 unfinished item/i)).toBeInTheDocument();
+  });
+
+  it('offers only unlinked items when adding a link, and sends the chosen type', async () => {
+    const api = makeApi();
+    const user = userEvent.setup();
+    renderCollab(api);
+    await user.click(screen.getByRole('tab', { name: /links/i }));
+    await screen.findByText(/blocked by 1/i);
+
+    const target = screen.getByLabelText('Item to link');
+    await waitFor(() => expect(Array.from(target.options).map((o) => o.textContent)).toEqual(['Select an item…', '#4 DB', '#8 Platform epic']));
+
+    await user.selectOptions(screen.getByLabelText('Link type'), 'Blocks');
+    await user.selectOptions(target, '4');
+    await user.click(screen.getByRole('button', { name: 'Link' }));
+
+    await waitFor(() => expect(api.addWorkItemLink).toHaveBeenCalledWith(7, 4, 'Blocks'));
+  });
+
+  it('hides editing controls on checklist and links for read-only roles', async () => {
+    const user = userEvent.setup();
+    renderCollab(makeApi(), { collaborate: false, edit: false });
+    await user.click(screen.getByRole('tab', { name: /checklist/i }));
+    expect(await screen.findByRole('checkbox', { name: 'Update docs' })).toBeDisabled();
+    expect(screen.queryByPlaceholderText(/add an item/i)).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('tab', { name: /links/i }));
+    await screen.findByText(/blocked by 1/i);
+    expect(screen.queryByLabelText('Item to link')).not.toBeInTheDocument();
+  });
+
+  it('fetches the link picker list only when the Links tab is opened', async () => {
+    const api = makeApi();
+    const user = userEvent.setup();
+    renderCollab(api);
+    await waitFor(() => expect(api.getWorkItemLinks).toHaveBeenCalled());
+    expect(api.getWorkItemLookup).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole('tab', { name: /links/i }));
+
+    await waitFor(() => expect(api.getWorkItemLookup).toHaveBeenCalledWith(5));
+    expect(api.getWorkItemLookup).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not refetch when an unrelated toast appears (a stable toast reference)', async () => {
+    const api = makeApi();
+    const user = userEvent.setup();
+    const ToastButton = () => {
+      const toast = useToast();
+      return <button onClick={() => toast.info('hello')}>show toast</button>;
+    };
+    render(
+      <ToastProvider>
+        <ConfirmProvider>
+          <ToastButton />
+          <WorkItemCollab apiService={api} item={item} items={[item]} members={members} can={{ collaborate: true, edit: true }} />
+        </ConfirmProvider>
+      </ToastProvider>
+    );
+    await screen.findByText(/please look/i);
+    expect(api.getWorkItemComments).toHaveBeenCalledTimes(1);
+
+    await user.click(screen.getByRole('button', { name: 'show toast' }));
+    await screen.findByText('hello');
+
+    expect(api.getWorkItemComments).toHaveBeenCalledTimes(1);
+    expect(api.getWorkItemChecklist).toHaveBeenCalledTimes(1);
+    expect(api.getWorkItemLinks).toHaveBeenCalledTimes(1);
+  });
+
+  it('only fetches image thumbnails once the Files tab is open, and skips large images', async () => {
+    const api = makeApi({
+      getWorkItemAttachments: vi.fn().mockResolvedValue([
+        { id: 1, fileName: 'small.png', fileSize: 1000, isImage: true, uploadedBy: 'Dana', uploadedAt: '2026-11-10T08:00:00Z', canDelete: false },
+        { id: 2, fileName: 'huge.png', fileSize: 6 * 1024 * 1024, isImage: true, uploadedBy: 'Dana', uploadedAt: '2026-11-10T08:00:00Z', canDelete: false },
+      ]),
+    });
+    window.URL.revokeObjectURL = vi.fn(); // jsdom does not implement it
+    const user = userEvent.setup();
+    renderCollab(api);
+    await waitFor(() => expect(api.getWorkItemAttachments).toHaveBeenCalled());
+    expect(api.getWorkItemAttachmentObjectUrl).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole('tab', { name: /files/i }));
+
+    await waitFor(() => expect(api.getWorkItemAttachmentObjectUrl).toHaveBeenCalledTimes(1));
+    expect(api.getWorkItemAttachmentObjectUrl).toHaveBeenCalledWith(1);
+  });
+});

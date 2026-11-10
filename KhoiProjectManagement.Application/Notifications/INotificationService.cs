@@ -7,7 +7,8 @@ namespace KhoiProjectManagement.Application
     {
         Task CreateNotificationAsync(int userId, string type, string message, int? taskId = null, int? projectId = null, int? wikiPageId = null, int? ideaId = null, int? reminderId = null);
         Task<IEnumerable<Notification>> GetUserNotificationsAsync(int userId);
-        Task MarkAsReadAsync(int notificationId);
+        // When userId is given, only that user's own notification can be marked read.
+        Task MarkAsReadAsync(int notificationId, int? userId = null);
         Task CheckOverdueTasksAsync();
 
         // Reminds anyone still MustChangePassword after Notifications:LoginReminderThresholdDays -

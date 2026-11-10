@@ -30,6 +30,7 @@
     <PackageVersion Include="BCrypt.Net-Next" Version="4.0.3" />
     <PackageVersion Include="System.IdentityModel.Tokens.Jwt" Version="8.22.0" />
     <PackageVersion Include="MailKit" Version="4.17.0" />
+    <PackageVersion Include="AWSSDK.S3" Version="3.7.511.8" />
     <PackageVersion Include="MimeKit" Version="4.17.0" />
     <PackageVersion Include="Serilog.AspNetCore" Version="10.0.0" />
     <PackageVersion Include="Serilog.Sinks.File" Version="7.0.0" />

@@ -147,10 +147,10 @@ namespace KhoiProjectManagement.Application
                 .ToListAsync();
         }
 
-        public async Task MarkAsReadAsync(int notificationId)
+        public async Task MarkAsReadAsync(int notificationId, int? userId = null)
         {
             var notification = await _notificationRepo.FindAsync(notificationId);
-            if (notification != null)
+            if (notification != null && (userId == null || notification.UserId == userId))
             {
                 notification.IsRead = true;
                 notification.ReadAt = DateTime.UtcNow;
@@ -165,7 +165,7 @@ namespace KhoiProjectManagement.Application
                 .Include(t => t.Project)
                 .Where(t => t.AssignedToId != null &&
                            t.Status != "completed" &&
-                           t.DueDate < DateTime.UtcNow)
+                           t.HasExplicitDueDate && t.DueDate < DateTime.UtcNow)
                 .ToListAsync();
 
             foreach (var task in overdueTasks)
@@ -286,7 +286,7 @@ namespace KhoiProjectManagement.Application
                     .CountAsync(t => t.AssignedToId == user.Id && t.Status != "completed");
 
                 var tasksOverdue = await _taskRepo.Query()
-                    .CountAsync(t => t.AssignedToId == user.Id && t.Status != "completed" && t.DueDate < DateTime.UtcNow);
+                    .CountAsync(t => t.AssignedToId == user.Id && t.Status != "completed" && t.HasExplicitDueDate && t.DueDate < DateTime.UtcNow);
 
                 var projectsActive = await _projectUserRepo.Query()
                     .Include(pu => pu.Project)

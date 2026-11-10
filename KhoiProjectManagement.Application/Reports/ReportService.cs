@@ -68,7 +68,7 @@ namespace KhoiProjectManagement.Application
             var overdueTasks = await _taskRepo.Query()
                 .Include(t => t.Project)
                 .Include(t => t.AssignedTo)
-                .Where(t => t.Status != "completed" && t.DueDate < DateTime.UtcNow)
+                .Where(t => t.Status != "completed" && t.HasExplicitDueDate && t.DueDate < DateTime.UtcNow)
                 .OrderBy(t => t.DueDate)
                 .ToListAsync();
 

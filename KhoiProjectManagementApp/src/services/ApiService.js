@@ -1341,6 +1341,284 @@ class ApiService {
   getIcsFeedUrl(token) {
     return `${API_BASE_URL}/calendar/feed.ics?token=${encodeURIComponent(token)}`;
   }
+
+  // Project Management module (/api/pm)
+  async getPmProjects() {
+    return await this.request('/pm/projects');
+  }
+
+  async getPmUsers() {
+    return await this.request('/pm/users');
+  }
+
+  async getPmMembers(projectId) {
+    return await this.request(`/pm/projects/${projectId}/members`);
+  }
+
+  async setPmMember(projectId, userId, role) {
+    return await this.request(`/pm/projects/${projectId}/members/${userId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ role }),
+    });
+  }
+
+  async removePmMember(projectId, userId) {
+    return await this.request(`/pm/projects/${projectId}/members/${userId}`, { method: 'DELETE' });
+  }
+
+  async getWorkItems(projectId, filter = {}) {
+    const params = new URLSearchParams();
+    Object.entries(filter).forEach(([k, v]) => {
+      if (v !== null && v !== undefined && v !== '') params.append(k, v);
+    });
+    const qs = params.toString();
+    return await this.request(`/pm/projects/${projectId}/work-items${qs ? `?${qs}` : ''}`);
+  }
+
+  async createWorkItem(projectId, item) {
+    return await this.request(`/pm/projects/${projectId}/work-items`, {
+      method: 'POST',
+      body: JSON.stringify(item),
+    });
+  }
+
+  async updateWorkItem(itemId, item) {
+    return await this.request(`/pm/work-items/${itemId}`, {
+      method: 'PUT',
+      body: JSON.stringify(item),
+    });
+  }
+
+  async rankWorkItem(itemId, afterItemId) {
+    return await this.request(`/pm/work-items/${itemId}/rank`, {
+      method: 'PUT',
+      body: JSON.stringify({ afterItemId }),
+    });
+  }
+
+  async deleteWorkItem(itemId) {
+    return await this.request(`/pm/work-items/${itemId}`, { method: 'DELETE' });
+  }
+
+  // ---- PM collaboration: comments, checklist, links, attachments ----
+  async getWorkItemComments(itemId) {
+    return await this.request(`/pm/work-items/${itemId}/comments`);
+  }
+
+  async addWorkItemComment(itemId, body) {
+    return await this.request(`/pm/work-items/${itemId}/comments`, { method: 'POST', body: JSON.stringify({ body }) });
+  }
+
+  async editWorkItemComment(commentId, body) {
+    return await this.request(`/pm/comments/${commentId}`, { method: 'PUT', body: JSON.stringify({ body }) });
+  }
+
+  async deleteWorkItemComment(commentId) {
+    return await this.request(`/pm/comments/${commentId}`, { method: 'DELETE' });
+  }
+
+  async getWorkItemChecklist(itemId) {
+    return await this.request(`/pm/work-items/${itemId}/checklist`);
+  }
+
+  async addChecklistItem(itemId, text) {
+    return await this.request(`/pm/work-items/${itemId}/checklist`, { method: 'POST', body: JSON.stringify({ text, isDone: false }) });
+  }
+
+  async updateChecklistItem(checklistItemId, text, isDone) {
+    return await this.request(`/pm/checklist/${checklistItemId}`, { method: 'PUT', body: JSON.stringify({ text, isDone }) });
+  }
+
+  async deleteChecklistItem(checklistItemId) {
+    return await this.request(`/pm/checklist/${checklistItemId}`, { method: 'DELETE' });
+  }
+
+  async getWorkItemLinks(itemId) {
+    return await this.request(`/pm/work-items/${itemId}/links`);
+  }
+
+  async addWorkItemLink(itemId, targetId, type) {
+    return await this.request(`/pm/work-items/${itemId}/links`, { method: 'POST', body: JSON.stringify({ targetId, type }) });
+  }
+
+  async deleteWorkItemLink(linkId) {
+    return await this.request(`/pm/links/${linkId}`, { method: 'DELETE' });
+  }
+
+  async getWorkItemAttachments(itemId) {
+    return await this.request(`/pm/work-items/${itemId}/attachments`);
+  }
+
+  async uploadWorkItemAttachment(itemId, file) {
+    const form = new FormData();
+    form.append('file', file);
+    return await this.requestMultipart(`/pm/work-items/${itemId}/attachments`, form);
+  }
+
+  async downloadWorkItemAttachment(attachmentId, fileName) {
+    return await this.downloadBlob(`/pm/attachments/${attachmentId}/download`, fileName);
+  }
+
+  // Fetches the bytes with the auth header and returns an object URL, for inline image previews
+  // (an <img src> can't send the Bearer token). The caller must revoke it.
+  async getWorkItemAttachmentObjectUrl(attachmentId) {
+    const response = await this.authorizedFetch(`${API_BASE_URL}/pm/attachments/${attachmentId}/download`, {
+      headers: { ...(this.token && { Authorization: `Bearer ${this.token}` }) },
+    }, UPLOAD_TIMEOUT_MS);
+    if (!response.ok) throw await this.buildResponseError(response);
+    return window.URL.createObjectURL(await response.blob());
+  }
+
+  async deleteWorkItemAttachment(attachmentId) {
+    return await this.request(`/pm/attachments/${attachmentId}`, { method: 'DELETE' });
+  }
+
+  // ---- PM overview, my work, activity, labels, member import ----
+  // Id/title/type/status only - for pickers; far lighter than getWorkItems.
+  async getWorkItemLookup(projectId) {
+    return await this.request(`/pm/projects/${projectId}/work-items/lookup`);
+  }
+
+  async getPmOverview(projectId) {
+    return await this.request(`/pm/projects/${projectId}/overview`);
+  }
+
+  async getMyWork() {
+    return await this.request('/pm/my-work');
+  }
+
+  async getWorkItemActivity(itemId) {
+    return await this.request(`/pm/work-items/${itemId}/activity`);
+  }
+
+  async getProjectLabels(projectId) {
+    return await this.request(`/pm/projects/${projectId}/labels`);
+  }
+
+  async setWorkItemLabels(itemId, labels) {
+    return await this.request(`/pm/work-items/${itemId}/labels`, { method: 'PUT', body: JSON.stringify({ labels }) });
+  }
+
+  async importPmMembers(projectId, payload) {
+    return await this.request(`/pm/projects/${projectId}/members/import`, { method: 'POST', body: JSON.stringify(payload) });
+  }
+
+  // ---- PM workflow rules and retrospectives ----
+  async getWorkflow(projectId) {
+    return await this.request(`/pm/projects/${projectId}/workflow`);
+  }
+
+  async saveWorkflow(projectId, transitions) {
+    return await this.request(`/pm/projects/${projectId}/workflow`, { method: 'PUT', body: JSON.stringify({ transitions }) });
+  }
+
+  async getRetro(sprintId) {
+    return await this.request(`/pm/sprints/${sprintId}/retro`);
+  }
+
+  async addRetroItem(sprintId, category, text) {
+    return await this.request(`/pm/sprints/${sprintId}/retro`, { method: 'POST', body: JSON.stringify({ category, text }) });
+  }
+
+  async updateRetroItem(itemId, category, text) {
+    return await this.request(`/pm/retro/${itemId}`, { method: 'PUT', body: JSON.stringify({ category, text }) });
+  }
+
+  async setRetroItemDone(itemId, done) {
+    return await this.request(`/pm/retro/${itemId}/done`, { method: 'PUT', body: JSON.stringify({ done }) });
+  }
+
+  async deleteRetroItem(itemId) {
+    return await this.request(`/pm/retro/${itemId}`, { method: 'DELETE' });
+  }
+
+  // ---- PM analytics ----
+  async getCumulativeFlow(projectId, days = 30) {
+    return await this.request(`/pm/projects/${projectId}/reports/cumulative-flow?days=${days}`);
+  }
+
+  async getFlowMetrics(projectId, days = 90) {
+    return await this.request(`/pm/projects/${projectId}/reports/flow-metrics?days=${days}`);
+  }
+
+  async getWorkloadReport(projectId) {
+    return await this.request(`/pm/projects/${projectId}/reports/workload`);
+  }
+
+  async exportWorkItemsCsv(projectId) {
+    return await this.downloadBlob(`/pm/projects/${projectId}/export/work-items`, `project-${projectId}-work-items.csv`);
+  }
+
+  async getBoard(projectId, sprintId = null) {
+    return await this.request(`/pm/projects/${projectId}/board${sprintId ? `?sprintId=${sprintId}` : ''}`);
+  }
+
+  async getSprints(projectId) {
+    return await this.request(`/pm/projects/${projectId}/sprints`);
+  }
+
+  async createSprint(projectId, sprint) {
+    return await this.request(`/pm/projects/${projectId}/sprints`, { method: 'POST', body: JSON.stringify(sprint) });
+  }
+
+  async updateSprint(sprintId, sprint) {
+    return await this.request(`/pm/sprints/${sprintId}`, { method: 'PUT', body: JSON.stringify(sprint) });
+  }
+
+  async deleteSprint(sprintId) {
+    return await this.request(`/pm/sprints/${sprintId}`, { method: 'DELETE' });
+  }
+
+  async startSprint(sprintId) {
+    return await this.request(`/pm/sprints/${sprintId}/start`, { method: 'POST' });
+  }
+
+  async completeSprint(sprintId, moveIncompleteToSprintId = null) {
+    return await this.request(`/pm/sprints/${sprintId}/complete`, {
+      method: 'POST',
+      body: JSON.stringify({ moveIncompleteToSprintId }),
+    });
+  }
+
+  async assignWorkItemSprint(itemId, sprintId) {
+    return await this.request(`/pm/work-items/${itemId}/sprint`, {
+      method: 'PUT',
+      body: JSON.stringify({ sprintId }),
+    });
+  }
+
+  async getBurndown(sprintId) {
+    return await this.request(`/pm/sprints/${sprintId}/burndown`);
+  }
+
+  async getVelocity(projectId, count = 6) {
+    return await this.request(`/pm/projects/${projectId}/velocity?count=${count}`);
+  }
+
+  async saveBoardColumns(projectId, columns) {
+    return await this.request(`/pm/projects/${projectId}/board/columns`, {
+      method: 'PUT',
+      body: JSON.stringify(columns),
+    });
+  }
+
+  async moveWorkItem(itemId, status, afterItemId = null) {
+    return await this.request(`/pm/work-items/${itemId}/move`, {
+      method: 'PUT',
+      body: JSON.stringify({ status, afterItemId }),
+    });
+  }
+
+  async getPmAccessUsers() {
+    return await this.request('/pm/access/users');
+  }
+
+  async setPmAccess(userId, pmAccess, pmOnly) {
+    return await this.request(`/pm/access/users/${userId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ pmAccess, pmOnly }),
+    });
+  }
 }
 
 export default ApiService;

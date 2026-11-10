@@ -1,7 +1,7 @@
 // src/contexts/ToastContext.jsx
 // App-wide toast notifications - the one place success/error feedback renders, so no component
 // needs to reach for window.alert() (blocking, untestable, and impossible to style) again.
-import React, { createContext, useCallback, useContext, useRef, useState } from 'react';
+import React, { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
 import { CheckCircle2, AlertCircle, Info, X } from 'lucide-react';
 
 const ToastContext = createContext(null);
@@ -42,11 +42,14 @@ export const ToastProvider = ({ children }) => {
     return id;
   }, [dismiss]);
 
-  const toast = {
+  // Memoized: components list `toast` as a hook dependency, and a new object on every provider render (each
+  // toast shown or dismissed) made their effects re-run - e.g. refetching on every toast, and looping when
+  // the refetch itself failed and toasted.
+  const toast = useMemo(() => ({
     success: (message, opts) => show('success', message, opts),
     error: (message, opts) => show('error', message, { duration: 7000, ...opts }),
     info: (message, opts) => show('info', message, opts),
-  };
+  }), [show]);
 
   return (
     <ToastContext.Provider value={toast}>

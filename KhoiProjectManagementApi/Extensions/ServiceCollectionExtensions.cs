@@ -154,6 +154,29 @@ namespace KhoiProjectManagementApi.Extensions
             services.AddScoped<IDashboardWidgetService, DashboardWidgetService>();
 
             // Services
+            services.AddScoped<IProjectAccessService, ProjectAccessService>();
+            services.AddScoped<IPmProjectService, PmProjectService>();
+            services.AddScoped<IPmWorkItemService, PmWorkItemService>();
+            services.AddScoped<IPmBoardService, PmBoardService>();
+            services.AddScoped<IPmSprintService, PmSprintService>();
+            services.AddScoped<IPmCollaborationService, PmCollaborationService>();
+            services.AddScoped<IPmReportService, PmReportService>();
+            services.AddScoped<IPmWorkflowService, PmWorkflowService>();
+            services.AddScoped<IPmRetroService, PmRetroService>();
+            services.AddScoped<IPmInsightsService, PmInsightsService>();
+            services.AddScoped<IPmLabelService, PmLabelService>();
+            // Work-item attachments: local disk by default, Cloudflare R2 when Storage:Provider is "R2".
+            if (string.Equals(configuration["Storage:Provider"], "R2", StringComparison.OrdinalIgnoreCase))
+            {
+                // Validate now, at startup, so a missing key is one clear boot error rather than a 500 on every
+                // work-item request the first time the storage is resolved.
+                foreach (var setting in new[] { "Endpoint", "BucketName", "AccessKeyId", "SecretAccessKey" })
+                    if (string.IsNullOrWhiteSpace(configuration[$"Storage:R2:{setting}"]))
+                        throw new InvalidOperationException($"Storage:Provider is R2 but Storage:R2:{setting} is not configured.");
+                services.AddSingleton<IFileStorage, R2FileStorage>();
+            }
+            else
+                services.AddSingleton<IFileStorage, LocalFileStorage>();
             services.AddScoped<IProjectService, ProjectService>();
             services.AddScoped<ITaskService, TaskService>();
             services.AddScoped<IUserService, UserService>();

@@ -1,6 +1,7 @@
 using KhoiProjectManagement.Domain;
 using KhoiProjectManagement.Application;
 using KhoiProjectManagement.Infrastructure.Services;
+using KhoiProjectManagementApi.Filters;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
@@ -19,7 +20,10 @@ namespace KhoiProjectManagementApi.Controllers
             _notificationService = notificationService;
         }
 
+        // Reachable by module-only accounts: Project Management mentions/comments notify them, and the PM
+        // shell has no other way to show those.
         [HttpGet]
+        [AllowModuleOnly]
         public async Task<ActionResult<IEnumerable<Notification>>> GetNotifications()
         {
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
@@ -32,9 +36,15 @@ namespace KhoiProjectManagementApi.Controllers
         }
 
         [HttpPut("{id}/read")]
+        [AllowModuleOnly]
         public async Task<IActionResult> MarkAsRead(int id)
         {
-            await _notificationService.MarkAsReadAsync(id);
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim == null)
+                return Unauthorized();
+
+            // Scoped to the caller: this used to mark any notification read by id, whoever owned it.
+            await _notificationService.MarkAsReadAsync(id, int.Parse(userIdClaim.Value));
             return NoContent();
         }
 

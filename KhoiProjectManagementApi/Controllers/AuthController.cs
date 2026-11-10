@@ -8,6 +8,7 @@ namespace KhoiProjectManagementApi.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [KhoiProjectManagementApi.Filters.AllowModuleOnly]
     public class AuthController : ControllerBase
     {
         private readonly IUserService _userService;

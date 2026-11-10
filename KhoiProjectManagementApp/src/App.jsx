@@ -1,6 +1,6 @@
 // src/App.js - Complete Project Management Frontend
 import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
-import { Plus, Search, Calendar, Users, CheckCircle, Clock, AlertCircle, Trash2, Edit3, User, Bell, FileText, Tag, Download, Upload, Flag, Shield, UserCheck, LogOut, Menu, X, Lock, ChevronDown, LayoutDashboard, Folder, CheckSquare, BookOpen, Archive, Lightbulb, BarChart2, Settings as SettingsIcon, ArrowRight } from 'lucide-react';
+import { Plus, Search, Calendar, Users, CheckCircle, Clock, AlertCircle, Trash2, Edit3, User, Bell, FileText, Tag, Download, Upload, Flag, Shield, UserCheck, LogOut, Menu, X, Lock, ChevronDown, LayoutDashboard, Folder, CheckSquare, BookOpen, Archive, Lightbulb, BarChart2, Settings as SettingsIcon, ArrowRight, Kanban } from 'lucide-react';
 import RandIcon from './components/Common/RandIcon';
 import PriorityBadge from './components/Common/PriorityBadge';
 import StatusBadge from './components/Common/StatusBadge';
@@ -34,6 +34,8 @@ const BroadcastEmail = lazy(() => import('./components/Settings/BroadcastEmail')
 const SystemOverviewEmailSettings = lazy(() => import('./components/Settings/SystemOverviewEmailSettings'));
 import OrgChartTree from './components/Team/OrgChartTree';
 const IdeasPage = lazy(() => import('./components/Ideas/IdeasPage'));
+const PmWorkspace = lazy(() => import('./components/ProjectManagement/PmWorkspace'));
+const PmShell = lazy(() => import('./components/ProjectManagement/PmShell'));
 const InvoicesPage = lazy(() => import('./components/Finance/InvoicesPage'));
 const RemindersPage = lazy(() => import('./components/Reminders/RemindersPage'));
 const CalendarPage = lazy(() => import('./components/Calendar/CalendarPage'));
@@ -59,6 +61,7 @@ const NAV_GROUPS = [
         label: 'Work',
         items: [
             { key: 'projects', label: 'Projects', icon: Folder },
+            { key: 'pm', label: 'Project Mgmt', icon: Kanban, requiresPm: true },
             { key: 'tasks', label: 'Tasks', icon: CheckSquare },
             { key: 'timesheets', label: 'Timesheets', icon: Clock },
             { key: 'team', label: 'Team', icon: Users },
@@ -940,6 +943,9 @@ const ProjectManagementSystem = () => {
             : 'text-blue-100 hover:bg-white/10 hover:text-white'
         }`;
 
+    // Project Management module: granted per user by a SuperAdmin (pmAccess), or implied by pm.admin.
+    const canUsePm = !!user?.pmAccess || hasPermission(user?.permissions, 'pm.admin');
+
     const navCounts = {
         reminders: remindersActiveCount,
         projects: dashboardStats.totalProjects,
@@ -948,7 +954,7 @@ const ProjectManagementSystem = () => {
 
     const renderNavGroups = (onNavigate) => (
         <>
-            {NAV_GROUPS.map((group) => (
+            {NAV_GROUPS.map((g) => ({ ...g, items: g.items.filter((i) => !i.requiresPm || canUsePm) })).map((group) => (
                 <div key={group.label || group.items[0].key} className="mb-1">
                     {group.label && (
                         <p className="px-5 pt-4 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-blue-300">
@@ -1994,6 +2000,13 @@ const ProjectManagementSystem = () => {
                     </Suspense>
                 )}
 
+                {/* Project Management Tab */}
+                {activeTab === 'pm' && canUsePm && (
+                    <Suspense fallback={<LoadingSpinner />}>
+                        <PmWorkspace apiService={apiService} user={user} />
+                    </Suspense>
+                )}
+
                 {/* Ideas Tab */}
                 {activeTab === 'ideas' && (
                     <Suspense fallback={<LoadingSpinner />}>
@@ -2658,6 +2671,15 @@ const AuthGuard = () => {
     }
 
     if (user) {
+        // Module-only accounts (set by a SuperAdmin) get just the PM workspace - the API rejects every
+        // other module for them too (ModuleOnlyAccessFilter), this is the matching UX.
+        if (user.pmOnly) {
+            return (
+                <Suspense fallback={<LoadingSpinner />}>
+                    <PmShell />
+                </Suspense>
+            );
+        }
         return <ProjectManagementSystem />;
     }
 

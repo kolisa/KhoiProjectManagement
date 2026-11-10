@@ -21,6 +21,7 @@
 		<PackageReference Include="Microsoft.Extensions.Configuration.Json" />
 		<PackageReference Include="BCrypt.Net-Next" />
 		<PackageReference Include="MailKit" />
+		<PackageReference Include="AWSSDK.S3" />
 		<PackageReference Include="MimeKit" />
 	</ItemGroup>
 
