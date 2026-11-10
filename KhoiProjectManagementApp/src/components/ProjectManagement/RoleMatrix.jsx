@@ -47,8 +47,8 @@ const RoleMatrix = ({ highlightRole }) => (
     </table>
     <div className="mt-3 space-y-1 text-xs text-gray-500">
       <p>
-        <strong>Project Admins are administrators of the whole module:</strong> they can open every project (not only their own),
-        do everything in it, and grant or change module access - the same as a SuperAdmin.
+        <strong>A role applies only inside its own project.</strong> Being Project Admin here gives no access to any other project -
+        you only ever see the projects you belong to.
       </p>
       <p>
         Separately, an administrator can set someone's module access to <strong>Read only</strong> - that caps them at the first row whatever their role

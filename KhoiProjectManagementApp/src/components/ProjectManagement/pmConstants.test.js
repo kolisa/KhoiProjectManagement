@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { can, allowedParentTypes, roleLabel } from './pmConstants';
+import { can, allowedParentTypes, roleLabel, denyReason } from './pmConstants';
 
 describe('pmConstants', () => {
   it('mirrors the server role matrix', () => {
@@ -33,5 +33,17 @@ describe('pmConstants', () => {
   it('labels roles', () => {
     expect(roleLabel('ScrumMaster')).toBe('Scrum Master');
     expect(roleLabel('SuperAdmin')).toBe('Administrator');
+  });
+});
+
+describe('denyReason', () => {
+  it('is null when the role may do the thing', () => {
+    expect(denyReason({ myRole: 'Developer' }, 'create')).toBeNull();
+  });
+  it('names the role when the role is the limit', () => {
+    expect(denyReason({ myRole: 'Viewer', actualRole: 'Viewer' }, 'edit')).toMatch(/Your role \(Viewer\) can't edit work items/);
+  });
+  it('blames the read-only access level, not the role, when that is the limit', () => {
+    expect(denyReason({ myRole: 'Viewer', actualRole: 'ProjectAdmin', readOnly: true }, 'create')).toMatch(/read-only/i);
   });
 });

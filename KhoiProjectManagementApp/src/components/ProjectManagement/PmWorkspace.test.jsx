@@ -69,11 +69,11 @@ describe('PmWorkspace', () => {
     expect(await screen.findByTestId('overview')).toHaveTextContent('overview of Alpha');
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Alpha');
     const crumbs = within(screen.getByRole('navigation', { name: 'Breadcrumb' })).getAllByRole('listitem').map((li) => li.textContent);
-    expect(crumbs).toEqual(['Project Management', 'Alpha', 'Overview']);
+    expect(crumbs).toEqual(['Board', 'Alpha', 'Overview']);
     expect(screen.getByRole('tab', { name: /Overview/ })).toHaveAttribute('aria-selected', 'true');
     expect(navItem('Alpha')).toHaveAttribute('aria-current', 'page');
     expect(navItem('Beta')).not.toHaveAttribute('aria-current');
-    await waitFor(() => expect(document.title).toBe('Alpha · Overview · Project Management'));
+    await waitFor(() => expect(document.title).toBe('Alpha · Overview · Board'));
   });
 
   it('shows the person\'s role and what that means they can do', async () => {

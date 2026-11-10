@@ -12,9 +12,14 @@ namespace KhoiProjectManagement.Application
         private readonly IRepository<Attachment> _attachmentRepo;
         private readonly IUnitOfWork _unitOfWork;
         private readonly IConfiguration _configuration;
+        private readonly IRepository<ProjectTask> _taskRepo;
+        private readonly IProjectScope _scope;
 
-        public AttachmentService(IRepository<Attachment> attachmentRepo, IUnitOfWork unitOfWork, IConfiguration configuration)
+        public AttachmentService(IRepository<Attachment> attachmentRepo, IUnitOfWork unitOfWork, IConfiguration configuration,
+            IRepository<ProjectTask> taskRepo, IProjectScope scope)
         {
+            _taskRepo = taskRepo;
+            _scope = scope;
             _attachmentRepo = attachmentRepo;
             _unitOfWork = unitOfWork;
             _configuration = configuration;
@@ -27,6 +32,13 @@ namespace KhoiProjectManagement.Application
 
             if (projectId != null && taskId != null)
                 throw new InvalidOperationException("Cannot attach to both project and task");
+
+            // A file may only go into a project the caller is allowed to change work in.
+            int? owningProjectId = projectId ?? await _taskRepo.Query().AsNoTracking().Where(t => t.Id == taskId)
+                .Select(t => (int?)t.ProjectId).FirstOrDefaultAsync();
+            if (owningProjectId == null)
+                throw new KeyNotFoundException();
+            await _scope.RequireAsync(owningProjectId.Value, ProjectAbility.Edit);
 
             var uploadPath = _configuration["FileUpload:UploadPath"] ?? "wwwroot/uploads";
             var fileName = UploadFileNaming.BuildStoredFileName(file.FileName);
@@ -64,11 +76,17 @@ namespace KhoiProjectManagement.Application
                 .Include(a => a.UploadedByUser)
                 .FirstOrDefaultAsync(a => a.Id == id);
 
-            return attachment == null ? null : MapToDto(attachment);
+            if (attachment == null || await CheckAsync(attachment, ProjectAbility.View) != ProjectAccessOutcome.Allowed)
+                return null;   // an attachment in someone else's project does not exist here
+
+            return MapToDto(attachment);
         }
 
         public async Task<IEnumerable<AttachmentDto>> GetProjectAttachmentsAsync(int projectId)
         {
+            if (await _scope.CheckAsync(projectId, ProjectAbility.View) != ProjectAccessOutcome.Allowed)
+                return Array.Empty<AttachmentDto>();
+
             var attachments = await _attachmentRepo.Query()
                 .Include(a => a.UploadedByUser)
                 .Where(a => a.ProjectId == projectId)
@@ -79,6 +97,10 @@ namespace KhoiProjectManagement.Application
 
         public async Task<IEnumerable<AttachmentDto>> GetTaskAttachmentsAsync(int taskId)
         {
+            var owner = await _taskRepo.Query().AsNoTracking().Where(t => t.Id == taskId).Select(t => (int?)t.ProjectId).FirstOrDefaultAsync();
+            if (owner == null || await _scope.CheckAsync(owner.Value, ProjectAbility.View) != ProjectAccessOutcome.Allowed)
+                return Array.Empty<AttachmentDto>();
+
             var attachments = await _attachmentRepo.Query()
                 .Include(a => a.UploadedByUser)
                 .Where(a => a.TaskId == taskId)
@@ -93,7 +115,7 @@ namespace KhoiProjectManagement.Application
         public async Task<(byte[] Content, string ContentType, string FileName)?> DownloadFileAsync(int id)
         {
             var attachment = await _attachmentRepo.FindAsync(id);
-            if (attachment == null)
+            if (attachment == null || await CheckAsync(attachment, ProjectAbility.View) != ProjectAccessOutcome.Allowed)
                 return null;
 
             var uploadPath = _configuration["FileUpload:UploadPath"] ?? "wwwroot/uploads";
@@ -110,6 +132,11 @@ namespace KhoiProjectManagement.Application
             var attachment = await _attachmentRepo.FindAsync(id);
             if (attachment == null)
                 return false;
+            var outcome = await CheckAsync(attachment, ProjectAbility.Edit);
+            if (outcome == ProjectAccessOutcome.NotVisible)
+                return false;
+            if (outcome == ProjectAccessOutcome.Forbidden)
+                throw new ForbiddenException("Your role or access level on this project does not allow deleting its files.");
 
             // Delete file from disk
             var uploadPath = _configuration["FileUpload:UploadPath"] ?? "wwwroot/uploads";
@@ -122,6 +149,16 @@ namespace KhoiProjectManagement.Application
             _attachmentRepo.Remove(attachment);
             await _unitOfWork.SaveChangesAsync();
             return true;
+        }
+
+        // The project an attachment belongs to (directly, or through its task) decides who may see or change it.
+        private async Task<ProjectAccessOutcome> CheckAsync(Attachment attachment, ProjectAbility ability)
+        {
+            int? owner = attachment.ProjectId ?? (attachment.TaskId == null ? null : await _taskRepo.Query().AsNoTracking()
+                .Where(t => t.Id == attachment.TaskId).Select(t => (int?)t.ProjectId).FirstOrDefaultAsync());
+            if (owner == null)
+                return await _scope.IsUnrestrictedAsync() ? ProjectAccessOutcome.Allowed : ProjectAccessOutcome.NotVisible;
+            return await _scope.CheckAsync(owner.Value, ability);
         }
 
         private static AttachmentDto MapToDto(Attachment attachment)

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
 import useModalA11y from '../Common/useModalA11y';
-import { WORK_ITEM_TYPES, STATUSES, allowedParentTypes, can } from './pmConstants';
+import { WORK_ITEM_TYPES, STATUSES, allowedParentTypes, can, denyReason } from './pmConstants';
 import WorkItemCollab from './WorkItemCollab';
 
 const fieldClass = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500';
@@ -9,7 +9,7 @@ const labelClass = 'block text-sm font-medium text-gray-700 mb-1';
 
 // Create/edit a backlog work item. `item` is null for create. `items` is the project's current
 // backlog (for the parent picker); `members` feeds the assignee picker.
-const WorkItemModal = ({ item, items, members, canEdit, onSave, onClose, apiService, role, onChanged }) => {
+const WorkItemModal = ({ item, items, members, canEdit, onSave, onClose, apiService, role, project, onChanged }) => {
   const modalRef = useModalA11y(onClose);
   const [form, setForm] = useState({
     title: item?.title || '',
@@ -171,6 +171,7 @@ const WorkItemModal = ({ item, items, members, canEdit, onSave, onClose, apiServ
             items={items}
             members={members}
             can={{ collaborate: can(role, 'collaborate'), edit: can(role, 'edit') }}
+            reasons={{ collaborate: denyReason(project, 'collaborate'), edit: denyReason(project, 'edit') }}
             onChanged={onChanged}
           />
         )}

@@ -69,3 +69,6 @@ export const EmptyState = ({ icon: Icon, title, children }) => (
     {children && <div className="mt-1 max-w-md text-sm text-gray-500">{children}</div>}
   </div>
 );
+
+// The reason a control is unavailable, read out by assistive technology as part of the (disabled) control itself.
+export const GateReason = ({ reason }) => (reason ? <span className="sr-only"> ({reason})</span> : null);

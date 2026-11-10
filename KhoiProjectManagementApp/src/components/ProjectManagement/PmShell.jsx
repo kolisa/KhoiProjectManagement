@@ -17,7 +17,7 @@ const PmShell = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="h-8 w-8 rounded-lg bg-white flex items-center justify-center text-blue-700 font-bold">K</div>
-            <span className="font-bold tracking-tight">KhoiHub · Projects</span>
+            <span className="font-bold tracking-tight">KhoiHub · Board</span>
           </div>
           <div className="flex items-center gap-4 text-sm">
             <PmNotifications apiService={apiService} />

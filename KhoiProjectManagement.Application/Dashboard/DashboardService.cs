@@ -11,13 +11,16 @@ namespace KhoiProjectManagement.Application
         private readonly IRepository<ProjectTask> _taskRepo;
         private readonly IRepository<DashboardStatsSnapshot> _snapshotRepo;
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IProjectScope _scope;
 
         public DashboardService(
             IDashboardStatsRepository statsRepo,
             IRepository<ProjectTask> taskRepo,
             IRepository<DashboardStatsSnapshot> snapshotRepo,
-            IUnitOfWork unitOfWork)
+            IUnitOfWork unitOfWork,
+            IProjectScope scope)
         {
+            _scope = scope;
             _statsRepo = statsRepo;
             _taskRepo = taskRepo;
             _snapshotRepo = snapshotRepo;
@@ -26,7 +29,9 @@ namespace KhoiProjectManagement.Application
 
         public async Task<DashboardStatisticsDto> GetDashboardStatisticsAsync()
         {
-            var counts = await _statsRepo.GetCountsAsync(DateTime.Now);
+            // Need-to-know: a person's dashboard counts only their own projects (an administrator sees the whole company).
+            var visibleProjects = await _scope.VisibleProjectIdsAsync();
+            var counts = await _statsRepo.GetCountsAsync(DateTime.Now, visibleProjects);
 
             var totalProjects = counts.TotalProjects;
             var activeProjects = counts.ActiveProjects;
@@ -55,10 +60,11 @@ namespace KhoiProjectManagement.Application
                 BlockedTasks = blockedTasks,
                 OverdueTasks = overdueTasks,
                 CompletionRate = completionRate,
-                ActiveProjectsDelta = baseline == null ? null : activeProjects - baseline.ActiveProjects,
-                TotalTasksDelta = baseline == null ? null : totalTasks - baseline.TotalTasks,
-                OverdueTasksDelta = baseline == null ? null : overdueTasks - baseline.OverdueTasks,
-                CompletionRateDelta = baseline == null ? null : completionRate - baseline.CompletionRate
+                // The stored baselines are company-wide, so they only mean something against company-wide counts.
+                ActiveProjectsDelta = baseline == null || visibleProjects != null ? null : activeProjects - baseline.ActiveProjects,
+                TotalTasksDelta = baseline == null || visibleProjects != null ? null : totalTasks - baseline.TotalTasks,
+                OverdueTasksDelta = baseline == null || visibleProjects != null ? null : overdueTasks - baseline.OverdueTasks,
+                CompletionRateDelta = baseline == null || visibleProjects != null ? null : completionRate - baseline.CompletionRate
             };
         }
 
@@ -69,7 +75,7 @@ namespace KhoiProjectManagement.Application
             var monday = today.AddDays(-daysSinceMonday);
             var nextMonday = monday.AddDays(7);
 
-            var completedThisWeek = await _taskRepo.Query()
+            var completedThisWeek = await (await _scope.ScopeAsync(_taskRepo.Query()))
                 .Where(t => t.CompletedAt != null && t.CompletedAt >= monday && t.CompletedAt < nextMonday)
                 .Select(t => t.CompletedAt!.Value)
                 .ToListAsync();

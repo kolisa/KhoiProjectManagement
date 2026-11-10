@@ -40,11 +40,11 @@ const makeApi = (overrides = {}) => ({
   ...overrides,
 });
 
-const renderCollab = (api, abilities = { collaborate: true, edit: true }) =>
+const renderCollab = (api, abilities = { collaborate: true, edit: true }, reasons = {}) =>
   render(
     <ToastProvider>
       <ConfirmProvider>
-        <WorkItemCollab apiService={api} item={item} items={[item, { id: 3, title: 'API' }, { id: 4, title: 'DB' }]} members={members} can={abilities} />
+        <WorkItemCollab apiService={api} item={item} items={[item, { id: 3, title: 'API' }, { id: 4, title: 'DB' }]} members={members} can={abilities} reasons={reasons} />
       </ConfirmProvider>
     </ToastProvider>
   );
@@ -79,12 +79,13 @@ describe('WorkItemCollab', () => {
     await waitFor(() => expect(api.addWorkItemComment).toHaveBeenCalledWith(7, '@Sam Smith thanks'));
   });
 
-  it('hides the comment box for a role that cannot collaborate', async () => {
-    renderCollab(makeApi(), { collaborate: false, edit: false });
+  it('greys out the comment box, with the reason, for a role that cannot collaborate', async () => {
+    renderCollab(makeApi(), { collaborate: false, edit: false }, { collaborate: 'Your role (Viewer) cannot comment.' });
     await screen.findByText(/please look/i);
 
-    expect(screen.queryByLabelText(/add a comment/i)).not.toBeInTheDocument();
-    expect(screen.getByText(/can read this discussion but not post/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/add a comment/i)).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Comment' })).toBeDisabled();
+    expect(screen.getAllByText('Your role (Viewer) cannot comment.').length).toBeGreaterThan(0);
   });
 
   it('toggles a checklist item and reports the new state', async () => {
@@ -123,16 +124,17 @@ describe('WorkItemCollab', () => {
     await waitFor(() => expect(api.addWorkItemLink).toHaveBeenCalledWith(7, 4, 'Blocks'));
   });
 
-  it('hides editing controls on checklist and links for read-only roles', async () => {
+  it('greys out editing controls on checklist and links for read-only roles', async () => {
     const user = userEvent.setup();
     renderCollab(makeApi(), { collaborate: false, edit: false });
     await user.click(screen.getByRole('tab', { name: /checklist/i }));
     expect(await screen.findByRole('checkbox', { name: 'Update docs' })).toBeDisabled();
-    expect(screen.queryByPlaceholderText(/add an item/i)).not.toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/add an item/i)).toBeDisabled();
 
     await user.click(screen.getByRole('tab', { name: /links/i }));
     await screen.findByText(/blocked by 1/i);
-    expect(screen.queryByLabelText('Item to link')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Item to link')).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Link' })).toBeDisabled();
   });
 
   it('fetches the link picker list only when the Links tab is opened', async () => {

@@ -177,6 +177,7 @@ namespace KhoiProjectManagementApi.Extensions
             }
             else
                 services.AddSingleton<IFileStorage, LocalFileStorage>();
+            services.AddScoped<IProjectScope, ProjectScope>();
             services.AddScoped<IProjectService, ProjectService>();
             services.AddScoped<ITaskService, TaskService>();
             services.AddScoped<IUserService, UserService>();

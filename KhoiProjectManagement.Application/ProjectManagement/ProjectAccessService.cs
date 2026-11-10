@@ -9,18 +9,14 @@ namespace KhoiProjectManagement.Application
     //   2. the module access LEVEL (User.PmReadOnly) - read only, or read and write. A read-only person can only
     //      ever View, whatever their project roles say. This is the per-user read/write policy;
     //   3. a project membership whose role allows the action.
-    // An administrator (SuperAdmin, or a Project Admin - see ResolveCallerAsync) bypasses all three, mirroring the flat-permission handler. Non-members get KeyNotFound (404) rather
+    // An administrator - the Admin role, which carries the "superadmin" claim - bypasses all three, mirroring the flat-permission
+    // handler. A Project Admin is NOT one: it is a role within ONE project and grants nothing on any other. Non-members get KeyNotFound (404) rather
     // than 403 so a project's existence is not leaked.
     public interface IProjectAccessService
     {
         Task<bool> HasModuleAccessAsync(PmCaller caller);
         // True for a person with module access whose level has been set to read only. Never true for a SuperAdmin.
         Task<bool> IsReadOnlyAsync(PmCaller caller);
-        // Who is calling, in the terms every PM service uses. A SuperAdmin (the "superadmin" claim) and a Project Admin
-        // are treated alike: both come back with IsSuperAdmin and IsPmAdmin set, so they see every project, may do
-        // anything in it, are never read-only and may grant module access. Resolved from the database on each request,
-        // so revoking someone's access or admin role takes effect immediately.
-        Task<PmCaller> ResolveCallerAsync(int userId, bool hasSuperAdminClaim, bool hasPmAdminPermission);
         Task<string?> GetRoleAsync(PmCaller caller, int projectId);
         Task RequireAsync(PmCaller caller, int projectId, PmAction action);
     }
@@ -39,21 +35,6 @@ namespace KhoiProjectManagement.Application
             _members = members;
             _users = users;
             _projects = projects;
-        }
-
-        // A Project Admin of at least one project is an administrator of the whole module - but only while they still
-        // have module access and have not been set to read only. Those two conditions keep an explicit restriction from a
-        // SuperAdmin (revoking access, or capping someone at read only) effective even for a Project Admin.
-        public static IQueryable<ProjectUser> ProjectAdminsQuery(IQueryable<ProjectUser> members, int userId) =>
-            members.Where(m => m.UserId == userId && m.ProjectRole == ProjectRoles.ProjectAdmin
-                               && m.User.IsActive && m.User.PmAccess && !m.User.PmReadOnly);
-
-        public async Task<PmCaller> ResolveCallerAsync(int userId, bool hasSuperAdminClaim, bool hasPmAdminPermission)
-        {
-            if (hasSuperAdminClaim) return new PmCaller(userId, IsSuperAdmin: true, IsPmAdmin: true);
-            if (await ProjectAdminsQuery(_members.Query().AsNoTracking(), userId).AnyAsync())
-                return new PmCaller(userId, IsSuperAdmin: true, IsPmAdmin: true);
-            return new PmCaller(userId, IsSuperAdmin: false, IsPmAdmin: hasPmAdminPermission);
         }
 
         // Both module flags in one round trip (this runs on every PM request).

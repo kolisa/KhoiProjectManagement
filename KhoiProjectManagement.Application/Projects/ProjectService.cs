@@ -17,6 +17,7 @@ namespace KhoiProjectManagement.Application
         private readonly ISpaceService _spaceService;
         private readonly IEmailService _emailService;
         private readonly IActivityLogService _activityLogService;
+        private readonly IProjectScope _scope;
 
         public ProjectService(
             IRepository<Project> projectRepo,
@@ -28,8 +29,10 @@ namespace KhoiProjectManagement.Application
             INotificationService notificationService,
             ISpaceService spaceService,
             IEmailService emailService,
-            IActivityLogService activityLogService)
+            IActivityLogService activityLogService,
+            IProjectScope scope)
         {
+            _scope = scope;
             _projectRepo = projectRepo;
             _projectUserRepo = projectUserRepo;
             _userRepo = userRepo;
@@ -42,30 +45,41 @@ namespace KhoiProjectManagement.Application
             _activityLogService = activityLogService;
         }
 
+        // false = not a project the caller can see (reported as "not found"); throws Forbidden when it is visible but their
+        // role / access level does not allow changing it (a Viewer, or read-only access).
+        private async Task<bool> CanEditAsync(int projectId)
+        {
+            var outcome = await _scope.CheckAsync(projectId, ProjectAbility.Edit);
+            if (outcome == ProjectAccessOutcome.Forbidden)
+                throw new ForbiddenException("Your role or access level on this project does not allow changing it.");
+            return outcome == ProjectAccessOutcome.Allowed;
+        }
+
         public async Task<IEnumerable<ProjectDto>> GetAllProjectsAsync()
         {
-            var projects = await _projectRepo.Query()
+            // Need-to-know: the caller's own projects only (an administrator sees all).
+            var visible = await _scope.ScopeAsync(_projectRepo.Query()
                 .Include(p => p.Creator)
                 .Include(p => p.ProjectUsers)
                     .ThenInclude(pu => pu.User)
                 .Include(p => p.ProjectTags)
                     .ThenInclude(pt => pt.Tag)
-                .Include(p => p.Tasks)
-                .ToListAsync();
+                .Include(p => p.Tasks));
+            var projects = await visible.ToListAsync();
 
             return projects.Select(MapToDto);
         }
 
         public async Task<ProjectDto?> GetProjectByIdAsync(int id)
         {
-            var project = await _projectRepo.Query()
+            var visible = await _scope.ScopeAsync(_projectRepo.Query()
                 .Include(p => p.Creator)
                 .Include(p => p.ProjectUsers)
                     .ThenInclude(pu => pu.User)
                 .Include(p => p.ProjectTags)
                     .ThenInclude(pt => pt.Tag)
-                .Include(p => p.Tasks)
-                .FirstOrDefaultAsync(p => p.Id == id);
+                .Include(p => p.Tasks));
+            var project = await visible.FirstOrDefaultAsync(p => p.Id == id);   // someone else's project does not exist here
 
             return project == null ? null : MapToDto(project);
         }
@@ -171,7 +185,7 @@ namespace KhoiProjectManagement.Application
                     .Include(p => p.ProjectTags)
                     .FirstOrDefaultAsync(p => p.Id == id);
 
-                if (project == null)
+                if (project == null || !await CanEditAsync(project.Id))
                     return false;
 
                 project.Name = updateProjectDto.Name;
@@ -227,7 +241,7 @@ namespace KhoiProjectManagement.Application
         public async Task<bool> DeleteProjectAsync(int id)
         {
             var project = await _projectRepo.FindAsync(id);
-            if (project == null)
+            if (project == null || !await CanEditAsync(project.Id))
                 return false;
 
             _projectRepo.Remove(project);
@@ -237,9 +251,8 @@ namespace KhoiProjectManagement.Application
 
         public async Task<ProjectStatisticsDto?> GetProjectStatisticsAsync(int id)
         {
-            var project = await _projectRepo.Query()
-                .Include(p => p.Tasks)
-                .FirstOrDefaultAsync(p => p.Id == id);
+            var visible = await _scope.ScopeAsync(_projectRepo.Query().Include(p => p.Tasks));
+            var project = await visible.FirstOrDefaultAsync(p => p.Id == id);
 
             if (project == null)
                 return null;

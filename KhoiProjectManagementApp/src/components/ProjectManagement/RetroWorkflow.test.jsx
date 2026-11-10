@@ -56,10 +56,12 @@ describe('RetroModal', () => {
     expect(screen.getAllByRole('button', { name: 'Delete card' })).toHaveLength(1); // only the author's card
   });
 
-  it('hides the add inputs for read-only roles', async () => {
-    wrap(<RetroModal apiService={makeApi(items)} sprint={{ id: 9, name: 'Sprint 4' }} canAdd={false} onClose={vi.fn()} />);
+  it('greys out the add inputs for read-only roles', async () => {
+    wrap(<RetroModal apiService={makeApi(items)} sprint={{ id: 9, name: 'Sprint 4' }} canAdd={false} addReason="Your access is read-only." onClose={vi.fn()} />);
     await screen.findByText('Good demos');
-    expect(screen.queryByLabelText(/^Add to/)).not.toBeInTheDocument();
+    const inputs = screen.getAllByLabelText(/^Add to/);
+    expect(inputs.length).toBeGreaterThan(0);
+    inputs.forEach((i) => expect(i).toBeDisabled());
   });
 });
 

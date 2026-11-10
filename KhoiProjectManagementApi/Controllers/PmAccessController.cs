@@ -7,12 +7,10 @@ using Microsoft.AspNetCore.Mvc;
 namespace KhoiProjectManagementApi.Controllers
 {
     // Grants/revokes Project Management module access and sets each person's access level. Open to the module's
-    // administrators - a SuperAdmin, a pm.admin holder, or a Project Admin (see IProjectAccessService.ResolveCallerAsync)
-    // - and deliberately NOT [AllowModuleOnly]: a module-only account must never administer access.
+    // administrators - the Admin role (SuperAdmin) or a pm.admin holder - and deliberately NOT [AllowModuleOnly]: a module-only account must never administer access.
     [ApiController]
     [Route("api/pm/access")]
     [Authorize]
-    [TypeFilter(typeof(ResolvePmCallerFilter))]
     public class PmAccessController : ControllerBase
     {
         private readonly IPmProjectService _service;
@@ -24,7 +22,7 @@ namespace KhoiProjectManagementApi.Controllers
 
         private void RequireAdministrator()
         {
-            var caller = HttpContext.GetPmCaller();
+            var caller = User.ToPmCaller();
             if (!caller.IsSuperAdmin && !caller.IsPmAdmin)
                 throw new ForbiddenException("Only an administrator can manage Project Management access.");
         }

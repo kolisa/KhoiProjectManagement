@@ -31,7 +31,7 @@ namespace KhoiProjectManagement.UnitTests.Services
 
         private TimesheetService CreateSut() => new(
             _timesheetRepo, _entryRepo, _userRepo, _userRoleRepo, _rolePermissionRepo,
-            _notificationService, _emailService, _unitOfWork);
+            _notificationService, _emailService, _unitOfWork, new AllowAllProjectScope());
 
         private static ClaimsPrincipal CallerWithId(int userId, params string[] permissions)
         {

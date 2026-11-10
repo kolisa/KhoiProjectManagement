@@ -16,6 +16,7 @@ namespace KhoiProjectManagement.Application
         private readonly INotificationService _notificationService;
         private readonly IEmailService _emailService;
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IProjectScope _scope;
 
         public TimesheetService(
             IRepository<Timesheet> timesheetRepo,
@@ -25,8 +26,10 @@ namespace KhoiProjectManagement.Application
             IRepository<RolePermission> rolePermissionRepo,
             INotificationService notificationService,
             IEmailService emailService,
-            IUnitOfWork unitOfWork)
+            IUnitOfWork unitOfWork,
+            IProjectScope scope)
         {
+            _scope = scope;
             _timesheetRepo = timesheetRepo;
             _entryRepo = entryRepo;
             _userRepo = userRepo;
@@ -84,6 +87,7 @@ namespace KhoiProjectManagement.Application
         public async Task<TimesheetDto> CreateTimesheetAsync(CreateTimesheetDto dto, ClaimsPrincipal caller)
         {
             var callerId = GetUserId(caller);
+            await EnsureProjectsAreVisibleAsync(dto.Entries);
             var timesheet = new Timesheet
             {
                 UserId = callerId,
@@ -115,6 +119,7 @@ namespace KhoiProjectManagement.Application
             if (timesheet.Status != "Draft" && timesheet.Status != "Rejected")
                 throw new InvalidOperationException($"Cannot edit a timesheet with status '{timesheet.Status}'.");
 
+            await EnsureProjectsAreVisibleAsync(dto.Entries);
             _entryRepo.RemoveRange(timesheet.Entries);
             timesheet.Entries = dto.Entries.Select(e =>
             {
@@ -257,6 +262,17 @@ namespace KhoiProjectManagement.Application
                 .Include(t => t.Approver)
                 .Include(t => t.Entries).ThenInclude(e => e.Project)
                 .FirstOrDefaultAsync(t => t.Id == id);
+        }
+
+        // Time can only be logged against a project the person belongs to. An unknown project and one they cannot see give the
+        // same answer, so this cannot be used to discover which projects exist.
+        private async Task EnsureProjectsAreVisibleAsync(IEnumerable<CreateTimesheetEntryDto> entries)
+        {
+            foreach (var projectId in entries.Where(e => e.ProjectId.HasValue).Select(e => e.ProjectId!.Value).Distinct())
+            {
+                if (await _scope.CheckAsync(projectId, ProjectAbility.View) != ProjectAccessOutcome.Allowed)
+                    throw new InvalidOperationException("One of the projects on this timesheet does not exist.");
+            }
         }
 
         private static TimesheetEntry MapEntry(CreateTimesheetEntryDto dto) => new()

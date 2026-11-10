@@ -15,7 +15,7 @@ namespace KhoiProjectManagement.UnitTests.Services
         private readonly IRepository<DashboardStatsSnapshot> _snapshotRepo = Substitute.For<IRepository<DashboardStatsSnapshot>>();
         private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
 
-        private DashboardService CreateSut() => new(_statsRepo, _taskRepo, _snapshotRepo, _unitOfWork);
+        private DashboardService CreateSut() => new(_statsRepo, _taskRepo, _snapshotRepo, _unitOfWork, new AllowAllProjectScope());
 
         private void SetCounts(DashboardCountsResult counts) =>
             _statsRepo.GetCountsAsync(Arg.Any<DateTime>()).Returns(counts);

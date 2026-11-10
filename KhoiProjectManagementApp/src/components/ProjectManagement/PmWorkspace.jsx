@@ -152,9 +152,9 @@ const PmWorkspace = ({ apiService, user }) => {
   // The browser tab always names the place.
   useEffect(() => {
     const previous = document.title;
-    if (route.kind === 'project' && project) document.title = `${project.name} · ${tabInfo?.label || ''} · Project Management`;
-    else if (route.kind === 'mywork') document.title = 'My work · Project Management';
-    else if (route.kind === 'access') document.title = 'Module access · Project Management';
+    if (route.kind === 'project' && project) document.title = `${project.name} · ${tabInfo?.label || ''} · Board`;
+    else if (route.kind === 'mywork') document.title = 'My work · Board';
+    else if (route.kind === 'access') document.title = 'Module access · Board';
     return () => { document.title = previous; };
   }, [route, project, tabInfo]);
 
@@ -181,7 +181,7 @@ const PmWorkspace = ({ apiService, user }) => {
           <Folder className="h-5 w-5 text-blue-600" aria-hidden="true" />
           <span className="min-w-0 flex-1">
             <span className="block text-[11px] font-semibold uppercase tracking-wide text-gray-400">You are in</span>
-            <span className="block truncate text-sm font-semibold text-gray-900">{project ? project.name : sectionTitle || 'Project Management'}</span>
+            <span className="block truncate text-sm font-semibold text-gray-900">{project ? project.name : sectionTitle || 'Board'}</span>
           </span>
           <ChevronDown className={`h-4 w-4 text-gray-500 transition-transform ${navOpen ? 'rotate-180' : ''}`} aria-hidden="true" />
         </button>
@@ -193,17 +193,17 @@ const PmWorkspace = ({ apiService, user }) => {
         </div>
       </aside>
 
-      <section aria-label="Project Management content" className="min-w-0">
+      <section aria-label="Board content" className="min-w-0">
         {route.kind === 'mywork' && (
           <>
-            <Header crumbs={['Project Management', 'My work']} title="My work" subtitle="Everything assigned to you, across every project." />
+            <Header crumbs={['Board', 'My work']} title="My work" subtitle="Everything assigned to you, across every project." />
             <PmMyWork apiService={apiService} onOpenProject={(id) => navigate({ kind: 'project', projectId: id, tab: 'backlog' })} />
           </>
         )}
 
         {route.kind === 'access' && (
           <>
-            <Header crumbs={['Project Management', 'Module access']} title="Module access"
+            <Header crumbs={['Board', 'Module access']} title="Module access"
               subtitle="Who can use Project Management, and whether they can read only or read and write." />
             <PmAccessAdmin apiService={apiService} />
           </>
@@ -217,7 +217,7 @@ const PmWorkspace = ({ apiService, user }) => {
 
         {route.kind === 'project' && project && (
           <>
-            <Header crumbs={['Project Management', project.name, tabInfo?.label]}
+            <Header crumbs={['Board', project.name, tabInfo?.label]}
               title={project.name}
               avatar={<Avatar name={project.name} size="lg" square />}
               badges={(

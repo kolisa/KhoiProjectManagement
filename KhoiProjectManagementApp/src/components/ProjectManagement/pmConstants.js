@@ -92,3 +92,24 @@ export const roleCan = (role, key) => key === 'view' || can(role, key);
 export const effectiveProject = (project) => (project
   ? { ...project, actualRole: project.myRole, myRole: project.readOnly ? 'Viewer' : project.myRole }
   : project);
+
+// ---- Why something is unavailable -----------------------------------------------------------------------------
+// Controls a person is not allowed to use stay VISIBLE but greyed out, with the reason, instead of silently
+// vanishing - so nobody wonders whether the feature exists. (What they are not allowed to SEE at all is a different
+// matter: the server never sends it.) null means the action is allowed.
+const ACTION_WORDS = {
+  create: 'create work items',
+  edit: 'edit work items',
+  delete: 'delete work items',
+  rank: 're-order the backlog',
+  board: 'change the board settings',
+  sprint: 'manage sprints',
+  members: 'manage members',
+  collaborate: 'comment or attach files',
+};
+
+export const denyReason = (project, action) => {
+  if (!project || can(project.myRole, action)) return null;
+  if (project.readOnly) return 'Your access is read-only, so you can view this but not change it. Ask an administrator for read and write access.';
+  return `Your role (${roleLabel(project.actualRole || project.myRole)}) can't ${ACTION_WORDS[action] || 'do this'}.`;
+};

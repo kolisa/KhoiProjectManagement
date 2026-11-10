@@ -15,9 +15,11 @@ namespace KhoiProjectManagement.Application
         private readonly IRepository<Project> _projectRepo;
         private readonly IRepository<ProjectTask> _taskRepo;
         private readonly IRepository<User> _userRepo;
+        private readonly IProjectScope _scope;
 
-        public GlobalSearchService(IRepository<Project> projectRepo, IRepository<ProjectTask> taskRepo, IRepository<User> userRepo)
+        public GlobalSearchService(IRepository<Project> projectRepo, IRepository<ProjectTask> taskRepo, IRepository<User> userRepo, IProjectScope scope)
         {
+            _scope = scope;
             _projectRepo = projectRepo;
             _taskRepo = taskRepo;
             _userRepo = userRepo;
@@ -32,14 +34,15 @@ namespace KhoiProjectManagement.Application
 
             var lowered = trimmed.ToLower();
 
-            result.Projects = await _projectRepo.Query()
+            // Need-to-know: search only ever finds projects and tasks the caller belongs to.
+            result.Projects = await (await _scope.ScopeAsync(_projectRepo.Query()))
                 .Where(p => p.Name.ToLower().Contains(lowered))
                 .OrderBy(p => p.Name)
                 .Take(MaxResultsPerCategory)
                 .Select(p => new GlobalSearchItemDto { Id = p.Id, Title = p.Name, Subtitle = p.Status })
                 .ToListAsync();
 
-            result.Tasks = await _taskRepo.Query()
+            result.Tasks = await (await _scope.ScopeAsync(_taskRepo.Query()))
                 .Where(t => t.Title.ToLower().Contains(lowered))
                 .OrderBy(t => t.Title)
                 .Take(MaxResultsPerCategory)

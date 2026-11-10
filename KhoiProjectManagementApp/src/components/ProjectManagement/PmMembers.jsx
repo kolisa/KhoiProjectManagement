@@ -5,8 +5,8 @@ import ErrorMessage from '../Common/ErrorMessage';
 import { useToast } from '../../contexts/ToastContext';
 import { useConfirm } from '../../contexts/ConfirmContext';
 import { reportApiError } from '../../utils/apiError';
-import { PROJECT_ROLES, roleLabel, can } from './pmConstants';
-import { Avatar, AccessBadge, RoleChip, cardClass } from './pmUi';
+import { PROJECT_ROLES, roleLabel, can, denyReason } from './pmConstants';
+import { Avatar, AccessBadge, cardClass } from './pmUi';
 import ImportMembersModal from './ImportMembersModal';
 import RoleMatrix from './RoleMatrix';
 
@@ -29,6 +29,7 @@ const PmMembers = ({ apiService, project, onChanged, otherProjects = [], canGran
   const [selected, setSelected] = useState(() => new Set());
   const [bulkRole, setBulkRole] = useState('Developer');
   const canManage = can(project.myRole, 'members');
+  const manageReason = denyReason(project, 'members');
 
   const load = useCallback(async () => {
     try {
@@ -121,31 +122,32 @@ const PmMembers = ({ apiService, project, onChanged, otherProjects = [], canGran
 
   return (
     <div className="space-y-4">
-      {canManage && (
-        <section aria-label="Add people" className={`${cardClass} p-4`}>
+      {(
+        <section aria-label="Add people" title={manageReason || undefined} className={`${cardClass} p-4`}>
           <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-gray-900">
             <UserPlus className="h-4 w-4 text-blue-600" aria-hidden="true" /> Add people to {project.name}
           </h2>
           <form onSubmit={add} className="flex flex-wrap items-end gap-3">
             <div className="min-w-[14rem] flex-1">
               <label htmlFor="pm-add-person" className={labelClass}>Person</label>
-              <select id="pm-add-person" className={selectClass} value={newUserId} onChange={(e) => setNewUserId(e.target.value)}>
+              <select id="pm-add-person" disabled={!canManage} className={`${selectClass} disabled:bg-gray-50 disabled:cursor-not-allowed`} value={newUserId} onChange={(e) => setNewUserId(e.target.value)}>
                 <option value="">Choose a person…</option>
                 {addable.map((u) => <option key={u.id} value={u.id}>{u.name} ({u.email})</option>)}
               </select>
             </div>
             <div className="w-44">
               <label htmlFor="pm-add-role" className={labelClass}>Role</label>
-              <select id="pm-add-role" className={selectClass} value={newRole} onChange={(e) => setNewRole(e.target.value)}>
+              <select id="pm-add-role" disabled={!canManage} className={`${selectClass} disabled:bg-gray-50 disabled:cursor-not-allowed`} value={newRole} onChange={(e) => setNewRole(e.target.value)}>
                 {PROJECT_ROLES.map((r) => <option key={r.key} value={r.key}>{r.label}</option>)}
               </select>
             </div>
-            <button type="submit" disabled={!newUserId} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50">Add to project</button>
-            <button type="button" onClick={() => setShowImport(true)} className="ml-auto inline-flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50">
+            <button type="submit" disabled={!canManage || !newUserId} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">Add to project</button>
+            <button type="button" onClick={() => setShowImport(true)} disabled={!canManage} className="ml-auto disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50">
               <Upload className="h-4 w-4" aria-hidden="true" /> Import members
             </button>
           </form>
-          {addable.length === 0 && <p className="mt-2 text-xs text-gray-500">Everyone who has Project Management access is already on this project.</p>}
+          {!canManage && manageReason && <p className="mt-2 text-xs text-gray-500">{manageReason}</p>}
+          {canManage && addable.length === 0 && <p className="mt-2 text-xs text-gray-500">Everyone who has Project Management access is already on this project.</p>}
         </section>
       )}
 
@@ -175,10 +177,8 @@ const PmMembers = ({ apiService, project, onChanged, otherProjects = [], canGran
         <ul className="divide-y divide-gray-100">
           {members.map((m) => (
             <li key={m.userId} className="flex flex-wrap items-center gap-3 px-4 py-3">
-              {canManage && (
-                <input type="checkbox" className="h-4 w-4 rounded border-gray-300" aria-label={`Select ${m.name}`}
-                  checked={selected.has(m.userId)} onChange={() => toggle(m.userId)} />
-              )}
+              <input type="checkbox" className="h-4 w-4 rounded border-gray-300 disabled:cursor-not-allowed" aria-label={`Select ${m.name}`} disabled={!canManage} title={manageReason || undefined}
+                checked={selected.has(m.userId)} onChange={() => toggle(m.userId)} />
               <Avatar name={m.name} />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium text-gray-900">
@@ -187,19 +187,13 @@ const PmMembers = ({ apiService, project, onChanged, otherProjects = [], canGran
                 <p className="truncate text-xs text-gray-500">{m.email}</p>
               </div>
               <AccessBadge role={m.role} readOnly={m.moduleReadOnly} />
-              {canManage ? (
-                <select aria-label={`Role for ${m.name}`} className="rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-sm" value={m.role}
+                <select aria-label={`Role for ${m.name}`} disabled={!canManage} title={manageReason || undefined} className="rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-sm disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed" value={m.role}
                   onChange={(e) => run(() => apiService.setPmMember(project.id, m.userId, e.target.value), 'Role updated.')}>
                   {PROJECT_ROLES.map((r) => <option key={r.key} value={r.key}>{r.label}</option>)}
                 </select>
-              ) : (
-                <RoleChip role={m.role} />
-              )}
-              {canManage && (
-                <button aria-label={`Remove ${m.name}`} onClick={() => remove(m)} className="text-gray-400 hover:text-red-600">
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              )}
+              <button aria-label={`Remove ${m.name}`} onClick={() => remove(m)} disabled={!canManage} title={manageReason || undefined} className="text-gray-400 hover:text-red-600 disabled:text-gray-300 disabled:hover:text-gray-300 disabled:cursor-not-allowed">
+                <Trash2 className="h-4 w-4" />
+              </button>
             </li>
           ))}
         </ul>

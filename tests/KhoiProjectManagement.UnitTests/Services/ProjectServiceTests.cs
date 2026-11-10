@@ -30,7 +30,7 @@ namespace KhoiProjectManagement.UnitTests.Services
 
         private ProjectService CreateSut() => new(
             _projectRepo, _projectUserRepo, _userRepo, _projectTagRepo, _tagRepo,
-            _unitOfWork, _notificationService, _spaceService, _emailService, _activityLogService);
+            _unitOfWork, _notificationService, _spaceService, _emailService, _activityLogService, new AllowAllProjectScope());
 
         [Fact]
         public async Task CreateProjectAsync_WhenNoTeamMembersOrTags_CommitsWithoutTouchingSpaceOrNotifications()

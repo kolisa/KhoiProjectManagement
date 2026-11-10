@@ -311,6 +311,12 @@ namespace KhoiProjectManagement.Application
 
         public async Task<List<PmUserLookupDto>> GetAssignableUsersAsync(PmCaller caller)
         {
+            // This is the company's people list, so it is only for someone who can actually add people: an administrator, or
+            // a Project Admin of at least one project. Anyone else gets nothing - not even names and emails.
+            if (!caller.IsSuperAdmin && !caller.IsPmAdmin
+                && !await _members.Query().AnyAsync(m => m.UserId == caller.UserId && m.ProjectRole == ProjectRoles.ProjectAdmin))
+                throw new ForbiddenException("Only someone who manages a project's members can list people to add.");
+
             if (!await _access.HasModuleAccessAsync(caller))
                 throw new ForbiddenException("You do not have access to the Project Management module.");
             return await _users.Query().AsNoTracking()

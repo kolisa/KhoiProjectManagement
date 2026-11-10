@@ -9,16 +9,18 @@ namespace KhoiProjectManagement.Application
     {
         private readonly IReportStatsRepository _statsRepo;
         private readonly IRepository<ProjectTask> _taskRepo;
+        private readonly IProjectScope _scope;
 
-        public ReportService(IReportStatsRepository statsRepo, IRepository<ProjectTask> taskRepo)
+        public ReportService(IReportStatsRepository statsRepo, IRepository<ProjectTask> taskRepo, IProjectScope scope)
         {
+            _scope = scope;
             _statsRepo = statsRepo;
             _taskRepo = taskRepo;
         }
 
         public async Task<ProjectSummaryReportDto> GenerateProjectSummaryReportAsync()
         {
-            var projectCounts = await _statsRepo.GetProjectTaskCountsAsync();
+            var projectCounts = await _statsRepo.GetProjectTaskCountsAsync(await _scope.VisibleProjectIdsAsync());
 
             var projectSummaries = projectCounts.Select(p => new ProjectSummaryItemDto
             {
@@ -44,7 +46,7 @@ namespace KhoiProjectManagement.Application
 
         public async Task<TeamPerformanceReportDto> GenerateTeamPerformanceReportAsync()
         {
-            var memberCounts = await _statsRepo.GetTeamMemberTaskCountsAsync(DateTime.Now);
+            var memberCounts = await _statsRepo.GetTeamMemberTaskCountsAsync(DateTime.Now, await _scope.VisibleProjectIdsAsync());
 
             var teamPerformance = memberCounts.Select(u => new TeamMemberPerformanceDto
             {
@@ -65,9 +67,10 @@ namespace KhoiProjectManagement.Application
 
         public async Task<OverdueTasksReportDto> GenerateOverdueTasksReportAsync()
         {
-            var overdueTasks = await _taskRepo.Query()
+            var visible = await _scope.ScopeAsync(_taskRepo.Query()
                 .Include(t => t.Project)
-                .Include(t => t.AssignedTo)
+                .Include(t => t.AssignedTo));
+            var overdueTasks = await visible
                 .Where(t => t.Status != "completed" && t.HasExplicitDueDate && t.DueDate < DateTime.UtcNow)
                 .OrderBy(t => t.DueDate)
                 .ToListAsync();
