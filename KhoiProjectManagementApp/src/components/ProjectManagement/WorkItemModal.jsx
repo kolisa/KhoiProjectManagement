@@ -20,7 +20,8 @@ const WorkItemModal = ({ item, items, members, canEdit, onSave, onClose, apiServ
     storyPoints: item?.storyPoints ?? '',
     assignedToId: item?.assignedToId ?? '',
     parentId: item?.parentId ?? '',
-    dueDate: item?.dueDate ? item.dueDate.slice(0, 10) : '',
+    // An item created without a due date carries a placeholder date server-side; show the field empty, not that date.
+    dueDate: item?.dueDate && item.hasDueDate ? item.dueDate.slice(0, 10) : '',
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);

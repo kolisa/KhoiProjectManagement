@@ -1430,6 +1430,9 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
                     b.Property<DateTime>("DueDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<bool>("HasExplicitDueDate")
+                        .HasColumnType("boolean");
+
                     b.Property<int?>("ParentId")
                         .HasColumnType("integer");
 

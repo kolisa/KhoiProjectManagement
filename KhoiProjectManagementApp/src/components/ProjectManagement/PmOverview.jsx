@@ -29,7 +29,7 @@ const ItemRow = ({ item }) => (
     <span className={`px-1.5 py-0.5 rounded text-[10.5px] font-semibold ${TYPE_STYLES[item.type] || 'bg-gray-100 text-gray-700'}`}>{item.type}</span>
     <span className="flex-1 truncate text-gray-900" title={item.title}>#{item.id} {item.title}</span>
     <PriorityBadge priority={item.priority} />
-    <span className={`text-xs w-16 text-right ${item.isOverdue ? 'text-red-600 font-medium' : 'text-gray-500'}`}>{fmtDay(item.dueDate)}</span>
+    <span className={`text-xs w-16 text-right ${item.isOverdue ? 'text-red-600 font-medium' : 'text-gray-500'}`}>{item.hasDueDate ? fmtDay(item.dueDate) : '–'}</span>
   </li>
 );
 

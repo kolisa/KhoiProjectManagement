@@ -29,6 +29,10 @@ namespace KhoiProjectManagement.Domain
         // for its scheduled time; other types just carry midnight and are rendered/edited as a plain
         // date in the UI. No separate "MeetingTime" field needed since this column already supports it.
         public DateTime DueDate { get; set; }
+        // DueDate is required, so a Project Management item created without one is given its project's end date.
+        // That placeholder is not a real deadline: this flag is false for it, and "overdue" / "due soon" ignore it
+        // (otherwise every undated item would read as overdue the day the project's end date passes).
+        public bool HasExplicitDueDate { get; set; } = true;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? CompletedAt { get; set; }
@@ -49,7 +53,7 @@ namespace KhoiProjectManagement.Domain
         // the midpoint of its neighbours without renumbering every row.
         public double Rank { get; set; }
 
-        public bool IsOverdue => Status != "completed" && DueDate < DateTime.Now;
+        public bool IsOverdue => Status != "completed" && HasExplicitDueDate && DueDate < DateTime.Now;
 
         // Navigation properties
         public virtual ICollection<TaskTag> TaskTags { get; set; } = new List<TaskTag>();

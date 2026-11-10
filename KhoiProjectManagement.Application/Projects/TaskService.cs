@@ -77,7 +77,7 @@ namespace KhoiProjectManagement.Application
 
             if (filter.IsOverdue.HasValue && filter.IsOverdue.Value)
             {
-                query = query.Where(t => t.Status != "completed" && t.DueDate < DateTime.UtcNow);
+                query = query.Where(t => t.Status != "completed" && t.HasExplicitDueDate && t.DueDate < DateTime.UtcNow);
             }
 
             if (!string.IsNullOrEmpty(filter.SearchTerm))
@@ -337,7 +337,7 @@ namespace KhoiProjectManagement.Application
                 .Include(t => t.AssignedTo)
                 .Include(t => t.TaskTags)
                     .ThenInclude(tt => tt.Tag)
-                .Where(t => t.Status != "completed" && t.DueDate < DateTime.UtcNow)
+                .Where(t => t.Status != "completed" && t.HasExplicitDueDate && t.DueDate < DateTime.UtcNow)
                 .OrderBy(t => t.DueDate)
                 .ToListAsync();
 

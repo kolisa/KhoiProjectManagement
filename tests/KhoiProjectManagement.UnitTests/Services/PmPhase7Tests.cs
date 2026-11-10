@@ -150,6 +150,35 @@ namespace KhoiProjectManagement.UnitTests.Services
         }
 
         [Fact]
+        public async Task Overview_IgnoresPlaceholderDueDates_WhenCountingOverdueAndDueSoon()
+        {
+            SetTasks(
+                new ProjectTask { Id = 1, ProjectId = 1, Type = "Task", Title = "no date, project ended", Status = "todo", DueDate = In(-30), HasExplicitDueDate = false },
+                new ProjectTask { Id = 2, ProjectId = 1, Type = "Task", Title = "no date, ends soon", Status = "todo", DueDate = In(2), HasExplicitDueDate = false },
+                new ProjectTask { Id = 3, ProjectId = 1, Type = "Task", Title = "really overdue", Status = "todo", DueDate = In(-1), HasExplicitDueDate = true });
+
+            var o = await CreateSut().GetOverviewAsync(Dev, 1);
+
+            Assert.Equal(1, o.OverdueCount);
+            Assert.Empty(o.DueSoon);
+        }
+
+        [Fact]
+        public async Task MyWork_ListsUndatedItemsLast_AndNeverCallsThemOverdue()
+        {
+            var p = new Project { Id = 1, Name = "Khoi" };
+            SetTasks(
+                new ProjectTask { Id = 1, ProjectId = 1, Project = p, Type = "Task", Title = "undated", Status = "todo", AssignedToId = 10, DueDate = In(-30), HasExplicitDueDate = false },
+                new ProjectTask { Id = 2, ProjectId = 1, Project = p, Type = "Task", Title = "dated later", Status = "todo", AssignedToId = 10, DueDate = In(20), HasExplicitDueDate = true });
+
+            var mine = await CreateSut().GetMyWorkAsync(Dev);
+
+            Assert.Equal(new[] { "dated later", "undated" }, mine.Select(m => m.Title));
+            Assert.False(mine[1].IsOverdue);
+            Assert.False(mine[1].HasDueDate);
+        }
+
+        [Fact]
         public async Task Overview_ShowsTheActiveSprintsLiveProgress()
         {
             SetTasks(

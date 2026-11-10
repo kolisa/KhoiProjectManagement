@@ -69,7 +69,7 @@ const PmMyWork = ({ apiService, onOpenProject }) => {
               {i.storyPoints != null && <span className="text-xs font-semibold bg-gray-100 text-gray-700 rounded-full px-2 py-0.5" title="Story points">{i.storyPoints}</span>}
               <PriorityBadge priority={i.priority} />
               <StatusBadge status={i.status} label={statusLabel(i.status)} colorMap={STATUS_STYLES} />
-              <span className={`text-xs w-24 text-right ${i.isOverdue ? 'text-red-600 font-medium' : 'text-gray-500'}`}>{i.isOverdue ? 'Overdue ' : ''}{fmtDay(i.dueDate)}</span>
+              <span className={`text-xs w-24 text-right ${i.isOverdue ? 'text-red-600 font-medium' : 'text-gray-500'}`}>{i.hasDueDate ? `${i.isOverdue ? 'Overdue ' : ''}${fmtDay(i.dueDate)}` : 'No due date'}</span>
             </button>
           </li>
         ))}

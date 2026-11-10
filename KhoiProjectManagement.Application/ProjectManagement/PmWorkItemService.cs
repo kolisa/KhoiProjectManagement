@@ -128,6 +128,7 @@ namespace KhoiProjectManagement.Application
                 AssignedToId = dto.AssignedToId,
                 ParentId = dto.ParentId,
                 DueDate = dto.DueDate ?? project.EndDate,
+                HasExplicitDueDate = dto.DueDate.HasValue,
                 Rank = maxRank + RankStep,
                 CompletedAt = dto.Status == "completed" ? DateTime.UtcNow : null,
             };
@@ -168,7 +169,11 @@ namespace KhoiProjectManagement.Application
             item.StoryPoints = dto.StoryPoints;
             item.AssignedToId = dto.AssignedToId;
             item.ParentId = dto.ParentId;
-            if (dto.DueDate.HasValue) item.DueDate = dto.DueDate.Value;
+            if (dto.DueDate.HasValue)
+            {
+                item.DueDate = dto.DueDate.Value;
+                item.HasExplicitDueDate = true;
+            }
             item.UpdatedAt = DateTime.UtcNow;
             if (dto.Status == "completed" && !wasCompleted) item.CompletedAt = DateTime.UtcNow;
             else if (dto.Status != "completed") item.CompletedAt = null;
@@ -291,7 +296,8 @@ namespace KhoiProjectManagement.Application
                 Labels = t.TaskTags.Select(x => new LabelDto { Id = x.TagId, Name = x.Tag.Name, Color = x.Tag.Color }).ToList(),
                 DueDate = t.DueDate,
                 Rank = t.Rank,
-                IsOverdue = t.Status != "completed" && t.DueDate < DateTime.UtcNow,
+                HasDueDate = t.HasExplicitDueDate,
+                IsOverdue = t.Status != "completed" && t.HasExplicitDueDate && t.DueDate < DateTime.UtcNow,
                 CreatedAt = t.CreatedAt,
                 UpdatedAt = t.UpdatedAt,
                 CompletedAt = t.CompletedAt,

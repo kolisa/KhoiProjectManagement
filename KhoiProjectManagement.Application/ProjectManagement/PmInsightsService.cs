@@ -92,7 +92,7 @@ namespace KhoiProjectManagement.Application
         }
 
         private sealed record Row(int Id, string Title, string Type, string Status, string Priority, DateTime DueDate,
-            int? StoryPoints, int? SprintId, int? AssignedToId, string? AssigneeName);
+            int? StoryPoints, int? SprintId, int? AssignedToId, string? AssigneeName, bool HasDue);
 
         private static int PriorityRank(string priority)
         {
@@ -109,7 +109,7 @@ namespace KhoiProjectManagement.Application
 
             var all = await _tasks.Query().AsNoTracking().Where(t => t.ProjectId == projectId)
                 .Select(t => new Row(t.Id, t.Title, t.Type, t.Status, t.Priority, t.DueDate, t.StoryPoints, t.SprintId, t.AssignedToId,
-                    t.AssignedTo != null ? t.AssignedTo.Name : null)).ToListAsync();
+                    t.AssignedTo != null ? t.AssignedTo.Name : null, t.HasExplicitDueDate)).ToListAsync();
             var flow = all.Where(t => !Containers.Contains(t.Type)).ToList();
             var open = flow.Where(t => t.Status != "completed").ToList();
 
@@ -119,7 +119,7 @@ namespace KhoiProjectManagement.Application
                 ProjectName = projectName,
                 StatusCounts = PmReportService.FlowStatuses.ToDictionary(s => s, s => flow.Count(t => t.Status == s)),
                 OpenPoints = open.Sum(t => t.StoryPoints ?? 0),
-                OverdueCount = open.Count(t => t.DueDate < now),
+                OverdueCount = open.Count(t => t.HasDue && t.DueDate < now),
                 BlockedCount = open.Count(t => t.Status == "blocked"),
                 UnassignedCount = open.Count(t => t.AssignedToId == null),
             };
@@ -127,13 +127,13 @@ namespace KhoiProjectManagement.Application
             OverviewItemDto Map(Row t) => new()
             {
                 Id = t.Id, Title = t.Title, Type = t.Type, Status = t.Status, Priority = t.Priority, DueDate = t.DueDate,
-                IsOverdue = t.Status != "completed" && t.DueDate < now, AssignedToName = t.AssigneeName,
+                HasDueDate = t.HasDue, IsOverdue = t.Status != "completed" && t.HasDue && t.DueDate < now, AssignedToName = t.AssigneeName,
             };
 
-            overview.DueSoon = open.Where(t => t.DueDate >= now && t.DueDate < now.AddDays(7))
+            overview.DueSoon = open.Where(t => t.HasDue && t.DueDate >= now && t.DueDate < now.AddDays(7))
                 .OrderBy(t => t.DueDate).Take(6).Select(t => Map(t)).ToList();
             overview.MyOpenItems = open.Where(t => t.AssignedToId == caller.UserId)
-                .OrderBy(t => t.DueDate < now ? 0 : 1).ThenBy(t => PriorityRank(t.Priority)).ThenBy(t => t.DueDate)
+                .OrderBy(t => t.HasDue && t.DueDate < now ? 0 : 1).ThenBy(t => PriorityRank(t.Priority)).ThenBy(t => t.HasDue ? 0 : 1).ThenBy(t => t.DueDate)
                 .Take(8).Select(t => Map(t)).ToList();
 
             var sprint = await _sprints.Query().AsNoTracking().FirstOrDefaultAsync(s => s.ProjectId == projectId && s.State == SprintStates.Active);
@@ -180,17 +180,17 @@ namespace KhoiProjectManagement.Application
                 .Where(t => t.AssignedToId == caller.UserId && t.Status != "completed" && !Containers.Contains(t.Type))
                 .Select(t => new
                 {
-                    t.Id, t.ProjectId, ProjectName = t.Project.Name, t.Title, t.Type, t.Status, t.Priority, t.StoryPoints, t.DueDate,
+                    t.Id, t.ProjectId, ProjectName = t.Project.Name, t.Title, t.Type, t.Status, t.Priority, t.StoryPoints, t.DueDate, t.HasExplicitDueDate,
                     SprintName = t.Sprint != null ? t.Sprint.Name : null,
                 }).ToListAsync();
 
             return rows
-                .OrderBy(r => r.DueDate < now ? 0 : 1).ThenBy(r => r.DueDate).ThenBy(r => PriorityRank(r.Priority))
+                .OrderBy(r => r.HasExplicitDueDate && r.DueDate < now ? 0 : 1).ThenBy(r => r.HasExplicitDueDate ? 0 : 1).ThenBy(r => r.DueDate).ThenBy(r => PriorityRank(r.Priority))
                 .Take(200)
                 .Select(r => new MyWorkItemDto
                 {
                     Id = r.Id, ProjectId = r.ProjectId, ProjectName = r.ProjectName, Title = r.Title, Type = r.Type, Status = r.Status,
-                    Priority = r.Priority, StoryPoints = r.StoryPoints, DueDate = r.DueDate, IsOverdue = r.DueDate < now, SprintName = r.SprintName,
+                    Priority = r.Priority, StoryPoints = r.StoryPoints, DueDate = r.DueDate, HasDueDate = r.HasExplicitDueDate, IsOverdue = r.HasExplicitDueDate && r.DueDate < now, SprintName = r.SprintName,
                 }).ToList();
         }
 

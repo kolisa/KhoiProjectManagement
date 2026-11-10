@@ -56,6 +56,8 @@ namespace KhoiProjectManagement.Application
         public int RollupPointsTotal { get; set; }
         public List<LabelDto> Labels { get; set; } = new();
         public DateTime DueDate { get; set; }
+        // False when DueDate is only the project-end placeholder given to items created without a due date.
+        public bool HasDueDate { get; set; }
         public double Rank { get; set; }
         public bool IsOverdue { get; set; }
         public DateTime CreatedAt { get; set; }

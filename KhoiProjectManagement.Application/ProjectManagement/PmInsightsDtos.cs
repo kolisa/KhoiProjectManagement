@@ -35,6 +35,7 @@ namespace KhoiProjectManagement.Application
         public string Status { get; set; } = string.Empty;
         public string Priority { get; set; } = string.Empty;
         public DateTime DueDate { get; set; }
+        public bool HasDueDate { get; set; }
         public bool IsOverdue { get; set; }
         public string? AssignedToName { get; set; }
     }
@@ -66,6 +67,7 @@ namespace KhoiProjectManagement.Application
         public string Priority { get; set; } = string.Empty;
         public int? StoryPoints { get; set; }
         public DateTime DueDate { get; set; }
+        public bool HasDueDate { get; set; }
         public bool IsOverdue { get; set; }
         public string? SprintName { get; set; }
     }

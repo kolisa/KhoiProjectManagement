@@ -170,7 +170,7 @@ namespace KhoiProjectManagement.Application
                 {
                     t.AssignedToId,
                     Name = t.AssignedTo != null ? t.AssignedTo.Name : null,
-                    t.Status, t.StoryPoints, t.DueDate,
+                    t.Status, t.StoryPoints, t.DueDate, t.HasExplicitDueDate,
                 })
                 .ToListAsync();
 
@@ -186,7 +186,7 @@ namespace KhoiProjectManagement.Application
                         OpenPoints = open.Sum(r => r.StoryPoints ?? 0),
                         InProgress = open.Count(r => r.Status == "in-progress"),
                         Blocked = open.Count(r => r.Status == "blocked"),
-                        Overdue = open.Count(r => r.DueDate < now),
+                        Overdue = open.Count(r => r.HasExplicitDueDate && r.DueDate < now),
                         DoneLast30Days = g.Count(r => r.Status == "completed"),
                     };
                 })

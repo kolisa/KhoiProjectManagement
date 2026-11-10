@@ -161,8 +161,9 @@ describe('PmOverview', () => {
 
 describe('PmMyWork', () => {
   const items = [
-    { id: 1, projectId: 1, projectName: 'Alpha', title: 'Late thing', type: 'Task', status: 'todo', priority: 'high', storyPoints: 3, dueDate: '2026-11-01T00:00:00Z', isOverdue: true, sprintName: 'S1' },
-    { id: 2, projectId: 2, projectName: 'Beta', title: 'Fine thing', type: 'Bug', status: 'in-progress', priority: 'low', storyPoints: 2, dueDate: '2026-12-01T00:00:00Z', isOverdue: false },
+    { id: 1, projectId: 1, projectName: 'Alpha', title: 'Late thing', type: 'Task', status: 'todo', priority: 'high', storyPoints: 3, dueDate: '2026-11-01T00:00:00Z', hasDueDate: true, isOverdue: true, sprintName: 'S1' },
+    { id: 2, projectId: 2, projectName: 'Beta', title: 'Fine thing', type: 'Bug', status: 'in-progress', priority: 'low', storyPoints: 2, dueDate: '2026-12-01T00:00:00Z', hasDueDate: true, isOverdue: false },
+    { id: 3, projectId: 2, projectName: 'Beta', title: 'Undated thing', type: 'Task', status: 'todo', priority: 'low', storyPoints: null, dueDate: '2027-03-01T00:00:00Z', hasDueDate: false, isOverdue: false },
   ];
 
   it('lists work across projects, filters by project, and jumps to a project', async () => {
@@ -171,10 +172,12 @@ describe('PmMyWork', () => {
     wrap(<PmMyWork apiService={{ getMyWork: vi.fn().mockResolvedValue(items) }} onOpenProject={onOpenProject} />);
 
     expect(await screen.findByText('Late thing')).toBeInTheDocument();
-    expect(screen.getByText(/2 open items · 5 points/)).toHaveTextContent('1 overdue');
+    expect(screen.getByText(/3 open items · 5 points/)).toHaveTextContent('1 overdue');
+    expect(screen.getByText('No due date')).toBeInTheDocument();
 
     await user.selectOptions(screen.getByLabelText('Filter by project'), '2');
     expect(screen.queryByText('Late thing')).not.toBeInTheDocument();
+    expect(screen.getByText('Undated thing')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /Open Beta for Fine thing/ }));
     expect(onOpenProject).toHaveBeenCalledWith(2);

@@ -203,6 +203,51 @@ namespace KhoiProjectManagement.UnitTests.Services
         }
 
         [Fact]
+        public async Task CreateAsync_WithoutADueDate_UsesTheProjectEndAsAPlaceholder_AndMarksItNotExplicit()
+        {
+            _projects.Query().Returns(_ => new List<Project> { new() { Id = 1, EndDate = new DateTime(2027, 3, 1) } }.BuildMock());
+            SetTasks();
+            ProjectTask? added = null;
+            _tasks.When(r => r.Add(Arg.Any<ProjectTask>())).Do(ci => { added = ci.Arg<ProjectTask>(); added.Id = 9; SetTasks(added); });
+
+            await CreateSut().CreateAsync(Dev, 1, new SaveWorkItemDto { Title = "T", Type = "Task" });
+
+            Assert.Equal(new DateTime(2027, 3, 1), added!.DueDate);
+            Assert.False(added.HasExplicitDueDate);
+        }
+
+        [Fact]
+        public async Task CreateAsync_WithADueDate_IsExplicit_AndSettingOneLaterMakesItExplicit()
+        {
+            _projects.Query().Returns(_ => new List<Project> { new() { Id = 1, EndDate = new DateTime(2027, 3, 1) } }.BuildMock());
+            SetTasks();
+            ProjectTask? added = null;
+            _tasks.When(r => r.Add(Arg.Any<ProjectTask>())).Do(ci => { added = ci.Arg<ProjectTask>(); added.Id = 9; SetTasks(added); });
+            await CreateSut().CreateAsync(Dev, 1, new SaveWorkItemDto { Title = "T", Type = "Task", DueDate = new DateTime(2026, 12, 5) });
+            Assert.True(added!.HasExplicitDueDate);
+
+            var undated = new ProjectTask { Id = 1, ProjectId = 1, Type = "Task", Title = "U", Status = "todo", DueDate = new DateTime(2027, 3, 1), HasExplicitDueDate = false };
+            SetTasks(undated);
+            await CreateSut().UpdateAsync(Dev, 1, new SaveWorkItemDto { Title = "U", Type = "Task", Status = "todo", DueDate = new DateTime(2026, 12, 9) });
+            Assert.True(undated.HasExplicitDueDate);
+            Assert.Equal(new DateTime(2026, 12, 9), undated.DueDate);
+
+            var stillUndated = new ProjectTask { Id = 2, ProjectId = 1, Type = "Task", Title = "V", Status = "todo", DueDate = new DateTime(2027, 3, 1), HasExplicitDueDate = false };
+            SetTasks(stillUndated);
+            await CreateSut().UpdateAsync(Dev, 2, new SaveWorkItemDto { Title = "V renamed", Type = "Task", Status = "todo" });
+            Assert.False(stillUndated.HasExplicitDueDate);
+        }
+
+        [Fact]
+        public void TheTaskEntitysOwnOverdueFlag_IgnoresPlaceholderDates()
+        {
+            var placeholder = new ProjectTask { Status = "todo", DueDate = DateTime.Now.AddDays(-10), HasExplicitDueDate = false };
+            var real = new ProjectTask { Status = "todo", DueDate = DateTime.Now.AddDays(-10), HasExplicitDueDate = true };
+            Assert.False(placeholder.IsOverdue);
+            Assert.True(real.IsOverdue);
+        }
+
+        [Fact]
         public async Task DeleteAsync_RemovesAttachmentRowsAndStoredFiles()
         {
             SetTasks(new ProjectTask { Id = 1, ProjectId = 1, Type = "Task", Title = "T" });
