@@ -24,6 +24,8 @@ namespace KhoiProjectManagement.Application
         private readonly IRepository<Project> _projects;
         private readonly IRepository<ProjectUser> _members;
         private readonly IRepository<TaskStatusHistory> _history;
+        private readonly IRepository<Attachment> _attachments;
+        private readonly IFileStorage _storage;
         private readonly IProjectAccessService _access;
         private readonly IActivityLogService _activity;
         private readonly IUnitOfWork _unitOfWork;
@@ -33,6 +35,8 @@ namespace KhoiProjectManagement.Application
             IRepository<Project> projects,
             IRepository<ProjectUser> members,
             IRepository<TaskStatusHistory> history,
+            IRepository<Attachment> attachments,
+            IFileStorage storage,
             IProjectAccessService access,
             IActivityLogService activity,
             IUnitOfWork unitOfWork)
@@ -41,6 +45,8 @@ namespace KhoiProjectManagement.Application
             _projects = projects;
             _members = members;
             _history = history;
+            _attachments = attachments;
+            _storage = storage;
             _access = access;
             _activity = activity;
             _unitOfWork = unitOfWork;
@@ -167,8 +173,14 @@ namespace KhoiProjectManagement.Application
             if (await _tasks.Query().AnyAsync(t => t.ParentId == itemId))
                 throw new InvalidOperationException("This item has child items. Move or delete them first.");
 
+            // Attachments have no cascade (their Task link predates this module), so remove them - and the
+            // stored files - explicitly. Comments, checklist items and links cascade in the database.
+            var attachments = await _attachments.Query().Where(a => a.TaskId == itemId).ToListAsync();
+            _attachments.RemoveRange(attachments);
             _tasks.Remove(item);
             await _unitOfWork.SaveChangesAsync();
+            foreach (var attachment in attachments)
+                await _storage.DeleteAsync(attachment.FilePath);
             await _activity.LogAsync("WorkItem", null, item.Title, caller.UserId, "deleted", item.Type);
         }
 

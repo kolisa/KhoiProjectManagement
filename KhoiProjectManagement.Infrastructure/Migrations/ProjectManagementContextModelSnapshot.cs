@@ -154,6 +154,41 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
                     b.ToTable("BoardColumns");
                 });
 
+            modelBuilder.Entity("KhoiProjectManagement.Domain.ChecklistItem", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("CompletedBy")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsDone")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TaskId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TaskId", "Position");
+
+                    b.ToTable("ChecklistItems");
+                });
+
             modelBuilder.Entity("KhoiProjectManagement.Domain.CompanyEvent", b =>
                 {
                     b.Property<int>("Id")
@@ -2818,6 +2853,78 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
                     b.ToTable("WikiPageVersions");
                 });
 
+            modelBuilder.Entity("KhoiProjectManagement.Domain.WorkItemComment", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AuthoredBy")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("EditedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("TaskId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AuthoredBy");
+
+                    b.HasIndex("TaskId", "CreatedAt");
+
+                    b.ToTable("WorkItemComments");
+                });
+
+            modelBuilder.Entity("KhoiProjectManagement.Domain.WorkItemLink", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("CreatedBy")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("SourceId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TargetId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TargetId");
+
+                    b.HasIndex("SourceId", "TargetId")
+                        .IsUnique();
+
+                    b.ToTable("WorkItemLinks");
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.DataProtection.EntityFrameworkCore.DataProtectionKey", b =>
                 {
                     b.Property<int>("Id")
@@ -2880,6 +2987,17 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Project");
+                });
+
+            modelBuilder.Entity("KhoiProjectManagement.Domain.ChecklistItem", b =>
+                {
+                    b.HasOne("KhoiProjectManagement.Domain.ProjectTask", "Task")
+                        .WithMany()
+                        .HasForeignKey("TaskId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Task");
                 });
 
             modelBuilder.Entity("KhoiProjectManagement.Domain.CompanyEvent", b =>
@@ -3703,6 +3821,44 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
                     b.Navigation("Editor");
 
                     b.Navigation("WikiPage");
+                });
+
+            modelBuilder.Entity("KhoiProjectManagement.Domain.WorkItemComment", b =>
+                {
+                    b.HasOne("KhoiProjectManagement.Domain.User", "Author")
+                        .WithMany()
+                        .HasForeignKey("AuthoredBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("KhoiProjectManagement.Domain.ProjectTask", "Task")
+                        .WithMany()
+                        .HasForeignKey("TaskId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Author");
+
+                    b.Navigation("Task");
+                });
+
+            modelBuilder.Entity("KhoiProjectManagement.Domain.WorkItemLink", b =>
+                {
+                    b.HasOne("KhoiProjectManagement.Domain.ProjectTask", "Source")
+                        .WithMany()
+                        .HasForeignKey("SourceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("KhoiProjectManagement.Domain.ProjectTask", "Target")
+                        .WithMany()
+                        .HasForeignKey("TargetId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Source");
+
+                    b.Navigation("Target");
                 });
 
             modelBuilder.Entity("KhoiProjectManagement.Domain.Group", b =>

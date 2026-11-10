@@ -19,10 +19,12 @@ namespace KhoiProjectManagementApi.Controllers
         private readonly IPmWorkItemService _workItems;
         private readonly IPmBoardService _board;
         private readonly IPmSprintService _sprints;
+        private readonly IPmCollaborationService _collab;
 
-        public ProjectManagementController(IPmProjectService projects, IPmWorkItemService workItems, IPmBoardService board, IPmSprintService sprints)
+        public ProjectManagementController(IPmProjectService projects, IPmWorkItemService workItems, IPmBoardService board, IPmSprintService sprints, IPmCollaborationService collab)
         {
             _sprints = sprints;
+            _collab = collab;
             _board = board;
             _projects = projects;
             _workItems = workItems;
@@ -131,6 +133,92 @@ namespace KhoiProjectManagementApi.Controllers
         [HttpPut("work-items/{itemId:int}/sprint")]
         public async Task<ActionResult<WorkItemDto>> AssignSprint(int itemId, AssignSprintDto dto) =>
             Ok(await _sprints.AssignAsync(Caller, itemId, dto.SprintId));
+
+        // ---- Phase 4: collaboration (comments, checklist, links, attachments) ----
+
+        [HttpGet("work-items/{itemId:int}/comments")]
+        public async Task<ActionResult<List<WorkItemCommentDto>>> GetComments(int itemId) =>
+            Ok(await _collab.GetCommentsAsync(Caller, itemId));
+
+        [HttpPost("work-items/{itemId:int}/comments")]
+        public async Task<ActionResult<WorkItemCommentDto>> AddComment(int itemId, SaveCommentDto dto) =>
+            Ok(await _collab.AddCommentAsync(Caller, itemId, dto));
+
+        [HttpPut("comments/{commentId:int}")]
+        public async Task<ActionResult<WorkItemCommentDto>> EditComment(int commentId, SaveCommentDto dto) =>
+            Ok(await _collab.EditCommentAsync(Caller, commentId, dto));
+
+        [HttpDelete("comments/{commentId:int}")]
+        public async Task<IActionResult> DeleteComment(int commentId)
+        {
+            await _collab.DeleteCommentAsync(Caller, commentId);
+            return NoContent();
+        }
+
+        [HttpGet("work-items/{itemId:int}/checklist")]
+        public async Task<ActionResult<List<ChecklistItemDto>>> GetChecklist(int itemId) =>
+            Ok(await _collab.GetChecklistAsync(Caller, itemId));
+
+        [HttpPost("work-items/{itemId:int}/checklist")]
+        public async Task<ActionResult<ChecklistItemDto>> AddChecklistItem(int itemId, SaveChecklistItemDto dto) =>
+            Ok(await _collab.AddChecklistItemAsync(Caller, itemId, dto));
+
+        [HttpPut("checklist/{checklistItemId:int}")]
+        public async Task<ActionResult<ChecklistItemDto>> UpdateChecklistItem(int checklistItemId, SaveChecklistItemDto dto) =>
+            Ok(await _collab.UpdateChecklistItemAsync(Caller, checklistItemId, dto));
+
+        [HttpDelete("checklist/{checklistItemId:int}")]
+        public async Task<IActionResult> DeleteChecklistItem(int checklistItemId)
+        {
+            await _collab.DeleteChecklistItemAsync(Caller, checklistItemId);
+            return NoContent();
+        }
+
+        [HttpGet("work-items/{itemId:int}/links")]
+        public async Task<ActionResult<List<WorkItemLinkDto>>> GetLinks(int itemId) =>
+            Ok(await _collab.GetLinksAsync(Caller, itemId));
+
+        [HttpPost("work-items/{itemId:int}/links")]
+        public async Task<ActionResult<WorkItemLinkDto>> AddLink(int itemId, CreateWorkItemLinkDto dto) =>
+            Ok(await _collab.AddLinkAsync(Caller, itemId, dto));
+
+        [HttpDelete("links/{linkId:int}")]
+        public async Task<IActionResult> DeleteLink(int linkId)
+        {
+            await _collab.DeleteLinkAsync(Caller, linkId);
+            return NoContent();
+        }
+
+        [HttpGet("work-items/{itemId:int}/attachments")]
+        public async Task<ActionResult<List<WorkItemAttachmentDto>>> GetAttachments(int itemId) =>
+            Ok(await _collab.GetAttachmentsAsync(Caller, itemId));
+
+        [HttpPost("work-items/{itemId:int}/attachments")]
+        public async Task<ActionResult<WorkItemAttachmentDto>> UploadAttachment(int itemId, IFormFile file)
+        {
+            if (file == null || file.Length == 0) return BadRequest(new { message = "No file provided." });
+            await using var stream = file.OpenReadStream();
+            return Ok(await _collab.AddAttachmentAsync(Caller, itemId, new AttachmentUploadDto
+            {
+                Content = stream, FileName = file.FileName, ContentType = file.ContentType, Length = file.Length,
+            }));
+        }
+
+        [HttpGet("attachments/{attachmentId:int}/download")]
+        public async Task<IActionResult> DownloadAttachment(int attachmentId)
+        {
+            var download = await _collab.DownloadAttachmentAsync(Caller, attachmentId);
+            Response.Headers["X-Content-Type-Options"] = "nosniff";
+            // Always sent as a download (Content-Disposition: attachment), never rendered inline from this origin.
+            return File(download.Content, string.IsNullOrWhiteSpace(download.ContentType) ? "application/octet-stream" : download.ContentType, download.FileName);
+        }
+
+        [HttpDelete("attachments/{attachmentId:int}")]
+        public async Task<IActionResult> DeleteAttachment(int attachmentId)
+        {
+            await _collab.DeleteAttachmentAsync(Caller, attachmentId);
+            return NoContent();
+        }
 
         [HttpDelete("work-items/{itemId:int}")]
         public async Task<IActionResult> DeleteWorkItem(int itemId)

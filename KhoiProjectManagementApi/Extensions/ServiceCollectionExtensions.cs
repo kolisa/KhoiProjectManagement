@@ -159,6 +159,8 @@ namespace KhoiProjectManagementApi.Extensions
             services.AddScoped<IPmWorkItemService, PmWorkItemService>();
             services.AddScoped<IPmBoardService, PmBoardService>();
             services.AddScoped<IPmSprintService, PmSprintService>();
+            services.AddScoped<IPmCollaborationService, PmCollaborationService>();
+            services.AddSingleton<IFileStorage, LocalFileStorage>();
             services.AddScoped<IProjectService, ProjectService>();
             services.AddScoped<ITaskService, TaskService>();
             services.AddScoped<IUserService, UserService>();

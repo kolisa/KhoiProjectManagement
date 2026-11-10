@@ -23,6 +23,9 @@ namespace KhoiProjectManagement.UnitTests.Services
         [InlineData(ProjectRoles.ProjectManager, PmAction.ManageBoard, true)]
         [InlineData(ProjectRoles.Developer, PmAction.ManageBoard, false)]
         [InlineData(ProjectRoles.Viewer, PmAction.CreateItem, false)]
+        [InlineData(ProjectRoles.Tester, PmAction.Collaborate, true)]
+        [InlineData(ProjectRoles.Developer, PmAction.Collaborate, true)]
+        [InlineData(ProjectRoles.Viewer, PmAction.Collaborate, false)]
         [InlineData("Nonsense", PmAction.View, false)]
         [InlineData(null, PmAction.View, false)]
         public void Allows_FollowsTheRoleMatrix(string? role, PmAction action, bool expected) =>
@@ -58,11 +61,13 @@ namespace KhoiProjectManagement.UnitTests.Services
         private readonly IRepository<Project> _projects = Substitute.For<IRepository<Project>>();
         private readonly IRepository<ProjectUser> _members = Substitute.For<IRepository<ProjectUser>>();
         private readonly IRepository<TaskStatusHistory> _history = Substitute.For<IRepository<TaskStatusHistory>>();
+        private readonly IRepository<Attachment> _attachments = Substitute.For<IRepository<Attachment>>();
+        private readonly IFileStorage _storage = Substitute.For<IFileStorage>();
         private readonly IProjectAccessService _access = Substitute.For<IProjectAccessService>();
         private readonly IActivityLogService _activity = Substitute.For<IActivityLogService>();
         private readonly IUnitOfWork _uow = Substitute.For<IUnitOfWork>();
 
-        private PmWorkItemService CreateSut() => new(_tasks, _projects, _members, _history, _access, _activity, _uow);
+        private PmWorkItemService CreateSut() => new(_tasks, _projects, _members, _history, _attachments, _storage, _access, _activity, _uow);
 
         private void SetTasks(params ProjectTask[] items) => _tasks.Query().Returns(_ => items.ToList().BuildMock());
 
@@ -171,6 +176,20 @@ namespace KhoiProjectManagement.UnitTests.Services
 
             await Assert.ThrowsAsync<InvalidOperationException>(() => CreateSut().DeleteAsync(Dev, 1));
             _tasks.DidNotReceiveWithAnyArgs().Remove(default!);
+        }
+
+        [Fact]
+        public async Task DeleteAsync_RemovesAttachmentRowsAndStoredFiles()
+        {
+            SetTasks(new ProjectTask { Id = 1, ProjectId = 1, Type = "Task", Title = "T" });
+            var files = new[] { new Attachment { Id = 5, TaskId = 1, FilePath = "pm/1/a.png" }, new Attachment { Id = 6, TaskId = 1, FilePath = "pm/1/b.pdf" } };
+            _attachments.Query().Returns(_ => files.ToList().BuildMock());
+
+            await CreateSut().DeleteAsync(Dev, 1);
+
+            _attachments.Received(1).RemoveRange(Arg.Any<IEnumerable<Attachment>>());
+            await _storage.Received(1).DeleteAsync("pm/1/a.png", Arg.Any<CancellationToken>());
+            await _storage.Received(1).DeleteAsync("pm/1/b.pdf", Arg.Any<CancellationToken>());
         }
 
         [Fact]

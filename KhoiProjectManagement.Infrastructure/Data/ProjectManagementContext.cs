@@ -27,6 +27,9 @@ namespace KhoiProjectManagement.Infrastructure.Data
         public DbSet<BoardColumn> BoardColumns { get; set; }
         public DbSet<Sprint> Sprints { get; set; }
         public DbSet<TaskStatusHistory> TaskStatusHistories { get; set; }
+        public DbSet<WorkItemComment> WorkItemComments { get; set; }
+        public DbSet<ChecklistItem> ChecklistItems { get; set; }
+        public DbSet<WorkItemLink> WorkItemLinks { get; set; }
         public DbSet<ProjectTag> ProjectTags { get; set; }
         public DbSet<TaskTag> TaskTags { get; set; }
         public DbSet<EmailLog> EmailLogs { get; set; }
@@ -193,6 +196,30 @@ namespace KhoiProjectManagement.Infrastructure.Data
                 e.HasIndex(s => s.ProjectId).IsUnique().HasFilter("\"State\" = 'Active'").HasDatabaseName("IX_Sprints_ProjectId_Active");
                 e.HasOne(s => s.Project).WithMany().HasForeignKey(s => s.ProjectId).OnDelete(DeleteBehavior.Cascade);
                 e.HasMany(s => s.Tasks).WithOne(t => t.Sprint).HasForeignKey(t => t.SprintId).OnDelete(DeleteBehavior.SetNull);
+            });
+
+            modelBuilder.Entity<WorkItemComment>(e =>
+            {
+                e.Property(c => c.Body).IsRequired().HasMaxLength(4000);
+                e.HasIndex(c => new { c.TaskId, c.CreatedAt });
+                e.HasOne(c => c.Task).WithMany().HasForeignKey(c => c.TaskId).OnDelete(DeleteBehavior.Cascade);
+                e.HasOne(c => c.Author).WithMany().HasForeignKey(c => c.AuthoredBy).OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<ChecklistItem>(e =>
+            {
+                e.Property(c => c.Text).IsRequired().HasMaxLength(300);
+                e.HasIndex(c => new { c.TaskId, c.Position });
+                e.HasOne(c => c.Task).WithMany().HasForeignKey(c => c.TaskId).OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<WorkItemLink>(e =>
+            {
+                e.Property(l => l.Type).IsRequired().HasMaxLength(20);
+                e.HasIndex(l => new { l.SourceId, l.TargetId }).IsUnique();
+                e.HasIndex(l => l.TargetId);
+                e.HasOne(l => l.Source).WithMany().HasForeignKey(l => l.SourceId).OnDelete(DeleteBehavior.Cascade);
+                e.HasOne(l => l.Target).WithMany().HasForeignKey(l => l.TargetId).OnDelete(DeleteBehavior.Cascade);
             });
 
             modelBuilder.Entity<TaskStatusHistory>(e =>

@@ -12,6 +12,8 @@ describe('pmConstants', () => {
     expect(can('Viewer', 'create')).toBe(false);
     expect(can('ScrumMaster', 'board')).toBe(true);
     expect(can('Developer', 'board')).toBe(false);
+    expect(can('Tester', 'collaborate')).toBe(true);
+    expect(can('Viewer', 'collaborate')).toBe(false);
     expect(can('ScrumMaster', 'sprint')).toBe(true);
     expect(can('Developer', 'sprint')).toBe(false);
     expect(can('Tester', 'sprint')).toBe(false);

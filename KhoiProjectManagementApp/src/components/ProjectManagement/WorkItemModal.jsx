@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
 import useModalA11y from '../Common/useModalA11y';
-import { WORK_ITEM_TYPES, STATUSES, allowedParentTypes } from './pmConstants';
+import { WORK_ITEM_TYPES, STATUSES, allowedParentTypes, can } from './pmConstants';
+import WorkItemCollab from './WorkItemCollab';
 
 const fieldClass = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500';
 const labelClass = 'block text-sm font-medium text-gray-700 mb-1';
 
 // Create/edit a backlog work item. `item` is null for create. `items` is the project's current
 // backlog (for the parent picker); `members` feeds the assignee picker.
-const WorkItemModal = ({ item, items, members, canEdit, onSave, onClose }) => {
+const WorkItemModal = ({ item, items, members, canEdit, onSave, onClose, apiService, role }) => {
   const modalRef = useModalA11y(onClose);
   const [form, setForm] = useState({
     title: item?.title || '',
@@ -78,7 +79,7 @@ const WorkItemModal = ({ item, items, members, canEdit, onSave, onClose }) => {
         aria-modal="true"
         aria-labelledby="work-item-modal-title"
         tabIndex={-1}
-        className="bg-white rounded-xl shadow-xl w-full max-w-xl max-h-[90vh] overflow-y-auto"
+        className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"
       >
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
           <h2 id="work-item-modal-title" className="text-lg font-semibold text-gray-900">
@@ -161,6 +162,16 @@ const WorkItemModal = ({ item, items, members, canEdit, onSave, onClose }) => {
             )}
           </div>
         </form>
+
+        {item && apiService && (
+          <WorkItemCollab
+            apiService={apiService}
+            item={item}
+            items={items}
+            members={members}
+            can={{ collaborate: can(role, 'collaborate'), edit: can(role, 'edit') }}
+          />
+        )}
       </div>
     </div>
   );

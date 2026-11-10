@@ -1400,6 +1400,79 @@ class ApiService {
     return await this.request(`/pm/work-items/${itemId}`, { method: 'DELETE' });
   }
 
+  // ---- PM collaboration: comments, checklist, links, attachments ----
+  async getWorkItemComments(itemId) {
+    return await this.request(`/pm/work-items/${itemId}/comments`);
+  }
+
+  async addWorkItemComment(itemId, body) {
+    return await this.request(`/pm/work-items/${itemId}/comments`, { method: 'POST', body: JSON.stringify({ body }) });
+  }
+
+  async editWorkItemComment(commentId, body) {
+    return await this.request(`/pm/comments/${commentId}`, { method: 'PUT', body: JSON.stringify({ body }) });
+  }
+
+  async deleteWorkItemComment(commentId) {
+    return await this.request(`/pm/comments/${commentId}`, { method: 'DELETE' });
+  }
+
+  async getWorkItemChecklist(itemId) {
+    return await this.request(`/pm/work-items/${itemId}/checklist`);
+  }
+
+  async addChecklistItem(itemId, text) {
+    return await this.request(`/pm/work-items/${itemId}/checklist`, { method: 'POST', body: JSON.stringify({ text, isDone: false }) });
+  }
+
+  async updateChecklistItem(checklistItemId, text, isDone) {
+    return await this.request(`/pm/checklist/${checklistItemId}`, { method: 'PUT', body: JSON.stringify({ text, isDone }) });
+  }
+
+  async deleteChecklistItem(checklistItemId) {
+    return await this.request(`/pm/checklist/${checklistItemId}`, { method: 'DELETE' });
+  }
+
+  async getWorkItemLinks(itemId) {
+    return await this.request(`/pm/work-items/${itemId}/links`);
+  }
+
+  async addWorkItemLink(itemId, targetId, type) {
+    return await this.request(`/pm/work-items/${itemId}/links`, { method: 'POST', body: JSON.stringify({ targetId, type }) });
+  }
+
+  async deleteWorkItemLink(linkId) {
+    return await this.request(`/pm/links/${linkId}`, { method: 'DELETE' });
+  }
+
+  async getWorkItemAttachments(itemId) {
+    return await this.request(`/pm/work-items/${itemId}/attachments`);
+  }
+
+  async uploadWorkItemAttachment(itemId, file) {
+    const form = new FormData();
+    form.append('file', file);
+    return await this.requestMultipart(`/pm/work-items/${itemId}/attachments`, form);
+  }
+
+  async downloadWorkItemAttachment(attachmentId, fileName) {
+    return await this.downloadBlob(`/pm/attachments/${attachmentId}/download`, fileName);
+  }
+
+  // Fetches the bytes with the auth header and returns an object URL, for inline image previews
+  // (an <img src> can't send the Bearer token). The caller must revoke it.
+  async getWorkItemAttachmentObjectUrl(attachmentId) {
+    const response = await this.authorizedFetch(`${API_BASE_URL}/pm/attachments/${attachmentId}/download`, {
+      headers: { ...(this.token && { Authorization: `Bearer ${this.token}` }) },
+    }, UPLOAD_TIMEOUT_MS);
+    if (!response.ok) throw await this.buildResponseError(response);
+    return window.URL.createObjectURL(await response.blob());
+  }
+
+  async deleteWorkItemAttachment(attachmentId) {
+    return await this.request(`/pm/attachments/${attachmentId}`, { method: 'DELETE' });
+  }
+
   async getBoard(projectId, sprintId = null) {
     return await this.request(`/pm/projects/${projectId}/board${sprintId ? `?sprintId=${sprintId}` : ''}`);
   }

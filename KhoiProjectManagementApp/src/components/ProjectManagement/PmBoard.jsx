@@ -181,7 +181,7 @@ const PmBoard = ({ apiService, project, members }) => {
       </div>
 
       {editing && (
-        <WorkItemModal item={editing} items={allCards} members={members} canEdit={canEdit} onSave={saveItem} onClose={() => setEditing(null)} />
+        <WorkItemModal item={editing} items={allCards} members={members} canEdit={canEdit} apiService={apiService} role={project.myRole} onSave={saveItem} onClose={() => setEditing(null)} />
       )}
       {showSettings && (
         <BoardSettingsModal columns={board.columns} onSave={saveColumns} onClose={() => setShowSettings(false)} />

@@ -48,11 +48,11 @@ export const allowedParentTypes = (childType) =>
 
 // Mirrors ProjectRoles.Matrix on the server.
 const CAN = {
-  ProjectAdmin: ['create', 'edit', 'delete', 'rank', 'members', 'board', 'sprint'],
-  ProjectManager: ['create', 'edit', 'delete', 'rank', 'board', 'sprint'],
-  ScrumMaster: ['create', 'edit', 'delete', 'rank', 'board', 'sprint'],
-  Developer: ['create', 'edit', 'rank'],
-  Tester: ['create', 'edit'],
+  ProjectAdmin: ['create', 'edit', 'delete', 'rank', 'members', 'board', 'sprint', 'collaborate'],
+  ProjectManager: ['create', 'edit', 'delete', 'rank', 'board', 'sprint', 'collaborate'],
+  ScrumMaster: ['create', 'edit', 'delete', 'rank', 'board', 'sprint', 'collaborate'],
+  Developer: ['create', 'edit', 'rank', 'collaborate'],
+  Tester: ['create', 'edit', 'collaborate'],
   Viewer: [],
 };
 export const can = (role, action) => role === 'SuperAdmin' || (CAN[role] || []).includes(action);

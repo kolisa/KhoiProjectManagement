@@ -194,6 +194,8 @@ const PmBacklog = ({ apiService, project, members }) => {
           item={editing}
           items={items}
           members={members}
+          apiService={apiService}
+          role={project.myRole}
           canEdit={editing ? canEdit : canCreate}
           onSave={save}
           onClose={() => setEditing(undefined)}
