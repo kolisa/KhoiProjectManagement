@@ -83,6 +83,14 @@ namespace KhoiProjectManagement.UnitTests.Services
         }
 
         [Fact]
+        public void EffortQueries_TranslateToSql()
+        {
+            AssertSql(PmEffortService.ItemEffortQuery(_db.WorkItemEfforts, 5).ToQueryString(), "WorkItemEfforts", "Name");
+            AssertSql(PmEffortService.SprintEffortQuery(_db.WorkItemEfforts, 3).ToQueryString(), "SprintId");
+            AssertSql(PmEffortService.SprintItemsQuery(_db.Tasks, 3).ToQueryString(), "Title", "SprintId");
+        }
+
+        [Fact]
         public void PmAttachmentFilter_BecomesAPrefixMatch() =>
             AssertSql(PmCollaborationService.PmAttachmentsQuery(_db.Attachments).ToQueryString(), "LIKE 'pm/%'");
     }

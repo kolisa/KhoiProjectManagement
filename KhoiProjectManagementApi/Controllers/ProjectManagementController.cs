@@ -25,8 +25,9 @@ namespace KhoiProjectManagementApi.Controllers
         private readonly IPmRetroService _retro;
         private readonly IPmInsightsService _insights;
         private readonly IPmLabelService _labels;
+        private readonly IPmEffortService _effort;
 
-        public ProjectManagementController(IPmProjectService projects, IPmWorkItemService workItems, IPmBoardService board, IPmSprintService sprints, IPmCollaborationService collab, IPmReportService reports, IPmWorkflowService workflow, IPmRetroService retro, IPmInsightsService insights, IPmLabelService labels)
+        public ProjectManagementController(IPmProjectService projects, IPmWorkItemService workItems, IPmBoardService board, IPmSprintService sprints, IPmCollaborationService collab, IPmReportService reports, IPmWorkflowService workflow, IPmRetroService retro, IPmInsightsService insights, IPmLabelService labels, IPmEffortService effort)
         {
             _sprints = sprints;
             _collab = collab;
@@ -35,6 +36,7 @@ namespace KhoiProjectManagementApi.Controllers
             _retro = retro;
             _insights = insights;
             _labels = labels;
+            _effort = effort;
             _board = board;
             _projects = projects;
             _workItems = workItems;
@@ -309,6 +311,18 @@ namespace KhoiProjectManagementApi.Controllers
         [HttpGet("projects/{projectId:int}/labels")]
         public async Task<ActionResult<List<LabelDto>>> GetLabels(int projectId) =>
             Ok(await _labels.GetProjectLabelsAsync(Caller, projectId));
+
+        [HttpGet("work-items/{itemId:int}/effort")]
+        public async Task<ActionResult<WorkItemEffortDto>> GetEffort(int itemId) =>
+            Ok(await _effort.GetItemEffortAsync(Caller, itemId));
+
+        [HttpPut("work-items/{itemId:int}/effort")]
+        public async Task<ActionResult<WorkItemEffortDto>> SetEffort(int itemId, SaveWorkItemEffortDto dto) =>
+            Ok(await _effort.SetItemEffortAsync(Caller, itemId, dto));
+
+        [HttpGet("sprints/{sprintId:int}/effort")]
+        public async Task<ActionResult<SprintEffortDto>> GetSprintEffort(int sprintId) =>
+            Ok(await _effort.GetSprintEffortAsync(Caller, sprintId));
 
         [HttpPut("work-items/{itemId:int}/labels")]
         public async Task<ActionResult<List<LabelDto>>> SetLabels(int itemId, SetLabelsDto dto) =>

@@ -16,6 +16,7 @@ import { ConfirmProvider, useConfirm } from './contexts/ConfirmContext';
 import { hasPermission } from './utils/permissions';
 import { validateProject, validateTask, validateTeamMember, hasErrors } from './utils/validation';
 import { getAvatarColor } from './utils/avatarColor';
+import { htmlToText } from './components/ProjectManagement/richText';
 import { reportApiError } from './utils/apiError';
 // Lazily loaded: these are secondary tabs (not every session visits Vault/Wiki/Library/Ideas/
 // Reminders/Finance/Settings), so splitting them out of the main bundle avoids shipping their code
@@ -556,7 +557,7 @@ const ProjectManagementSystem = () => {
         setNewTask({
             projectId: String(task.projectId),
             title: task.title,
-            description: task.description || '',
+            description: htmlToText(task.description || ''),
             status: task.status,
             priority: task.priority,
             type: task.type || 'Task',
@@ -1752,7 +1753,7 @@ const ProjectManagementSystem = () => {
                                                                     {task.isOverdue && <Flag className="h-4 w-4 text-red-500" />}
                                                                 </div>
                                                             </div>
-                                                            <div className="text-sm text-gray-500">{task.description}</div>
+                                                            <div className="text-sm text-gray-500">{htmlToText(task.description)}</div>
                                                             {task.tags && task.tags.length > 0 && (
                                                                 <div className="mt-1">
                                                                     <TagsList tags={task.tags} />

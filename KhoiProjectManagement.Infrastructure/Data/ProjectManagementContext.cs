@@ -26,6 +26,7 @@ namespace KhoiProjectManagement.Infrastructure.Data
         public DbSet<ProjectUser> ProjectUsers { get; set; }
         public DbSet<BoardColumn> BoardColumns { get; set; }
         public DbSet<Sprint> Sprints { get; set; }
+        public DbSet<WorkItemEffort> WorkItemEfforts { get; set; }
         public DbSet<TaskStatusHistory> TaskStatusHistories { get; set; }
         public DbSet<WorkItemComment> WorkItemComments { get; set; }
         public DbSet<ChecklistItem> ChecklistItems { get; set; }
@@ -171,13 +172,22 @@ namespace KhoiProjectManagement.Infrastructure.Data
             modelBuilder.Entity<ProjectTask>(e =>
             {
                 e.Property(t => t.Title).IsRequired().HasMaxLength(200);
-                e.Property(t => t.Description).HasMaxLength(1000);
+                e.Property(t => t.Description).HasMaxLength(20000);   // rich text (HTML) - see RichText
                 e.Property(t => t.Status).IsRequired();
                 e.Property(t => t.Priority).IsRequired();
                 e.Property(t => t.Type).IsRequired().HasMaxLength(20).HasDefaultValue("Task");
                 e.HasOne(t => t.Parent).WithMany(t => t.Children).HasForeignKey(t => t.ParentId).OnDelete(DeleteBehavior.Restrict);
                 e.HasIndex(t => new { t.ProjectId, t.Rank });
                 e.HasIndex(t => t.ParentId);
+            });
+
+            modelBuilder.Entity<WorkItemEffort>(e =>
+            {
+                e.Property(x => x.Category).IsRequired().HasMaxLength(30);
+                e.Property(x => x.Points).HasPrecision(7, 2);
+                e.HasOne(x => x.Task).WithMany().HasForeignKey(x => x.TaskId).OnDelete(DeleteBehavior.Cascade);
+                e.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+                e.HasIndex(x => new { x.TaskId, x.UserId, x.Category }).IsUnique();
             });
 
             modelBuilder.Entity<BoardColumn>(e =>

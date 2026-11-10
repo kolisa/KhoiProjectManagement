@@ -108,13 +108,17 @@ namespace KhoiProjectManagement.Application
             {
                 ProjectId = projectId,
                 Title = dto.Title.Trim(),
-                Description = dto.Description,
+                Description = RichText.SanitizeForStorage(dto.Description),
                 Type = dto.Type,
                 Status = dto.Status,
                 Priority = dto.Priority,
                 StoryPoints = dto.StoryPoints,
                 AssignedToId = dto.AssignedToId,
                 ParentId = dto.ParentId,
+                // A subtask belongs to the same sprint as its parent unless said otherwise, so its effort counts in that sprint.
+                SprintId = dto.ParentId.HasValue && dto.Type == "Subtask"
+                    ? await _tasks.Query().AsNoTracking().Where(t => t.Id == dto.ParentId && (t.Sprint == null || t.Sprint.State != SprintStates.Completed)).Select(t => t.SprintId).FirstOrDefaultAsync()
+                    : null,
                 DueDate = dto.DueDate ?? project.EndDate,
                 HasExplicitDueDate = dto.DueDate.HasValue,
                 Rank = maxRank + RankStep,
@@ -150,7 +154,7 @@ namespace KhoiProjectManagement.Application
             var oldStatus = item.Status;
             var wasCompleted = item.Status == "completed";
             item.Title = dto.Title.Trim();
-            item.Description = dto.Description;
+            item.Description = RichText.SanitizeForStorage(dto.Description);
             item.Type = dto.Type;
             item.Status = dto.Status;
             item.Priority = dto.Priority;
@@ -276,7 +280,10 @@ namespace KhoiProjectManagement.Application
             if (!string.IsNullOrWhiteSpace(filter.Search))
             {
                 var term = filter.Search.Trim().ToLower();
-                query = query.Where(t => t.Title.ToLower().Contains(term) || t.Description.ToLower().Contains(term));
+                // Descriptions are stored as HTML, so a word that only occurs in the markup ("strong", "href"...) must not match every one.
+                query = RichText.IsMarkupWord(term)
+                    ? query.Where(t => t.Title.ToLower().Contains(term))
+                    : query.Where(t => t.Title.ToLower().Contains(term) || t.Description.ToLower().Contains(term));
             }
             return query;
         }

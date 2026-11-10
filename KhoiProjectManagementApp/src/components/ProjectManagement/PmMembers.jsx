@@ -8,6 +8,7 @@ import { reportApiError } from '../../utils/apiError';
 import { PROJECT_ROLES, roleLabel, can, denyReason } from './pmConstants';
 import { Avatar, AccessBadge, cardClass } from './pmUi';
 import ImportMembersModal from './ImportMembersModal';
+import Combobox, { peopleOptions } from './Combobox';
 import RoleMatrix from './RoleMatrix';
 
 const selectClass = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500';
@@ -130,10 +131,8 @@ const PmMembers = ({ apiService, project, onChanged, otherProjects = [], canGran
           <form onSubmit={add} className="flex flex-wrap items-end gap-3">
             <div className="min-w-[14rem] flex-1">
               <label htmlFor="pm-add-person" className={labelClass}>Person</label>
-              <select id="pm-add-person" disabled={!canManage} className={`${selectClass} disabled:bg-gray-50 disabled:cursor-not-allowed`} value={newUserId} onChange={(e) => setNewUserId(e.target.value)}>
-                <option value="">Choose a person…</option>
-                {addable.map((u) => <option key={u.id} value={u.id}>{u.name} ({u.email})</option>)}
-              </select>
+              <Combobox id="pm-add-person" disabled={!canManage} value={newUserId} onChange={(v) => setNewUserId(String(v))} placeholder="Choose a person…" searchPlaceholder="Search by name or email…"
+                options={addable.map((u) => ({ value: u.id, label: u.name, description: u.email, person: true }))} emptyLabel="Choose a person…" />
             </div>
             <div className="w-44">
               <label htmlFor="pm-add-role" className={labelClass}>Role</label>

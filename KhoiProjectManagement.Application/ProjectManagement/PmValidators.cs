@@ -2,12 +2,40 @@ using FluentValidation;
 
 namespace KhoiProjectManagement.Application
 {
+    public class EffortCellDtoValidator : AbstractValidator<EffortCellDto>
+    {
+        public EffortCellDtoValidator()
+        {
+            RuleFor(x => x.Category).Must(c => EffortCategories.All.Contains(c)).WithMessage($"Category must be one of: {string.Join(", ", EffortCategories.All)}");
+            RuleFor(x => x.Points).InclusiveBetween(0m, PmEffortService.MaxPoints).When(x => x.Points.HasValue);
+        }
+    }
+
+    public class SavePersonEffortDtoValidator : AbstractValidator<SavePersonEffortDto>
+    {
+        public SavePersonEffortDtoValidator()
+        {
+            RuleFor(x => x.UserId).GreaterThan(0);
+            RuleFor(x => x.Cells).NotNull().Must(c => c.Count <= EffortCategories.All.Length).WithMessage("Too many categories.");
+            RuleForEach(x => x.Cells).SetValidator(new EffortCellDtoValidator());
+        }
+    }
+
+    public class SaveWorkItemEffortDtoValidator : AbstractValidator<SaveWorkItemEffortDto>
+    {
+        public SaveWorkItemEffortDtoValidator()
+        {
+            RuleFor(x => x.People).NotNull().Must(p => p.Count <= 100).WithMessage("Too many people.");
+            RuleForEach(x => x.People).SetValidator(new SavePersonEffortDtoValidator());
+        }
+    }
+
     public class SaveWorkItemDtoValidator : AbstractValidator<SaveWorkItemDto>
     {
         public SaveWorkItemDtoValidator()
         {
             RuleFor(x => x.Title).NotEmpty().MaximumLength(200);
-            RuleFor(x => x.Description).MaximumLength(4000);
+            RuleFor(x => x.Description).MaximumLength(20000);   // rich text (HTML)
             RuleFor(x => x.Type).Must(t => WorkItemHierarchy.Types.Contains(t))
                 .WithMessage($"Type must be one of: {string.Join(", ", WorkItemHierarchy.Types)}");
             RuleFor(x => x.Status).Must(s => TaskStatusRule.Valid.Contains(s))

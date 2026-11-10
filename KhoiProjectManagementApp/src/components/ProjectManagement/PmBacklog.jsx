@@ -7,6 +7,7 @@ import StatusBadge from '../Common/StatusBadge';
 import WorkItemModal from './WorkItemModal';
 import { LabelChips, RollupBar } from './pmWidgets';
 import { EmptyState } from './pmUi';
+import Combobox from './Combobox';
 import { useToast } from '../../contexts/ToastContext';
 import { useConfirm } from '../../contexts/ConfirmContext';
 import { reportApiError } from '../../utils/apiError';
@@ -33,9 +34,24 @@ const PmBacklog = ({ apiService, project, members }) => {
   const canEdit = can(role, 'edit');
   const canDelete = can(role, 'delete');
   const canRank = can(role, 'rank');
+  const [sprints, setSprints] = useState([]);
+  const canPlan = can(project.myRole, 'sprint');
+  const planReason = denyReason(project, 'sprint');
   const createReason = denyReason(project, 'create');
   const deleteReason = denyReason(project, 'delete');
   const rankReason = denyReason(project, 'rank');
+
+  useEffect(() => {
+    apiService.getSprints(project.id).then((all) => setSprints(all.filter((x) => x.state !== 'Completed'))).catch(() => setSprints([]));
+  }, [apiService, project.id]);
+
+  const assignSprint = async (item, sprintId) => {
+    try {
+      await apiService.assignWorkItemSprint(item.id, sprintId);
+      toast.success(sprintId == null ? 'Moved back to the backlog.' : `Added to ${sprints.find((x) => x.id === sprintId)?.name || 'the sprint'}.`);
+      await load();
+    } catch (err) { reportApiError(toast, err, 'Could not change the sprint.'); }
+  };
   const isFiltered = Object.values(filters).some(Boolean);
 
   const load = useCallback(async () => {
@@ -194,6 +210,15 @@ const PmBacklog = ({ apiService, project, members }) => {
                 )}
               </button>
 
+              {!['Epic', 'Feature'].includes(item.type) && (
+                <div className="hidden md:block w-36">
+                  <label htmlFor={`sprint-${item.id}`} className="sr-only">Sprint for {item.title}</label>
+                  <Combobox id={`sprint-${item.id}`} size="sm" value={item.sprintId ?? ''} disabled={!canPlan} title={planReason || undefined}
+                    onChange={(v) => assignSprint(item, v === '' ? null : Number(v))} emptyLabel="No sprint" placeholder="Add to sprint…" searchPlaceholder="Search sprints…"
+                    options={[...sprints.map((sp) => ({ value: sp.id, label: sp.name, description: sp.state === 'Active' ? 'Active' : 'Planned' })),
+                      ...(item.sprintId != null && !sprints.some((sp) => sp.id === item.sprintId) ? [{ value: item.sprintId, label: item.sprintName || 'Closed sprint', description: 'Completed' }] : [])]} />
+                </div>
+              )}
               <span className="hidden md:inline text-xs text-gray-500 w-28 truncate">{item.assignedToName || 'Unassigned'}</span>
               {item.storyPoints != null && (
                 <span className="text-xs font-semibold bg-gray-100 text-gray-700 rounded-full px-2 py-0.5" title="Story points">{item.storyPoints}</span>
