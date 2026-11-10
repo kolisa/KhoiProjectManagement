@@ -9,7 +9,8 @@ namespace KhoiProjectManagement.Application
     //   2. the module access LEVEL (User.PmReadOnly) - read only, or read and write. A read-only person can only
     //      ever View, whatever their project roles say. This is the per-user read/write policy;
     //   3. a project membership whose role allows the action.
-    // SuperAdmin bypasses all three, mirroring the flat-permission handler. Non-members get KeyNotFound (404) rather
+    // An administrator - the Admin role, which carries the "superadmin" claim - bypasses all three, mirroring the flat-permission
+    // handler. A Project Admin is NOT one: it is a role within ONE project and grants nothing on any other. Non-members get KeyNotFound (404) rather
     // than 403 so a project's existence is not leaked.
     public interface IProjectAccessService
     {
@@ -23,7 +24,7 @@ namespace KhoiProjectManagement.Application
     public class ProjectAccessService : IProjectAccessService
     {
         public const string SuperAdminRole = "SuperAdmin";
-        public const string ReadOnlyMessage = "Your Project Management access is read-only. Ask a SuperAdmin to give you read and write access.";
+        public const string ReadOnlyMessage = "Your Project Management access is read-only. Ask an administrator to give you read and write access.";
 
         private readonly IRepository<ProjectUser> _members;
         private readonly IRepository<User> _users;

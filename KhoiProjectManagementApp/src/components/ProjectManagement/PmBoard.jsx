@@ -9,7 +9,7 @@ import WorkflowModal from './WorkflowModal';
 import { LabelChips } from './pmWidgets';
 import { useToast } from '../../contexts/ToastContext';
 import { reportApiError } from '../../utils/apiError';
-import { TYPE_STYLES, STATUS_DOT, can } from './pmConstants';
+import { TYPE_STYLES, STATUS_DOT, can, denyReason } from './pmConstants';
 
 const DAY_MS = 86400000;
 
@@ -71,6 +71,8 @@ const PmBoard = ({ apiService, project, members }) => {
 
   const canEdit = can(project.myRole, 'edit');
   const canConfigure = can(project.myRole, 'board');
+  const configureReason = denyReason(project, 'board');
+  const editReason = denyReason(project, 'edit');
 
   const load = useCallback(async () => {
     try {
@@ -158,16 +160,16 @@ const PmBoard = ({ apiService, project, members }) => {
           {LANE_MODES.map((m) => <option key={m.key} value={m.key}>{m.label}</option>)}
         </select>
         <span className="text-xs text-gray-500">{allCards.length} cards on the board · Epics and Features stay on the backlog</span>
-        {canConfigure && workflow && (
-          <button onClick={() => setShowWorkflow(true)} className="ml-auto inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-300 text-sm text-gray-700 hover:bg-gray-50">
+        {workflow && (
+          <button onClick={() => setShowWorkflow(true)} disabled={!canConfigure} title={configureReason || undefined}
+            className="ml-auto inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-300 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
             <GitBranch className="h-4 w-4" aria-hidden="true" /> Workflow{workflow.isCustomised ? ' (custom)' : ''}
           </button>
         )}
-        {canConfigure && (
-          <button onClick={() => setShowSettings(true)} className={`${workflow ? '' : 'ml-auto '}inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-300 text-sm text-gray-700 hover:bg-gray-50`}>
-            <Settings2 className="h-4 w-4" aria-hidden="true" /> Columns &amp; WIP limits
-          </button>
-        )}
+        <button onClick={() => setShowSettings(true)} disabled={!canConfigure} title={configureReason || undefined}
+          className={`${workflow ? '' : 'ml-auto '}inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-300 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed`}>
+          <Settings2 className="h-4 w-4" aria-hidden="true" /> Columns &amp; WIP limits
+        </button>
       </div>
 
       {lanes.length === 0 && <p className="text-sm text-gray-500 py-6 text-center">No cards to group.</p>}
@@ -223,15 +225,13 @@ const PmBoard = ({ apiService, project, members }) => {
                         <span className="truncate">{item.assignedToName || 'Unassigned'}</span>
                         {timing && <span title="Time since work started">{timing}</span>}
                       </div>
-                      {canEdit && (
-                        <label className="block mt-2">
-                          <span className="sr-only">Move {item.title} to</span>
-                          <select value={item.status} onChange={(e) => move(item.id, e.target.value, null)}
-                            className="w-full border border-gray-200 rounded px-2 py-1 text-xs bg-white text-gray-600">
-                            {board.columns.map((c) => <option key={c.status} value={c.status} disabled={!moveAllowed(item.status, c.status)}>{c.name}</option>)}
-                          </select>
-                        </label>
-                      )}
+                      <label className="block mt-2">
+                        <span className="sr-only">Move {item.title} to</span>
+                        <select value={item.status} onChange={(e) => move(item.id, e.target.value, null)} disabled={!canEdit} title={editReason || undefined}
+                          className="w-full border border-gray-200 rounded px-2 py-1 text-xs bg-white text-gray-600 disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed">
+                          {board.columns.map((c) => <option key={c.status} value={c.status} disabled={!moveAllowed(item.status, c.status)}>{c.name}</option>)}
+                        </select>
+                      </label>
                     </li>
                   );
                 })}
@@ -246,7 +246,7 @@ const PmBoard = ({ apiService, project, members }) => {
 
       {showWorkflow && workflow && <WorkflowModal workflow={workflow} onSave={saveWorkflow} onClose={() => setShowWorkflow(false)} />}
       {editing && (
-        <WorkItemModal item={editing} items={allCards} members={members} canEdit={canEdit} apiService={apiService} role={project.myRole} onChanged={load} onSave={saveItem} onClose={() => setEditing(null)} />
+        <WorkItemModal item={editing} items={allCards} members={members} canEdit={canEdit} apiService={apiService} project={project} role={project.myRole} onChanged={load} onSave={saveItem} onClose={() => setEditing(null)} />
       )}
       {showSettings && (
         <BoardSettingsModal columns={board.columns} onSave={saveColumns} onClose={() => setShowSettings(false)} />

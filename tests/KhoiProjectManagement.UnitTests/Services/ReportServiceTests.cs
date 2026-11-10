@@ -13,7 +13,7 @@ namespace KhoiProjectManagement.UnitTests.Services
         private readonly IReportStatsRepository _statsRepo = Substitute.For<IReportStatsRepository>();
         private readonly IRepository<ProjectTask> _taskRepo = Substitute.For<IRepository<ProjectTask>>();
 
-        private ReportService CreateSut() => new(_statsRepo, _taskRepo);
+        private ReportService CreateSut() => new(_statsRepo, _taskRepo, new AllowAllProjectScope());
 
         [Fact]
         public async Task GenerateProjectSummaryReportAsync_WhenNoProjects_ReturnsZeroedTotalsWithoutDividingByZero()

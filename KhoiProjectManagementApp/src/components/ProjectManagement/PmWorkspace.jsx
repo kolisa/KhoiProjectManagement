@@ -80,12 +80,20 @@ const PmWorkspace = ({ apiService, user }) => {
   const [error, setError] = useState(null);
   const [route, setRoute] = useState(initialRoute);
   const [navOpen, setNavOpen] = useState(false);
-  const isPmAdmin = hasPermission(user?.permissions, 'pm.admin');
+  // Whether this person administers the module. The server decides (a Project Admin counts as an administrator, and that
+  // is a database fact the JWT cannot carry); the pm.admin permission is only the answer until the server has replied.
+  const [serverAdmin, setServerAdmin] = useState(null);
+  const isPmAdmin = serverAdmin ?? hasPermission(user?.permissions, 'pm.admin');
 
   const loadProjects = useCallback(async () => {
     try {
       setError(null);
-      setProjects(await apiService.getPmProjects());
+      const [list, capabilities] = await Promise.all([
+        apiService.getPmProjects(),
+        apiService.getPmCapabilities ? apiService.getPmCapabilities().catch(() => null) : Promise.resolve(null),
+      ]);
+      setServerAdmin(capabilities ? Boolean(capabilities.isAdmin) : null);
+      setProjects(list);
     } catch (err) {
       setError(err?.message || 'Could not load projects.');
     }
@@ -144,9 +152,9 @@ const PmWorkspace = ({ apiService, user }) => {
   // The browser tab always names the place.
   useEffect(() => {
     const previous = document.title;
-    if (route.kind === 'project' && project) document.title = `${project.name} · ${tabInfo?.label || ''} · Project Management`;
-    else if (route.kind === 'mywork') document.title = 'My work · Project Management';
-    else if (route.kind === 'access') document.title = 'Module access · Project Management';
+    if (route.kind === 'project' && project) document.title = `${project.name} · ${tabInfo?.label || ''} · Board`;
+    else if (route.kind === 'mywork') document.title = 'My work · Board';
+    else if (route.kind === 'access') document.title = 'Module access · Board';
     return () => { document.title = previous; };
   }, [route, project, tabInfo]);
 
@@ -173,7 +181,7 @@ const PmWorkspace = ({ apiService, user }) => {
           <Folder className="h-5 w-5 text-blue-600" aria-hidden="true" />
           <span className="min-w-0 flex-1">
             <span className="block text-[11px] font-semibold uppercase tracking-wide text-gray-400">You are in</span>
-            <span className="block truncate text-sm font-semibold text-gray-900">{project ? project.name : sectionTitle || 'Project Management'}</span>
+            <span className="block truncate text-sm font-semibold text-gray-900">{project ? project.name : sectionTitle || 'Board'}</span>
           </span>
           <ChevronDown className={`h-4 w-4 text-gray-500 transition-transform ${navOpen ? 'rotate-180' : ''}`} aria-hidden="true" />
         </button>
@@ -185,17 +193,17 @@ const PmWorkspace = ({ apiService, user }) => {
         </div>
       </aside>
 
-      <section aria-label="Project Management content" className="min-w-0">
+      <section aria-label="Board content" className="min-w-0">
         {route.kind === 'mywork' && (
           <>
-            <Header crumbs={['Project Management', 'My work']} title="My work" subtitle="Everything assigned to you, across every project." />
+            <Header crumbs={['Board', 'My work']} title="My work" subtitle="Everything assigned to you, across every project." />
             <PmMyWork apiService={apiService} onOpenProject={(id) => navigate({ kind: 'project', projectId: id, tab: 'backlog' })} />
           </>
         )}
 
         {route.kind === 'access' && (
           <>
-            <Header crumbs={['Project Management', 'Module access']} title="Module access"
+            <Header crumbs={['Board', 'Module access']} title="Module access"
               subtitle="Who can use Project Management, and whether they can read only or read and write." />
             <PmAccessAdmin apiService={apiService} />
           </>
@@ -209,7 +217,7 @@ const PmWorkspace = ({ apiService, user }) => {
 
         {route.kind === 'project' && project && (
           <>
-            <Header crumbs={['Project Management', project.name, tabInfo?.label]}
+            <Header crumbs={['Board', project.name, tabInfo?.label]}
               title={project.name}
               avatar={<Avatar name={project.name} size="lg" square />}
               badges={(
@@ -224,7 +232,7 @@ const PmWorkspace = ({ apiService, user }) => {
             {project.readOnly && (
               <div role="note" className="mb-4 flex items-start gap-2 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700">
                 <Eye className="mt-0.5 h-4 w-4 flex-shrink-0 text-gray-500" aria-hidden="true" />
-                <span><strong>Read-only access.</strong> You can see everything in this project but not change it. Ask a SuperAdmin if you need read and write access.</span>
+                <span><strong>Read-only access.</strong> You can see everything in this project but not change it. Ask an administrator if you need read and write access.</span>
               </div>
             )}
 

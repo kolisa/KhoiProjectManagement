@@ -21,7 +21,7 @@ namespace KhoiProjectManagement.UnitTests.Services
             _tasks, Substitute.For<IRepository<User>>(), Substitute.For<IRepository<Project>>(),
             Substitute.For<IRepository<TaskTag>>(), Substitute.For<IRepository<Tag>>(), _uow,
             Substitute.For<INotificationService>(), Substitute.For<IEmailService>(), Substitute.For<IActivityLogService>(),
-            _history, _workflow);
+            _history, _workflow, new AllowAllProjectScope());
 
         [Fact]
         public async Task UpdateTaskStatusAsync_ForbiddenByTheWorkflow_ChangesNothing()

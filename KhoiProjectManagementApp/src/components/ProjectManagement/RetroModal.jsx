@@ -13,7 +13,7 @@ const COLUMNS = [
 
 const fieldClass = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500';
 
-const RetroColumn = ({ column, items, canAdd, onAdd, onEdit, onDelete, onToggle }) => {
+const RetroColumn = ({ column, items, canAdd, addReason, onAdd, onEdit, onDelete, onToggle }) => {
   const [draft, setDraft] = useState('');
   const [editingId, setEditingId] = useState(null);
   const [editText, setEditText] = useState('');
@@ -63,20 +63,19 @@ const RetroColumn = ({ column, items, canAdd, onAdd, onEdit, onDelete, onToggle 
         ))}
         {items.length === 0 && <li className="text-xs text-gray-400 text-center py-2">Nothing yet</li>}
       </ul>
-      {canAdd && (
-        <form onSubmit={submit} className="flex gap-2">
-          <label className="sr-only" htmlFor={`retro-${column.key}`}>Add to {column.title}</label>
-          <input id={`retro-${column.key}`} className={fieldClass} value={draft} maxLength={500} placeholder={column.placeholder} onChange={(e) => setDraft(e.target.value)} />
-          <button type="submit" disabled={!draft.trim()} className="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white disabled:opacity-60">Add</button>
-        </form>
-      )}
+      <form onSubmit={submit} className="flex gap-2" title={!canAdd ? addReason || undefined : undefined}>
+        <label className="sr-only" htmlFor={`retro-${column.key}`}>Add to {column.title}{!canAdd && addReason ? ` (${addReason})` : ''}</label>
+        <input id={`retro-${column.key}`} className={`${fieldClass} disabled:bg-gray-50 disabled:cursor-not-allowed`} value={draft} maxLength={500} placeholder={column.placeholder}
+          disabled={!canAdd} onChange={(e) => setDraft(e.target.value)} />
+        <button type="submit" disabled={!canAdd || !draft.trim()} className="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white disabled:opacity-50 disabled:cursor-not-allowed">Add</button>
+      </form>
     </section>
   );
 };
 
 // Retrospective board for one sprint: went well / to improve / actions. The server decides who can
 // edit or delete each card (the flags on each item); `canAdd` just hides the input for read-only roles.
-const RetroModal = ({ apiService, sprint, canAdd, onClose }) => {
+const RetroModal = ({ apiService, sprint, canAdd, addReason, onClose }) => {
   const ref = useModalA11y(onClose);
   const toast = useToast();
   const confirm = useConfirm();
@@ -119,7 +118,7 @@ const RetroModal = ({ apiService, sprint, canAdd, onClose }) => {
             <div className="grid gap-4 md:grid-cols-3">
               {COLUMNS.map((c) => (
                 <RetroColumn key={c.key} column={c} items={items.filter((i) => i.category === c.key)}
-                  canAdd={canAdd} onAdd={add} onEdit={edit} onDelete={remove} onToggle={toggle} />
+                  canAdd={canAdd} addReason={addReason} onAdd={add} onEdit={edit} onDelete={remove} onToggle={toggle} />
               ))}
             </div>
           )}

@@ -40,10 +40,13 @@ namespace KhoiProjectManagementApi.Controllers
             _workItems = workItems;
         }
 
-        private PmCaller Caller => new(
-            int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value),
-            User.HasClaim("superadmin", "true"),
-            User.HasClaim("superadmin", "true") || User.HasClaim("permission", "pm.admin"));
+        private PmCaller Caller => User.ToPmCaller();
+
+        // Whether the signed-in person administers the module, so the UI can offer (or hide) the Module access screen and the
+        // "grant module access" import option without re-implementing the rule.
+        [HttpGet("capabilities")]
+        public ActionResult<PmCapabilitiesDto> GetCapabilities() =>
+            Ok(new PmCapabilitiesDto { IsAdmin = Caller.IsSuperAdmin || Caller.IsPmAdmin });
 
         [HttpGet("projects")]
         public async Task<ActionResult<List<PmProjectSummaryDto>>> GetProjects() =>

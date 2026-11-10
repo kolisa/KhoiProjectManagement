@@ -10,7 +10,8 @@ namespace KhoiProjectManagement.Application.Abstractions
         // now is passed in (rather than the query using Postgres's own NOW()) so "overdue" here matches
         // ProjectTask.IsOverdue's exact semantics (DateTime.Now, not UtcNow - a pre-existing quirk this
         // isn't the place to silently fix) regardless of the DB server's timezone configuration.
-        Task<DashboardCountsResult> GetCountsAsync(DateTime now);
+        // projectIds: count only these projects and their tasks; null = everything (an administrator / the system).
+        Task<DashboardCountsResult> GetCountsAsync(DateTime now, IReadOnlyCollection<int>? projectIds = null);
     }
 
     public class DashboardCountsResult

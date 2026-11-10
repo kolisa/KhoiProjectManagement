@@ -61,7 +61,7 @@ const NAV_GROUPS = [
         label: 'Work',
         items: [
             { key: 'projects', label: 'Projects', icon: Folder },
-            { key: 'pm', label: 'Project Mgmt', icon: Kanban, requiresPm: true },
+            { key: 'pm', label: 'Board', icon: Kanban, requiresPm: true },
             { key: 'tasks', label: 'Tasks', icon: CheckSquare },
             { key: 'timesheets', label: 'Timesheets', icon: Clock },
             { key: 'team', label: 'Team', icon: Users },
@@ -2322,9 +2322,16 @@ const ProjectManagementSystem = () => {
                                     required
                                 >
                                     <option value="">Select Project</option>
-                                    {projects.map(project => (
-                                        <option key={project.id} value={project.id}>{project.name}</option>
-                                    ))}
+                                    {projects.map(project => {
+                                        // Visible but not usable: the person's role (or read-only level) on it can't create tasks.
+                                        const blocked = editingTaskId === null && project.canCreateTasks === false;
+                                        return (
+                                            <option key={project.id} value={project.id} disabled={blocked}
+                                                title={blocked ? "Your role on this project can't create tasks" : undefined}>
+                                                {project.name}{blocked ? " (you can't add tasks here)" : ''}
+                                            </option>
+                                        );
+                                    })}
                                 </select>
                                 <input
                                     type="text"
@@ -2385,15 +2392,23 @@ const ProjectManagementSystem = () => {
                                         <option value="completed">Completed</option>
                                     </select>
                                 )}
+                                {/* Only the chosen project's own team can be assigned - never the whole company directory. */}
                                 <select
                                     value={newTask.assignedToId}
+                                    disabled={!newTask.projectId}
+                                    title={!newTask.projectId ? 'Select a project first - you can assign people on its team' : undefined}
                                     onChange={(e) => setNewTask({ ...newTask, assignedToId: e.target.value })}
-                                    className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                                    className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed"
                                 >
                                     <option value="">Assign To</option>
-                                    {teamMembers.map(member => (
-                                        <option key={member.id} value={member.id}>{member.name}</option>
-                                    ))}
+                                    {(() => {
+                                        const team = projects.find(p => String(p.id) === String(newTask.projectId))?.teamMembers || [];
+                                        const current = newTask.assignedToId && !team.some(m => String(m.id) === String(newTask.assignedToId))
+                                            ? teamMembers.find(m => String(m.id) === String(newTask.assignedToId)) : null;
+                                        return (current ? [...team, current] : team).map(member => (
+                                            <option key={member.id} value={member.id}>{member.name}</option>
+                                        ));
+                                    })()}
                                 </select>
                                 <input
                                     type={newTask.type === 'Meeting' ? 'datetime-local' : 'date'}

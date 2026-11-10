@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { can, allowedParentTypes, roleLabel } from './pmConstants';
+import { can, allowedParentTypes, roleLabel, denyReason, ACTIONS_WITH_A_REASON } from './pmConstants';
 
 describe('pmConstants', () => {
   it('mirrors the server role matrix', () => {
@@ -32,6 +32,28 @@ describe('pmConstants', () => {
 
   it('labels roles', () => {
     expect(roleLabel('ScrumMaster')).toBe('Scrum Master');
-    expect(roleLabel('SuperAdmin')).toBe('Super Admin');
+    expect(roleLabel('SuperAdmin')).toBe('Administrator');
+  });
+});
+
+describe('denyReason', () => {
+  it('is null when the role may do the thing', () => {
+    expect(denyReason({ myRole: 'Developer' }, 'create')).toBeNull();
+  });
+  it('names the role when the role is the limit', () => {
+    expect(denyReason({ myRole: 'Viewer', actualRole: 'Viewer' }, 'edit')).toMatch(/Your role \(Viewer\) can't edit work items/);
+  });
+  it('blames the read-only access level, not the role, when that is the limit', () => {
+    expect(denyReason({ myRole: 'Viewer', actualRole: 'ProjectAdmin', readOnly: true }, 'create')).toMatch(/read-only/i);
+  });
+});
+
+describe('denyReason coverage', () => {
+  it('has a plain-words verb for every action the role matrix knows, so no reason falls back to a vague "do this"', () => {
+    const actions = ['create', 'edit', 'delete', 'rank', 'members', 'board', 'sprint', 'collaborate'];
+    actions.forEach((a) => {
+      expect(ACTIONS_WITH_A_REASON).toContain(a);
+      expect(denyReason({ myRole: 'Viewer', actualRole: 'Viewer' }, a)).not.toMatch(/do this/);
+    });
   });
 });

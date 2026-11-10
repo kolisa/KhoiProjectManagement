@@ -21,5 +21,7 @@ namespace KhoiProjectManagement.Application
         public List<TeamMemberDto> TeamMembers { get; set; } = new();
         public int TaskCount { get; set; }
         public int CompletedTaskCount { get; set; }
+        // Whether the signed-in caller may create tasks here (role + read-only level); lets the UI grey out the option with a reason.
+        public bool CanCreateTasks { get; set; }
     }
 }

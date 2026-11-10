@@ -9,7 +9,7 @@ import { BurndownChart, VelocityChart } from './PmCharts';
 import { useToast } from '../../contexts/ToastContext';
 import { useConfirm } from '../../contexts/ConfirmContext';
 import { reportApiError } from '../../utils/apiError';
-import { TYPE_STYLES, STATUS_STYLES, statusLabel, can } from './pmConstants';
+import { TYPE_STYLES, STATUS_STYLES, statusLabel, can, denyReason } from './pmConstants';
 
 const CONTAINER_TYPES = ['Epic', 'Feature'];
 const selectClass = 'border border-gray-300 rounded-lg px-2 py-1 text-xs bg-white text-gray-700';
@@ -19,21 +19,20 @@ const fmtRange = (s) => {
   return `${f(s.startDate)} – ${f(s.endDate)}`;
 };
 
-const ItemRow = ({ item, sprints, currentSprintId, canPlan, onAssign }) => (
+const ItemRow = ({ item, sprints, currentSprintId, canPlan, reason, onAssign }) => (
   <li className="flex items-center gap-3 px-3 py-2">
     <span className={`px-2 py-0.5 rounded text-[11px] font-semibold ${TYPE_STYLES[item.type] || 'bg-gray-100 text-gray-700'}`}>{item.type}</span>
     <span className="flex-1 min-w-0 text-sm text-gray-900 truncate">{item.title}</span>
     {item.storyPoints != null && <span className="text-xs font-semibold bg-gray-100 text-gray-700 rounded-full px-2 py-0.5" title="Story points">{item.storyPoints}</span>}
     <StatusBadge status={item.status} label={statusLabel(item.status)} colorMap={STATUS_STYLES} />
-    {canPlan && (
-      <label>
-        <span className="sr-only">Sprint for {item.title}</span>
-        <select value={currentSprintId ?? ''} onChange={(e) => onAssign(item, e.target.value === '' ? null : Number(e.target.value))} className={selectClass}>
-          <option value="">Backlog</option>
-          {sprints.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-        </select>
-      </label>
-    )}
+    <label>
+      <span className="sr-only">Sprint for {item.title}</span>
+      <select value={currentSprintId ?? ''} onChange={(e) => onAssign(item, e.target.value === '' ? null : Number(e.target.value))}
+        disabled={!canPlan} title={reason || undefined} className={`${selectClass} disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed`}>
+        <option value="">Backlog</option>
+        {sprints.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+      </select>
+    </label>
   </li>
 );
 
@@ -53,6 +52,7 @@ const PmSprints = ({ apiService, project }) => {
   const [retroSprint, setRetroSprint] = useState(null);
 
   const canPlan = can(project.myRole, 'sprint');
+  const planReason = denyReason(project, 'sprint');
 
   const load = useCallback(async () => {
     try {
@@ -121,11 +121,10 @@ const PmSprints = ({ apiService, project }) => {
     <div className="space-y-6">
       <div className="flex items-center">
         <p className="text-sm text-gray-500">Plan work into time-boxed sprints. Epics and Features are planned through their stories and tasks.</p>
-        {canPlan && (
-          <button onClick={() => setEditing(null)} className="ml-auto inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700">
-            <Plus className="h-4 w-4" aria-hidden="true" /> New sprint
-          </button>
-        )}
+        <button onClick={() => setEditing(null)} disabled={!canPlan} title={planReason || undefined}
+          className="ml-auto inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">
+          <Plus className="h-4 w-4" aria-hidden="true" /> New sprint
+        </button>
       </div>
 
       {open.map((sprint) => {
@@ -161,31 +160,34 @@ const PmSprints = ({ apiService, project }) => {
               {sprint.state !== 'Planned' && (
                 <button onClick={() => setRetroSprint(sprint)} className="px-3 py-1.5 rounded-lg border border-gray-300 text-sm text-gray-700 hover:bg-gray-50">Retro</button>
               )}
-              {canPlan && (
-                <div className="flex items-center gap-2">
-                  {sprint.state === 'Planned' && (
-                    <button onClick={() => act(() => apiService.startSprint(sprint.id), 'Sprint started.')} disabled={hasActive}
-                      title={hasActive ? 'Complete the active sprint first' : 'Start sprint'}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-300 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50">
-                      <Play className="h-4 w-4" aria-hidden="true" /> Start
-                    </button>
-                  )}
-                  {sprint.state === 'Active' && (
-                    <button onClick={() => setCompleting(sprint)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-600 text-white text-sm font-medium hover:bg-green-700">
-                      <CheckCircle2 className="h-4 w-4" aria-hidden="true" /> Complete
-                    </button>
-                  )}
-                  <button aria-label={`Edit ${sprint.name}`} onClick={() => setEditing(sprint)} className="text-gray-400 hover:text-blue-600"><Pencil className="h-4 w-4" /></button>
-                  {sprint.state === 'Planned' && <button aria-label={`Delete ${sprint.name}`} onClick={() => remove(sprint)} className="text-gray-400 hover:text-red-600"><Trash2 className="h-4 w-4" /></button>}
-                </div>
-              )}
+              <div className="flex items-center gap-2">
+                {sprint.state === 'Planned' && (
+                  <button onClick={() => act(() => apiService.startSprint(sprint.id), 'Sprint started.')} disabled={!canPlan || hasActive}
+                    title={planReason || (hasActive ? 'Complete the active sprint first' : 'Start sprint')}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-300 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <Play className="h-4 w-4" aria-hidden="true" /> Start
+                  </button>
+                )}
+                {sprint.state === 'Active' && (
+                  <button onClick={() => setCompleting(sprint)} disabled={!canPlan} title={planReason || undefined}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-600 text-white text-sm font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <CheckCircle2 className="h-4 w-4" aria-hidden="true" /> Complete
+                  </button>
+                )}
+                <button aria-label={`Edit ${sprint.name}`} onClick={() => setEditing(sprint)} disabled={!canPlan} title={planReason || undefined}
+                  className="text-gray-400 hover:text-blue-600 disabled:text-gray-300 disabled:hover:text-gray-300 disabled:cursor-not-allowed"><Pencil className="h-4 w-4" /></button>
+                {sprint.state === 'Planned' && (
+                  <button aria-label={`Delete ${sprint.name}`} onClick={() => remove(sprint)} disabled={!canPlan} title={planReason || undefined}
+                    className="text-gray-400 hover:text-red-600 disabled:text-gray-300 disabled:hover:text-gray-300 disabled:cursor-not-allowed"><Trash2 className="h-4 w-4" /></button>
+                )}
+              </div>
             </header>
             {sprintItems.length === 0 ? (
               <p className="text-sm text-gray-400 text-center py-6">No items yet. Add some from the backlog below.</p>
             ) : (
               <ul className="divide-y divide-gray-100">
                 {sprintItems.map((item) => (
-                  <ItemRow key={item.id} item={item} sprints={otherSprints} currentSprintId={sprint.id} canPlan={canPlan} onAssign={assign} />
+                  <ItemRow key={item.id} item={item} sprints={otherSprints} currentSprintId={sprint.id} canPlan={canPlan} reason={planReason} onAssign={assign} />
                 ))}
               </ul>
             )}
@@ -205,7 +207,7 @@ const PmSprints = ({ apiService, project }) => {
         ) : (
           <ul className="divide-y divide-gray-100">
             {backlogItems.map((item) => (
-              <ItemRow key={item.id} item={item} sprints={open} currentSprintId={null} canPlan={canPlan} onAssign={assign} />
+              <ItemRow key={item.id} item={item} sprints={open} currentSprintId={null} canPlan={canPlan} reason={planReason} onAssign={assign} />
             ))}
           </ul>
         )}
@@ -238,7 +240,7 @@ const PmSprints = ({ apiService, project }) => {
         </section>
       )}
 
-      {retroSprint && <RetroModal apiService={apiService} sprint={retroSprint} canAdd={can(project.myRole, 'collaborate')} onClose={() => setRetroSprint(null)} />}
+      {retroSprint && <RetroModal apiService={apiService} sprint={retroSprint} canAdd={can(project.myRole, 'collaborate')} addReason={denyReason(project, 'collaborate')} onClose={() => setRetroSprint(null)} />}
       {editing !== undefined && <SprintModal sprint={editing} onSave={saveSprint} onClose={() => setEditing(undefined)} />}
     </div>
   );

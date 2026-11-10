@@ -218,14 +218,16 @@ describe('PmMembers: labelled controls and access', () => {
     expect(screen.getByRole('columnheader', { name: 'Project Admin' })).toHaveClass('bg-blue-50');
   });
 
-  it('is read-only for someone who cannot manage: no add form, no selection, roles as plain chips', async () => {
+  it('greys out member management for someone who cannot manage, with the reason', async () => {
     wrap(<PmMembers apiService={makeApi()} project={{ ...project, myRole: 'Viewer', actualRole: 'ProjectAdmin' }} onChanged={vi.fn()} />);
     await screen.findByText('Ada Admin');
 
-    expect(screen.queryByRole('region', { name: 'Add people' })).not.toBeInTheDocument();
-    expect(screen.queryByLabelText('Select everyone')).not.toBeInTheDocument();
-    expect(screen.queryByLabelText('Role for Ada Admin')).not.toBeInTheDocument();
-    expect(screen.getAllByText('Project Admin').length).toBeGreaterThan(0);
+    expect(screen.getByLabelText('Person')).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Add to project' })).toBeDisabled();
+    expect(screen.getByLabelText('Select everyone')).toBeDisabled();
+    expect(screen.getByLabelText('Role for Ada Admin')).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Remove Ada Admin' })).toBeDisabled();
+    expect(screen.getByText(/can't manage members/i)).toBeInTheDocument();
   });
 });
 

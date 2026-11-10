@@ -23,6 +23,8 @@ namespace KhoiProjectManagement.FunctionalTests
         [InlineData("/api/pm/projects/1/workflow")]
         [InlineData("/api/pm/attachments/1/download")]
         [InlineData("/api/pm/my-work")]
+        [InlineData("/api/pm/capabilities")]
+        [InlineData("/api/pm/access/users")]
         [InlineData("/api/pm/projects/1/overview")]
         [InlineData("/api/pm/work-items/1/activity")]
         [InlineData("/api/pm/projects/1/labels")]
@@ -76,6 +78,19 @@ namespace KhoiProjectManagement.FunctionalTests
 
                 Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
             }
+        }
+
+        [Fact]
+        public async Task Capabilities_TellAnAdministratorFromAnOrdinaryUser()
+        {
+            var admin = await _fixture.Factory.CreateClient().AuthenticateAsAsync(SeededUsers.Admin);
+            var member = await _fixture.Factory.CreateClient().AuthenticateAsAsync(SeededUsers.Member);
+
+            var adminCaps = await admin.GetFromJsonAsync<System.Text.Json.JsonElement>("/api/pm/capabilities");
+            var memberCaps = await member.GetFromJsonAsync<System.Text.Json.JsonElement>("/api/pm/capabilities");
+
+            Assert.True(adminCaps.GetProperty("isAdmin").GetBoolean());
+            Assert.False(memberCaps.GetProperty("isAdmin").GetBoolean());
         }
 
         [Fact]

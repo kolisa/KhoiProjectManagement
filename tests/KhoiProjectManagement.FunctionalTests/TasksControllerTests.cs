@@ -13,10 +13,17 @@ namespace KhoiProjectManagement.FunctionalTests
 
         public TasksControllerTests(PostgresContainerFixture fixture) => _fixture = fixture;
 
-        private static async Task<int> CreateProjectAsync(HttpClient adminClient)
+        private static async Task<int> UserIdAsync(HttpClient client)
+        {
+            var me = await client.GetFromJsonAsync<MeResponseDto>("/api/auth/me");
+            return me!.User.Id;
+        }
+
+        private static async Task<int> CreateProjectAsync(HttpClient adminClient, params int[] teamMemberIds)
         {
             var response = await adminClient.PostAsJsonAsync("/api/projects", new
             {
+                teamMemberIds,
                 name = $"Task Host Project {Guid.NewGuid():N}",
                 description = "hosts tasks for TasksControllerTests",
                 priority = "medium",
@@ -29,14 +36,14 @@ namespace KhoiProjectManagement.FunctionalTests
         }
 
         [Fact]
-        public async Task CreateTask_AsAnyAuthenticatedUser_Returns201AndIsRetrievable()
+        public async Task CreateTask_AsATeamMemberOfTheProject_Returns201AndIsRetrievable()
         {
             var adminClient = await _fixture.Factory.CreateClient().AuthenticateAsAsync(SeededUsers.Admin);
-            var projectId = await CreateProjectAsync(adminClient);
-
-            // Task creation has no dedicated policy - any authenticated member can create one (matches
-            // CLAUDE.md's flat-permission scheme; only DeleteTask is policy-gated).
             var memberClient = await _fixture.Factory.CreateClient().AuthenticateAsAsync(SeededUsers.Member);
+
+            // Need-to-know: a signed-in user can only create tickets in a project they belong to (see NeedToKnowControllerTests
+            // for the other side of that). Here the member is on the team.
+            var projectId = await CreateProjectAsync(adminClient, await UserIdAsync(memberClient));
             var response = await memberClient.PostAsJsonAsync("/api/tasks", new
             {
                 projectId,

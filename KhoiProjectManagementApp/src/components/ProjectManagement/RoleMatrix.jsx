@@ -45,9 +45,16 @@ const RoleMatrix = ({ highlightRole }) => (
         </tr>
       </tbody>
     </table>
-    <p className="mt-3 text-xs text-gray-500">
-      Separately, a SuperAdmin can set someone's module access to <strong>Read only</strong> - that caps them at the first row whatever their role.
-    </p>
+    <div className="mt-3 space-y-1 text-xs text-gray-500">
+      <p>
+        <strong>A role applies only inside its own project.</strong> Being Project Admin here gives no access to any other project -
+        you only ever see the projects you belong to.
+      </p>
+      <p>
+        Separately, an administrator can set someone's module access to <strong>Read only</strong> - that caps them at the first row whatever their role
+        (and stops a Project Admin acting as an administrator).
+      </p>
+    </div>
   </div>
 );
 

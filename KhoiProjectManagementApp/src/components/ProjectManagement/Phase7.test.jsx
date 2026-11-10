@@ -236,8 +236,8 @@ describe('Labels and history on a work item', () => {
   it('is read-only for roles that cannot edit', async () => {
     renderCollab(makeApi(), false);
     expect(screen.getByText('ui')).toBeInTheDocument();
-    expect(screen.queryByLabelText('Add a label')).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Remove label/ })).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Add a label')).toBeDisabled();
+    expect(screen.getByRole('button', { name: /Remove label/ })).toBeDisabled();
   });
 
   it('loads the history only when its tab is opened', async () => {
@@ -353,12 +353,12 @@ describe('PmMembers bulk actions', () => {
     await waitFor(() => expect(api.setPmMember).toHaveBeenCalledWith(3, 1, 'ProjectAdmin'));
   });
 
-  it('offers import only to people who can manage members', async () => {
+  it('greys out import and selection for people who cannot manage members', async () => {
     const api = makeApi();
     wrap(<PmMembers apiService={api} project={{ id: 3, name: 'Khoi', myRole: 'Developer' }} onChanged={vi.fn()} />);
     await screen.findByText('Dana Dev');
-    expect(screen.queryByRole('button', { name: /Import members/ })).not.toBeInTheDocument();
-    expect(screen.queryByLabelText('Select Dana Dev')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Import members/ })).toBeDisabled();
+    expect(screen.getByLabelText('Select Dana Dev')).toBeDisabled();
   });
 });
 

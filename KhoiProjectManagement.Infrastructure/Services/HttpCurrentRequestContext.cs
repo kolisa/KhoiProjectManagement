@@ -16,5 +16,17 @@ namespace KhoiProjectManagement.Infrastructure.Services
         }
 
         public string? RemoteIpAddress => _httpContextAccessor.HttpContext?.Connection?.RemoteIpAddress?.ToString();
+
+        public int? UserId
+        {
+            get
+            {
+                var user = _httpContextAccessor.HttpContext?.User;
+                if (user?.Identity?.IsAuthenticated != true) return null;
+                return int.TryParse(user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out var id) ? id : null;
+            }
+        }
+
+        public bool IsAdministrator => _httpContextAccessor.HttpContext?.User?.HasClaim("superadmin", "true") == true;
     }
 }

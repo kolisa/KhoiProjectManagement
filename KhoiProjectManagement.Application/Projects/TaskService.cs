@@ -18,6 +18,7 @@ namespace KhoiProjectManagement.Application
         private readonly IActivityLogService _activityLogService;
         private readonly IRepository<TaskStatusHistory> _statusHistoryRepo;
         private readonly IPmWorkflowService _workflow;
+        private readonly IProjectScope _scope;
 
         public TaskService(
             IRepository<ProjectTask> taskRepo,
@@ -30,10 +31,12 @@ namespace KhoiProjectManagement.Application
             IEmailService emailService,
             IActivityLogService activityLogService,
             IRepository<TaskStatusHistory> statusHistoryRepo,
-            IPmWorkflowService workflow)
+            IPmWorkflowService workflow,
+            IProjectScope scope)
         {
             _statusHistoryRepo = statusHistoryRepo;
             _workflow = workflow;
+            _scope = scope;
             _taskRepo = taskRepo;
             _userRepo = userRepo;
             _projectRepo = projectRepo;
@@ -53,6 +56,9 @@ namespace KhoiProjectManagement.Application
                 .Include(t => t.TaskTags)
                     .ThenInclude(tt => tt.Tag)
                 .AsQueryable();
+
+            // Need-to-know: only tasks of projects the caller belongs to (or created); an administrator sees all.
+            query = await _scope.ScopeAsync(query);
 
             // Apply filters
             if (!string.IsNullOrEmpty(filter.Status))
@@ -92,18 +98,21 @@ namespace KhoiProjectManagement.Application
 
         public async Task<TaskDto?> GetTaskByIdAsync(int id)
         {
-            var task = await _taskRepo.Query()
+            var visible = await _scope.ScopeAsync(_taskRepo.Query()
                 .Include(t => t.Project)
                 .Include(t => t.AssignedTo)
                 .Include(t => t.TaskTags)
-                    .ThenInclude(tt => tt.Tag)
-                .FirstOrDefaultAsync(t => t.Id == id);
+                    .ThenInclude(tt => tt.Tag));
+            var task = await visible.FirstOrDefaultAsync(t => t.Id == id);   // a task of someone else's project simply does not exist here
 
             return task == null ? null : MapToDto(task);
         }
 
         public async Task<TaskDto> CreateTaskAsync(CreateTaskDto createTaskDto)
         {
+            // Creating a ticket needs a role that may create in THAT project - not merely a signed-in user.
+            await _scope.RequireAsync(createTaskDto.ProjectId, ProjectAbility.Create);
+
             await using var transaction = await _unitOfWork.BeginTransactionAsync();
 
             try
@@ -190,7 +199,7 @@ namespace KhoiProjectManagement.Application
                     .Include(t => t.TaskTags)
                     .FirstOrDefaultAsync(t => t.Id == id);
 
-                if (task == null)
+                if (task == null || !await CanEditAsync(task.ProjectId))
                     return false;
 
                 var oldStatus = task.Status;
@@ -285,7 +294,7 @@ namespace KhoiProjectManagement.Application
         public async Task<bool> UpdateTaskStatusAsync(int id, string status, int actingUserId)
         {
             var task = await _taskRepo.FindAsync(id);
-            if (task == null)
+            if (task == null || !await CanEditAsync(task.ProjectId))
                 return false;
 
             var oldStatus = task.Status;
@@ -322,7 +331,7 @@ namespace KhoiProjectManagement.Application
         public async Task<bool> DeleteTaskAsync(int id)
         {
             var task = await _taskRepo.FindAsync(id);
-            if (task == null)
+            if (task == null || !await CanEditAsync(task.ProjectId))
                 return false;
 
             _taskRepo.Remove(task);
@@ -332,16 +341,27 @@ namespace KhoiProjectManagement.Application
 
         public async Task<IEnumerable<TaskDto>> GetOverdueTasksAsync()
         {
-            var overdueTasks = await _taskRepo.Query()
+            var visible = await _scope.ScopeAsync(_taskRepo.Query()
                 .Include(t => t.Project)
                 .Include(t => t.AssignedTo)
                 .Include(t => t.TaskTags)
-                    .ThenInclude(tt => tt.Tag)
+                    .ThenInclude(tt => tt.Tag));
+            var overdueTasks = await visible
                 .Where(t => t.Status != "completed" && t.HasExplicitDueDate && t.DueDate < DateTime.UtcNow)
                 .OrderBy(t => t.DueDate)
                 .ToListAsync();
 
             return overdueTasks.Select(MapToDto);
+        }
+
+        // false = the task's project is not visible to the caller (treated as "not found"); throws Forbidden when it is
+        // visible but the caller's role / access level does not allow changing work in it (e.g. a Viewer, or read-only access).
+        private async Task<bool> CanEditAsync(int projectId)
+        {
+            var outcome = await _scope.CheckAsync(projectId, ProjectAbility.Edit);
+            if (outcome == ProjectAccessOutcome.Forbidden)
+                throw new ForbiddenException("Your role or access level on this project does not allow changing its tasks.");
+            return outcome == ProjectAccessOutcome.Allowed;
         }
 
         private async Task AddTaskTagsAsync(int taskId, IEnumerable<string> tagNames)

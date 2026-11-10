@@ -27,7 +27,7 @@ const formatWhen = (iso) => new Date(iso).toLocaleString(undefined, { dateStyle:
 
 // ---------------------------------------------------------------- comments
 
-const CommentsPanel = ({ apiService, itemId, members, canComment, onCount }) => {
+const CommentsPanel = ({ apiService, itemId, members, canComment, reason, onCount }) => {
   const toast = useToast();
   const confirm = useConfirm();
   const [comments, setComments] = useState(null);
@@ -128,30 +128,27 @@ const CommentsPanel = ({ apiService, itemId, members, canComment, onCount }) => 
         ))}
       </ul>
 
-      {canComment ? (
-        <form onSubmit={post} className="space-y-2">
-          <label htmlFor="pm-comment" className="sr-only">Add a comment</label>
-          <textarea id="pm-comment" ref={inputRef} rows={3} maxLength={4000} className={fieldClass} value={draft}
-            onChange={(e) => setDraft(e.target.value)} placeholder="Write a comment… type @Name to mention a teammate" />
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-xs text-gray-500">Mention:</span>
-            {members.map((m) => (
-              <button key={m.userId} type="button" onClick={() => mention(m.name)}
-                className="text-xs px-2 py-0.5 rounded-full border border-gray-200 text-gray-600 hover:bg-blue-50 hover:text-blue-700">@{m.name}</button>
-            ))}
-            <button type="submit" disabled={busy || !draft.trim()} className={`${btnPrimary} ml-auto`}>Comment</button>
-          </div>
-        </form>
-      ) : (
-        <p className="text-xs text-gray-500">Your role can read this discussion but not post to it.</p>
-      )}
+      <form onSubmit={post} className="space-y-2" title={!canComment ? reason || undefined : undefined}>
+        <label htmlFor="pm-comment" className="sr-only">Add a comment{!canComment && reason ? ` (${reason})` : ''}</label>
+        <textarea id="pm-comment" ref={inputRef} rows={3} maxLength={4000} className={`${fieldClass} disabled:bg-gray-50 disabled:cursor-not-allowed`} value={draft} disabled={!canComment}
+          onChange={(e) => setDraft(e.target.value)} placeholder={canComment ? 'Write a comment… type @Name to mention a teammate' : 'You can read this discussion but not post to it'} />
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="text-xs text-gray-500">Mention:</span>
+          {members.map((m) => (
+            <button key={m.userId} type="button" onClick={() => mention(m.name)} disabled={!canComment}
+              className="text-xs px-2 py-0.5 rounded-full border border-gray-200 text-gray-600 hover:bg-blue-50 hover:text-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">@{m.name}</button>
+          ))}
+          <button type="submit" disabled={!canComment || busy || !draft.trim()} className={`${btnPrimary} ml-auto disabled:cursor-not-allowed`}>Comment</button>
+        </div>
+        {!canComment && reason && <p className="text-xs text-gray-500">{reason}</p>}
+      </form>
     </div>
   );
 };
 
 // ---------------------------------------------------------------- checklist
 
-const ChecklistPanel = ({ apiService, itemId, canEdit, onCount }) => {
+const ChecklistPanel = ({ apiService, itemId, canEdit, reason, onCount }) => {
   const toast = useToast();
   const [items, setItems] = useState(null);
   const [text, setText] = useState('');
@@ -201,20 +198,16 @@ const ChecklistPanel = ({ apiService, itemId, canEdit, onCount }) => {
               onChange={(e) => run(() => apiService.updateChecklistItem(i.id, i.text, e.target.checked), 'Could not update the item.')}
               className="h-4 w-4 rounded border-gray-300 text-blue-600" />
             <label htmlFor={`cl-${i.id}`} className={`flex-1 text-sm break-words ${i.isDone ? 'line-through text-gray-400' : 'text-gray-800'}`}>{i.text}</label>
-            {canEdit && (
-              <button aria-label={`Remove ${i.text}`} onClick={() => run(() => apiService.deleteChecklistItem(i.id), 'Could not remove the item.')}
-                className="text-gray-300 hover:text-red-600"><Trash2 className="h-3.5 w-3.5" /></button>
-            )}
+            <button aria-label={`Remove ${i.text}`} onClick={() => run(() => apiService.deleteChecklistItem(i.id), 'Could not remove the item.')} disabled={!canEdit} title={reason || undefined}
+              className="text-gray-300 hover:text-red-600 disabled:hover:text-gray-300 disabled:cursor-not-allowed"><Trash2 className="h-3.5 w-3.5" /></button>
           </li>
         ))}
       </ul>
-      {canEdit && (
-        <form onSubmit={add} className="flex gap-2">
-          <label htmlFor="pm-checklist-new" className="sr-only">New checklist item</label>
-          <input id="pm-checklist-new" className={fieldClass} value={text} maxLength={300} onChange={(e) => setText(e.target.value)} placeholder="Add an item…" />
-          <button type="submit" disabled={!text.trim()} className={btnPrimary}>Add</button>
-        </form>
-      )}
+      <form onSubmit={add} className="flex gap-2" title={!canEdit ? reason || undefined : undefined}>
+        <label htmlFor="pm-checklist-new" className="sr-only">New checklist item{!canEdit && reason ? ` (${reason})` : ''}</label>
+        <input id="pm-checklist-new" className={`${fieldClass} disabled:bg-gray-50 disabled:cursor-not-allowed`} value={text} maxLength={300} disabled={!canEdit} onChange={(e) => setText(e.target.value)} placeholder="Add an item…" />
+        <button type="submit" disabled={!canEdit || !text.trim()} className={`${btnPrimary} disabled:cursor-not-allowed`}>Add</button>
+      </form>
     </div>
   );
 };
@@ -227,7 +220,7 @@ const LINK_TYPES = [
   { key: 'Duplicates', label: 'Duplicates' },
 ];
 
-const LinksPanel = ({ apiService, item, items, canEdit, onCount, active }) => {
+const LinksPanel = ({ apiService, item, items, canEdit, reason, onCount, active }) => {
   const toast = useToast();
   const [links, setLinks] = useState(null);
   // The picker offers every item in the project (Epics, Features and other sprints included), not just
@@ -295,22 +288,20 @@ const LinksPanel = ({ apiService, item, items, canEdit, onCount, active }) => {
             <span className={`px-1.5 py-0.5 rounded text-[10.5px] font-semibold ${TYPE_STYLES[l.otherType] || 'bg-gray-100 text-gray-700'}`}>{l.otherType}</span>
             <span className="flex-1 truncate text-gray-800" title={l.otherTitle}>#{l.otherId} {l.otherTitle}</span>
             <span className={`px-2 py-0.5 rounded-full text-[11px] font-medium ${STATUS_STYLES[l.otherStatus] || 'bg-gray-100 text-gray-700'}`}>{statusLabel(l.otherStatus)}</span>
-            {canEdit && <button aria-label={`Remove link to ${l.otherTitle}`} onClick={() => remove(l.id)} className="text-gray-300 hover:text-red-600"><X className="h-4 w-4" /></button>}
+            <button aria-label={`Remove link to ${l.otherTitle}`} onClick={() => remove(l.id)} disabled={!canEdit} title={reason || undefined} className="text-gray-300 hover:text-red-600 disabled:hover:text-gray-300 disabled:cursor-not-allowed"><X className="h-4 w-4" /></button>
           </li>
         ))}
       </ul>
-      {canEdit && (
-        <form onSubmit={add} className="flex flex-wrap gap-2">
-          <select aria-label="Link type" value={type} onChange={(e) => setType(e.target.value)} className="border border-gray-300 rounded-lg px-2 py-2 text-sm bg-white">
-            {LINK_TYPES.map((t) => <option key={t.key} value={t.key}>{t.label}</option>)}
-          </select>
-          <select aria-label="Item to link" value={targetId} onChange={(e) => setTargetId(e.target.value)} className="flex-1 min-w-[10rem] border border-gray-300 rounded-lg px-2 py-2 text-sm bg-white">
-            <option value="">Select an item…</option>
-            {candidates.map((i) => <option key={i.id} value={i.id}>#{i.id} {i.title}</option>)}
-          </select>
-          <button type="submit" disabled={!targetId} className={btnPrimary}>Link</button>
-        </form>
-      )}
+      <form onSubmit={add} className="flex flex-wrap gap-2" title={!canEdit ? reason || undefined : undefined}>
+        <select aria-label="Link type" value={type} onChange={(e) => setType(e.target.value)} disabled={!canEdit} className="border border-gray-300 rounded-lg px-2 py-2 text-sm bg-white disabled:bg-gray-50 disabled:cursor-not-allowed">
+          {LINK_TYPES.map((t) => <option key={t.key} value={t.key}>{t.label}</option>)}
+        </select>
+        <select aria-label="Item to link" value={targetId} onChange={(e) => setTargetId(e.target.value)} disabled={!canEdit} className="flex-1 min-w-[10rem] border border-gray-300 rounded-lg px-2 py-2 text-sm bg-white disabled:bg-gray-50 disabled:cursor-not-allowed">
+          <option value="">Select an item…</option>
+          {candidates.map((i) => <option key={i.id} value={i.id}>#{i.id} {i.title}</option>)}
+        </select>
+        <button type="submit" disabled={!canEdit || !targetId} className={`${btnPrimary} disabled:cursor-not-allowed`}>Link</button>
+      </form>
     </div>
   );
 };
@@ -334,7 +325,7 @@ const ImageThumb = ({ apiService, attachment }) => {
   return <img src={src} alt={attachment.fileName} className="h-12 w-12 rounded object-cover flex-shrink-0" />;
 };
 
-const AttachmentsPanel = ({ apiService, itemId, canUpload, onCount, active }) => {
+const AttachmentsPanel = ({ apiService, itemId, canUpload, reason, onCount, active }) => {
   const toast = useToast();
   const confirm = useConfirm();
   const [files, setFiles] = useState(null);
@@ -397,15 +388,14 @@ const AttachmentsPanel = ({ apiService, itemId, canUpload, onCount, active }) =>
           </li>
         ))}
       </ul>
-      {canUpload && (
-        <div>
-          <input ref={inputRef} type="file" multiple className="sr-only" id="pm-attach" onChange={upload} />
-          <label htmlFor="pm-attach" className={`${btnGhost} inline-flex items-center gap-1.5 cursor-pointer ${uploading ? 'opacity-60 pointer-events-none' : ''}`}>
-            <Paperclip className="h-4 w-4" aria-hidden="true" /> {uploading ? 'Uploading…' : 'Attach files'}
-          </label>
-          <span className="ml-2 text-xs text-gray-500">Images, PDF, Office documents, up to 10 MB each.</span>
-        </div>
-      )}
+      <div title={!canUpload ? reason || undefined : undefined}>
+        <input ref={inputRef} type="file" multiple className="sr-only" id="pm-attach" onChange={upload} disabled={!canUpload} />
+        <label htmlFor="pm-attach" aria-disabled={!canUpload}
+          className={`${btnGhost} inline-flex items-center gap-1.5 ${canUpload ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'} ${uploading ? 'opacity-60 pointer-events-none' : ''}`}>
+          <Paperclip className="h-4 w-4" aria-hidden="true" /> {uploading ? 'Uploading…' : 'Attach files'}{!canUpload && reason ? <span className="sr-only"> ({reason})</span> : null}
+        </label>
+        <span className="ml-2 text-xs text-gray-500">{canUpload ? 'Images, PDF, Office documents, up to 10 MB each.' : reason}</span>
+      </div>
     </div>
   );
 };
@@ -444,7 +434,7 @@ const ActivityPanel = ({ apiService, itemId, active }) => {
 // ---------------------------------------------------------------- labels
 
 // Labels are saved straight away (not with the form's Save): each change replaces the item's whole label set.
-const LabelsEditor = ({ apiService, item, canEdit, onChanged }) => {
+const LabelsEditor = ({ apiService, item, canEdit, reason, onChanged }) => {
   const toast = useToast();
   const [labels, setLabels] = useState(item.labels || []);
   const [known, setKnown] = useState([]);
@@ -480,25 +470,21 @@ const LabelsEditor = ({ apiService, item, canEdit, onChanged }) => {
     <div className="px-5 pb-3">
       <div className="flex flex-wrap items-center gap-1.5">
         <span className="text-sm font-medium text-gray-700 mr-1">Labels</span>
-        {labels.length === 0 && !canEdit && <span className="text-sm text-gray-500">None</span>}
         {labels.map((l) => (
           <span key={l.id} className="inline-flex items-center gap-1 text-xs font-medium rounded-full pl-2 pr-1 py-0.5 bg-gray-100 text-gray-700">
             <span className="h-1.5 w-1.5 rounded-full" style={{ background: l.color }} aria-hidden="true" />
             {l.name}
-            {canEdit && (
-              <button type="button" disabled={busy} aria-label={`Remove label ${l.name}`} onClick={() => save(labels.filter((x) => x.id !== l.id).map((x) => x.name))}
-                className="text-gray-400 hover:text-red-600 disabled:opacity-50"><X className="h-3 w-3" /></button>
-            )}
+            <button type="button" disabled={busy || !canEdit} aria-label={`Remove label ${l.name}`} title={!canEdit ? reason || undefined : undefined}
+              onClick={() => save(labels.filter((x) => x.id !== l.id).map((x) => x.name))}
+              className="text-gray-400 hover:text-red-600 disabled:opacity-50 disabled:hover:text-gray-400 disabled:cursor-not-allowed"><X className="h-3 w-3" /></button>
           </span>
         ))}
-        {canEdit && (
-          <form onSubmit={add} className="inline-flex">
-            <label htmlFor="pm-label-input" className="sr-only">Add a label</label>
-            <input id="pm-label-input" list="pm-label-options" value={draft} onChange={(e) => setDraft(e.target.value)} maxLength={30} disabled={busy}
-              placeholder="Add label…" className="border border-gray-300 rounded-full px-2.5 py-0.5 text-xs w-28 focus:outline-none focus:ring-2 focus:ring-blue-500" />
-            <datalist id="pm-label-options">{known.map((k) => <option key={k.id} value={k.name} />)}</datalist>
-          </form>
-        )}
+        <form onSubmit={add} className="inline-flex" title={!canEdit ? reason || undefined : undefined}>
+          <label htmlFor="pm-label-input" className="sr-only">Add a label{!canEdit && reason ? ` (${reason})` : ''}</label>
+          <input id="pm-label-input" list="pm-label-options" value={draft} onChange={(e) => setDraft(e.target.value)} maxLength={30} disabled={busy || !canEdit}
+            placeholder="Add label…" className="border border-gray-300 rounded-full px-2.5 py-0.5 text-xs w-28 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:cursor-not-allowed" />
+          <datalist id="pm-label-options">{known.map((k) => <option key={k.id} value={k.name} />)}</datalist>
+        </form>
       </div>
     </div>
   );
@@ -516,7 +502,7 @@ const TABS = [
 
 // Discussion, checklist, dependencies and files for an existing work item. `can` carries the caller's
 // project-role abilities (mirrors the server matrix; the API is still the authority).
-const WorkItemCollab = ({ apiService, item, items, members, can: abilities, onChanged }) => {
+const WorkItemCollab = ({ apiService, item, items, members, can: abilities, reasons = {}, onChanged }) => {
   const [tab, setTab] = useState('comments');
   const [counts, setCounts] = useState({});
   const counter = (key) => (value) => setCounts((c) => (c[key] === value ? c : { ...c, [key]: value }));
@@ -528,7 +514,7 @@ const WorkItemCollab = ({ apiService, item, items, members, can: abilities, onCh
 
   return (
     <>
-    <div className="border-t border-gray-200 pt-3"><LabelsEditor apiService={apiService} item={item} canEdit={abilities.edit} onChanged={onChanged} /></div>
+    <div className="border-t border-gray-200 pt-3"><LabelsEditor apiService={apiService} item={item} canEdit={abilities.edit} reason={reasons.edit} onChanged={onChanged} /></div>
     <section aria-label="Collaboration" className="border-t border-gray-200 px-5 py-4">
       <div role="tablist" aria-label="Work item collaboration" className="flex gap-1 mb-4 overflow-x-auto">
         {TABS.map(({ key, label, Icon }) => (
@@ -543,19 +529,19 @@ const WorkItemCollab = ({ apiService, item, items, members, can: abilities, onCh
 
       {/* All four stay mounted so their counts load up front; inactive ones are just hidden. */}
       <div role="tabpanel" id="collab-panel-comments" aria-labelledby="collab-tab-comments" hidden={tab !== 'comments'}>
-        <CommentsPanel apiService={apiService} itemId={item.id} members={members} canComment={abilities.collaborate} onCount={onComments} />
+        <CommentsPanel apiService={apiService} itemId={item.id} members={members} canComment={abilities.collaborate} reason={reasons.collaborate} onCount={onComments} />
       </div>
       <div role="tabpanel" id="collab-panel-checklist" aria-labelledby="collab-tab-checklist" hidden={tab !== 'checklist'}>
-        <ChecklistPanel apiService={apiService} itemId={item.id} canEdit={abilities.edit} onCount={onChecklist} />
+        <ChecklistPanel apiService={apiService} itemId={item.id} canEdit={abilities.edit} reason={reasons.edit} onCount={onChecklist} />
       </div>
       <div role="tabpanel" id="collab-panel-links" aria-labelledby="collab-tab-links" hidden={tab !== 'links'}>
-        <LinksPanel apiService={apiService} item={item} items={items} canEdit={abilities.edit} onCount={onLinks} active={tab === 'links'} />
+        <LinksPanel apiService={apiService} item={item} items={items} canEdit={abilities.edit} reason={reasons.edit} onCount={onLinks} active={tab === 'links'} />
       </div>
       <div role="tabpanel" id="collab-panel-activity" aria-labelledby="collab-tab-activity" hidden={tab !== 'activity'}>
         <ActivityPanel apiService={apiService} itemId={item.id} active={tab === 'activity'} />
       </div>
       <div role="tabpanel" id="collab-panel-files" aria-labelledby="collab-tab-files" hidden={tab !== 'files'}>
-        <AttachmentsPanel apiService={apiService} itemId={item.id} canUpload={abilities.collaborate} onCount={onFiles} active={tab === 'files'} />
+        <AttachmentsPanel apiService={apiService} itemId={item.id} canUpload={abilities.collaborate} reason={reasons.collaborate} onCount={onFiles} active={tab === 'files'} />
       </div>
     </section>
     </>

@@ -12,7 +12,7 @@ export const PROJECT_ROLES = [
 ];
 
 export const roleLabel = (key) =>
-  key === 'SuperAdmin' ? 'Super Admin' : PROJECT_ROLES.find((r) => r.key === key)?.label || key;
+  key === 'SuperAdmin' ? 'Administrator' : PROJECT_ROLES.find((r) => r.key === key)?.label || key;
 
 export const WORK_ITEM_TYPES = ['Epic', 'Feature', 'Story', 'Task', 'Bug', 'Subtask'];
 
@@ -62,7 +62,7 @@ export const can = (role, action) => role === 'SuperAdmin' || (CAN[role] || []).
 
 // ---- Access levels ("policies") ------------------------------------------------------------------------
 // A person's access in a project is the combination of two things: their per-project ROLE, and their module-wide
-// access LEVEL (read only vs read & write, set by a SuperAdmin). Read-only wins over any role. These helpers
+// access LEVEL (read only vs read & write, set by an administrator). Read-only wins over any role. These helpers
 // describe the result in one word; the server enforces it.
 export const ACCESS_LEVEL_LABELS = { read: 'Read only', write: 'Read & write', full: 'Full control' };
 
@@ -92,3 +92,26 @@ export const roleCan = (role, key) => key === 'view' || can(role, key);
 export const effectiveProject = (project) => (project
   ? { ...project, actualRole: project.myRole, myRole: project.readOnly ? 'Viewer' : project.myRole }
   : project);
+
+// ---- Why something is unavailable -----------------------------------------------------------------------------
+// Controls a person is not allowed to use stay VISIBLE but greyed out, with the reason, instead of silently
+// vanishing - so nobody wonders whether the feature exists. (What they are not allowed to SEE at all is a different
+// matter: the server never sends it.) null means the action is allowed.
+const ACTION_WORDS = {
+  create: 'create work items',
+  edit: 'edit work items',
+  delete: 'delete work items',
+  rank: 're-order the backlog',
+  board: 'change the board settings',
+  sprint: 'manage sprints',
+  members: 'manage members',
+  collaborate: 'comment or attach files',
+};
+
+export const ACTIONS_WITH_A_REASON = Object.keys(ACTION_WORDS);
+
+export const denyReason = (project, action) => {
+  if (!project || can(project.myRole, action)) return null;
+  if (project.readOnly) return 'Your access is read-only, so you can view this but not change it. Ask an administrator for read and write access.';
+  return `Your role (${roleLabel(project.actualRole || project.myRole)}) can't ${ACTION_WORDS[action] || 'do this'}.`;
+};

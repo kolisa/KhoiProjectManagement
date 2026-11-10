@@ -8,12 +8,13 @@ namespace KhoiProjectManagement.Application.Abstractions
     // counts, same as it always has, keeping that (trivial) arithmetic out of the persistence layer.
     public interface IReportStatsRepository
     {
-        Task<List<ProjectTaskCountsResult>> GetProjectTaskCountsAsync();
+        // projectIds on both methods: restrict to these projects; null = everything (an administrator / the system).
+        Task<List<ProjectTaskCountsResult>> GetProjectTaskCountsAsync(IReadOnlyCollection<int>? projectIds = null);
 
         // now is passed in rather than the query using Postgres's own NOW() so "overdue" matches
         // ProjectTask.IsOverdue's exact semantics (DateTime.Now, not UtcNow) regardless of the DB
         // server's timezone configuration - same reasoning as IDashboardStatsRepository.
-        Task<List<TeamMemberTaskCountsResult>> GetTeamMemberTaskCountsAsync(DateTime now);
+        Task<List<TeamMemberTaskCountsResult>> GetTeamMemberTaskCountsAsync(DateTime now, IReadOnlyCollection<int>? projectIds = null);
     }
 
     public class ProjectTaskCountsResult
