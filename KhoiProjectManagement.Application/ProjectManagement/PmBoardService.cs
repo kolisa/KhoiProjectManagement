@@ -26,6 +26,7 @@ namespace KhoiProjectManagement.Application
         private readonly IRepository<ProjectTask> _tasks;
         private readonly IRepository<TaskStatusHistory> _history;
         private readonly IPmWorkItemService _workItems;
+        private readonly IPmWorkflowService _workflow;
         private readonly IProjectAccessService _access;
         private readonly IActivityLogService _activity;
         private readonly IUnitOfWork _unitOfWork;
@@ -35,6 +36,7 @@ namespace KhoiProjectManagement.Application
             IRepository<ProjectTask> tasks,
             IRepository<TaskStatusHistory> history,
             IPmWorkItemService workItems,
+            IPmWorkflowService workflow,
             IProjectAccessService access,
             IActivityLogService activity,
             IUnitOfWork unitOfWork)
@@ -43,6 +45,7 @@ namespace KhoiProjectManagement.Application
             _tasks = tasks;
             _history = history;
             _workItems = workItems;
+            _workflow = workflow;
             _access = access;
             _activity = activity;
             _unitOfWork = unitOfWork;
@@ -103,6 +106,7 @@ namespace KhoiProjectManagement.Application
             var columns = await EnsureColumnsAsync(item.ProjectId);
             var target = columns.First(c => c.Status == dto.Status);
             var oldStatus = item.Status;
+            await _workflow.EnsureTransitionAllowedAsync(item.ProjectId, oldStatus, dto.Status);
 
             // WIP applies to work entering a column; reordering inside one is always allowed.
             if (oldStatus != dto.Status && target.WipLimit.HasValue)

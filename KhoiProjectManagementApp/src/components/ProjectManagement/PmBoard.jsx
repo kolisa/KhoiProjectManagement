@@ -1,15 +1,36 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Settings2, AlertTriangle } from 'lucide-react';
+import { Settings2, AlertTriangle, GitBranch } from 'lucide-react';
 import LoadingSpinner from '../Common/LoadingSpinner';
 import ErrorMessage from '../Common/ErrorMessage';
 import PriorityBadge from '../Common/PriorityBadge';
 import WorkItemModal from './WorkItemModal';
 import BoardSettingsModal from './BoardSettingsModal';
+import WorkflowModal from './WorkflowModal';
 import { useToast } from '../../contexts/ToastContext';
 import { reportApiError } from '../../utils/apiError';
 import { TYPE_STYLES, can } from './pmConstants';
 
 const DAY_MS = 86400000;
+
+// Swimlanes group the same cards into horizontal bands; the columns inside each band are unchanged.
+const LANE_MODES = [
+  { key: 'none', label: 'No swimlanes' },
+  { key: 'assignee', label: 'By assignee' },
+  { key: 'priority', label: 'By priority' },
+  { key: 'type', label: 'By type' },
+];
+const PRIORITY_ORDER = ['high', 'medium', 'low'];
+const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+
+const buildLanes = (mode, cards) => {
+  if (mode === 'none') return [{ key: 'all', label: null, match: () => true }];
+  const keyOf = { assignee: (i) => i.assignedToName || 'Unassigned', priority: (i) => i.priority, type: (i) => i.type }[mode];
+  const labelOf = mode === 'priority' ? (k) => `${cap(k)} priority` : (k) => k;
+  const keys = [...new Set(cards.map(keyOf))];
+  if (mode === 'priority') keys.sort((a, b) => PRIORITY_ORDER.indexOf(a) - PRIORITY_ORDER.indexOf(b));
+  else keys.sort((a, b) => (a === 'Unassigned') - (b === 'Unassigned') || a.localeCompare(b));
+  return keys.map((k) => ({ key: k, label: labelOf(k), match: (i) => keyOf(i) === k }));
+};
 
 // Cycle time for finished cards (started -> done), age-in-column feel for the rest. Legacy cards that
 // predate status tracking have no StartedAt, so they simply show nothing rather than a made-up number.
@@ -38,6 +59,9 @@ const PmBoard = ({ apiService, project, members }) => {
   const [assignee, setAssignee] = useState('');
   const [sprints, setSprints] = useState([]);
   const [sprintId, setSprintId] = useState('');
+  const [workflow, setWorkflow] = useState(null);
+  const [showWorkflow, setShowWorkflow] = useState(false);
+  const [laneMode, setLaneMode] = useState('none');
 
   const canEdit = can(project.myRole, 'edit');
   const canConfigure = can(project.myRole, 'board');
@@ -58,6 +82,22 @@ const PmBoard = ({ apiService, project, members }) => {
   useEffect(() => {
     apiService.getSprints(project.id).then((s) => setSprints(s.filter((x) => x.state !== 'Completed'))).catch(() => setSprints([]));
   }, [apiService, project.id]);
+
+  const loadWorkflow = useCallback(() => {
+    apiService.getWorkflow(project.id).then(setWorkflow).catch(() => setWorkflow(null));
+  }, [apiService, project.id]);
+
+  useEffect(() => { loadWorkflow(); }, [loadWorkflow]);
+
+  // Mirrors the server's rule so impossible moves are not offered; the server still has the final say.
+  const moveAllowed = (from, to) =>
+    from === to || !workflow || workflow.transitions.find((t) => t.from === from && t.to === to)?.allowed !== false;
+
+  const saveWorkflow = async (transitions) => {
+    setWorkflow(await apiService.saveWorkflow(project.id, transitions));
+    toast.success('Workflow updated.');
+    setShowWorkflow(false);
+  };
 
   const move = async (itemId, status, afterItemId) => {
     try {
@@ -91,6 +131,8 @@ const PmBoard = ({ apiService, project, members }) => {
   if (error) return <ErrorMessage message={error} onRetry={load} />;
 
   const allCards = board.columns.flatMap((c) => c.items);
+  const visibleCards = assignee ? allCards.filter((i) => String(i.assignedToId) === assignee) : allCards;
+  const lanes = buildLanes(laneMode, visibleCards);
 
   return (
     <div>
@@ -105,23 +147,36 @@ const PmBoard = ({ apiService, project, members }) => {
           <option value="">All work (Kanban)</option>
           {sprints.map((s) => <option key={s.id} value={s.id}>{s.name}{s.state === 'Active' ? ' (active)' : ''}</option>)}
         </select>
+        <select aria-label="Group cards into swimlanes" value={laneMode} onChange={(e) => setLaneMode(e.target.value)}
+          className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+          {LANE_MODES.map((m) => <option key={m.key} value={m.key}>{m.label}</option>)}
+        </select>
         <span className="text-xs text-gray-500">{allCards.length} cards on the board · Epics and Features stay on the backlog</span>
+        {canConfigure && workflow && (
+          <button onClick={() => setShowWorkflow(true)} className="ml-auto inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-300 text-sm text-gray-700 hover:bg-gray-50">
+            <GitBranch className="h-4 w-4" aria-hidden="true" /> Workflow{workflow.isCustomised ? ' (custom)' : ''}
+          </button>
+        )}
         {canConfigure && (
-          <button onClick={() => setShowSettings(true)} className="ml-auto inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-300 text-sm text-gray-700 hover:bg-gray-50">
+          <button onClick={() => setShowSettings(true)} className={`${workflow ? '' : 'ml-auto '}inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-300 text-sm text-gray-700 hover:bg-gray-50`}>
             <Settings2 className="h-4 w-4" aria-hidden="true" /> Columns &amp; WIP limits
           </button>
         )}
       </div>
 
+      {lanes.length === 0 && <p className="text-sm text-gray-500 py-6 text-center">No cards to group.</p>}
+      {lanes.map((lane) => (
+      <div key={lane.key} className="mb-2">
+      {lane.label && <h3 className="text-sm font-semibold text-gray-700 mb-2 px-1">{lane.label} <span className="font-normal text-gray-500">({visibleCards.filter(lane.match).length})</span></h3>}
       <div className="flex gap-4 overflow-x-auto pb-4">
         {board.columns.map((col) => {
-          const cards = assignee ? col.items.filter((i) => String(i.assignedToId) === assignee) : col.items;
+          const cards = col.items.filter((i) => (!assignee || String(i.assignedToId) === assignee) && lane.match(i));
           const atLimit = col.wipLimit != null && col.count >= col.wipLimit;
           return (
             <section
               key={col.id}
               aria-label={`${col.name} column`}
-              onDragOver={(e) => { if (drag && canEdit) { e.preventDefault(); setOverStatus(col.status); } }}
+              onDragOver={(e) => { if (drag && canEdit && moveAllowed(drag.fromStatus, col.status)) { e.preventDefault(); setOverStatus(col.status); } }}
               onDragLeave={() => setOverStatus((s) => (s === col.status ? null : s))}
               onDrop={(e) => { e.preventDefault(); dropOn(col.status, null); }}
               className={`w-72 flex-shrink-0 rounded-xl bg-gray-100 border ${overStatus === col.status ? 'border-blue-400 ring-2 ring-blue-200' : 'border-transparent'}`}
@@ -144,7 +199,7 @@ const PmBoard = ({ apiService, project, members }) => {
                       draggable={canEdit}
                       onDragStart={() => setDrag({ id: item.id, fromStatus: item.status })}
                       onDragEnd={() => { setDrag(null); setOverStatus(null); }}
-                      onDragOver={(e) => { if (drag && drag.id !== item.id && canEdit) e.preventDefault(); }}
+                      onDragOver={(e) => { if (drag && drag.id !== item.id && canEdit && moveAllowed(drag.fromStatus, col.status)) e.preventDefault(); }}
                       onDrop={(e) => { e.preventDefault(); e.stopPropagation(); if (drag && drag.id !== item.id) dropOn(col.status, item.id); }}
                       className={`bg-white rounded-lg border border-gray-200 shadow-sm p-3 ${canEdit ? 'cursor-grab' : ''} ${drag?.id === item.id ? 'opacity-40' : ''}`}
                     >
@@ -166,7 +221,7 @@ const PmBoard = ({ apiService, project, members }) => {
                           <span className="sr-only">Move {item.title} to</span>
                           <select value={item.status} onChange={(e) => move(item.id, e.target.value, null)}
                             className="w-full border border-gray-200 rounded px-2 py-1 text-xs bg-white text-gray-600">
-                            {board.columns.map((c) => <option key={c.status} value={c.status}>{c.name}</option>)}
+                            {board.columns.map((c) => <option key={c.status} value={c.status} disabled={!moveAllowed(item.status, c.status)}>{c.name}</option>)}
                           </select>
                         </label>
                       )}
@@ -179,7 +234,10 @@ const PmBoard = ({ apiService, project, members }) => {
           );
         })}
       </div>
+      </div>
+      ))}
 
+      {showWorkflow && workflow && <WorkflowModal workflow={workflow} onSave={saveWorkflow} onClose={() => setShowWorkflow(false)} />}
       {editing && (
         <WorkItemModal item={editing} items={allCards} members={members} canEdit={canEdit} apiService={apiService} role={project.myRole} onSave={saveItem} onClose={() => setEditing(null)} />
       )}

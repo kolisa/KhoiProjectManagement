@@ -21,12 +21,16 @@ namespace KhoiProjectManagementApi.Controllers
         private readonly IPmSprintService _sprints;
         private readonly IPmCollaborationService _collab;
         private readonly IPmReportService _reports;
+        private readonly IPmWorkflowService _workflow;
+        private readonly IPmRetroService _retro;
 
-        public ProjectManagementController(IPmProjectService projects, IPmWorkItemService workItems, IPmBoardService board, IPmSprintService sprints, IPmCollaborationService collab, IPmReportService reports)
+        public ProjectManagementController(IPmProjectService projects, IPmWorkItemService workItems, IPmBoardService board, IPmSprintService sprints, IPmCollaborationService collab, IPmReportService reports, IPmWorkflowService workflow, IPmRetroService retro)
         {
             _sprints = sprints;
             _collab = collab;
             _reports = reports;
+            _workflow = workflow;
+            _retro = retro;
             _board = board;
             _projects = projects;
             _workItems = workItems;
@@ -241,6 +245,39 @@ namespace KhoiProjectManagementApi.Controllers
         {
             var export = await _reports.ExportWorkItemsCsvAsync(Caller, projectId);
             return File(export.Content, "text/csv; charset=utf-8", export.FileName);
+        }
+
+        // ---- Phase 6: workflow rules and retrospectives ----
+
+        [HttpGet("projects/{projectId:int}/workflow")]
+        public async Task<ActionResult<WorkflowDto>> GetWorkflow(int projectId) =>
+            Ok(await _workflow.GetAsync(Caller, projectId));
+
+        [HttpPut("projects/{projectId:int}/workflow")]
+        public async Task<ActionResult<WorkflowDto>> SaveWorkflow(int projectId, SaveWorkflowDto dto) =>
+            Ok(await _workflow.SaveAsync(Caller, projectId, dto));
+
+        [HttpGet("sprints/{sprintId:int}/retro")]
+        public async Task<ActionResult<List<RetroItemDto>>> GetRetro(int sprintId) =>
+            Ok(await _retro.GetAsync(Caller, sprintId));
+
+        [HttpPost("sprints/{sprintId:int}/retro")]
+        public async Task<ActionResult<RetroItemDto>> AddRetroItem(int sprintId, SaveRetroItemDto dto) =>
+            Ok(await _retro.AddAsync(Caller, sprintId, dto));
+
+        [HttpPut("retro/{itemId:int}")]
+        public async Task<ActionResult<RetroItemDto>> UpdateRetroItem(int itemId, SaveRetroItemDto dto) =>
+            Ok(await _retro.UpdateAsync(Caller, itemId, dto));
+
+        [HttpPut("retro/{itemId:int}/done")]
+        public async Task<ActionResult<RetroItemDto>> SetRetroDone(int itemId, SetRetroDoneDto dto) =>
+            Ok(await _retro.SetDoneAsync(Caller, itemId, dto.Done));
+
+        [HttpDelete("retro/{itemId:int}")]
+        public async Task<IActionResult> DeleteRetroItem(int itemId)
+        {
+            await _retro.DeleteAsync(Caller, itemId);
+            return NoContent();
         }
 
         [HttpDelete("work-items/{itemId:int}")]

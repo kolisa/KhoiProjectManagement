@@ -4,6 +4,7 @@ import LoadingSpinner from '../Common/LoadingSpinner';
 import ErrorMessage from '../Common/ErrorMessage';
 import StatusBadge from '../Common/StatusBadge';
 import { SprintModal, CompleteSprintModal } from './SprintModals';
+import RetroModal from './RetroModal';
 import { BurndownChart, VelocityChart } from './PmCharts';
 import { useToast } from '../../contexts/ToastContext';
 import { useConfirm } from '../../contexts/ConfirmContext';
@@ -49,6 +50,7 @@ const PmSprints = ({ apiService, project }) => {
   const [error, setError] = useState(null);
   const [editing, setEditing] = useState(undefined); // undefined closed, null new, object edit
   const [completing, setCompleting] = useState(null);
+  const [retroSprint, setRetroSprint] = useState(null);
 
   const canPlan = can(project.myRole, 'sprint');
 
@@ -156,6 +158,9 @@ const PmSprints = ({ apiService, project }) => {
                 {over && <p className="text-xs text-red-600 mt-1">Over capacity by {sprint.totalPoints - sprint.capacity} pts</p>}
                 {sprint.state === 'Active' && <p className="text-xs text-gray-500 mt-1">{sprint.donePoints} pts done</p>}
               </div>
+              {sprint.state !== 'Planned' && (
+                <button onClick={() => setRetroSprint(sprint)} className="px-3 py-1.5 rounded-lg border border-gray-300 text-sm text-gray-700 hover:bg-gray-50">Retro</button>
+              )}
               {canPlan && (
                 <div className="flex items-center gap-2">
                   {sprint.state === 'Planned' && (
@@ -226,12 +231,14 @@ const PmSprints = ({ apiService, project }) => {
                 <span className="font-medium text-gray-900 flex-1">{s.name}</span>
                 <span className="text-gray-500">{fmtRange(s)}</span>
                 <span className="text-gray-700">{s.completedPoints ?? 0} / {s.committedPoints ?? 0} pts</span>
+                <button onClick={() => setRetroSprint(s)} className="px-2.5 py-1 rounded-lg border border-gray-300 text-xs text-gray-700 hover:bg-gray-50">Retro</button>
               </li>
             ))}
           </ul>
         </section>
       )}
 
+      {retroSprint && <RetroModal apiService={apiService} sprint={retroSprint} canAdd={can(project.myRole, 'collaborate')} onClose={() => setRetroSprint(null)} />}
       {editing !== undefined && <SprintModal sprint={editing} onSave={saveSprint} onClose={() => setEditing(undefined)} />}
     </div>
   );

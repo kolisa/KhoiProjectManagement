@@ -1473,6 +1473,35 @@ class ApiService {
     return await this.request(`/pm/attachments/${attachmentId}`, { method: 'DELETE' });
   }
 
+  // ---- PM workflow rules and retrospectives ----
+  async getWorkflow(projectId) {
+    return await this.request(`/pm/projects/${projectId}/workflow`);
+  }
+
+  async saveWorkflow(projectId, transitions) {
+    return await this.request(`/pm/projects/${projectId}/workflow`, { method: 'PUT', body: JSON.stringify({ transitions }) });
+  }
+
+  async getRetro(sprintId) {
+    return await this.request(`/pm/sprints/${sprintId}/retro`);
+  }
+
+  async addRetroItem(sprintId, category, text) {
+    return await this.request(`/pm/sprints/${sprintId}/retro`, { method: 'POST', body: JSON.stringify({ category, text }) });
+  }
+
+  async updateRetroItem(itemId, category, text) {
+    return await this.request(`/pm/retro/${itemId}`, { method: 'PUT', body: JSON.stringify({ category, text }) });
+  }
+
+  async setRetroItemDone(itemId, done) {
+    return await this.request(`/pm/retro/${itemId}/done`, { method: 'PUT', body: JSON.stringify({ done }) });
+  }
+
+  async deleteRetroItem(itemId) {
+    return await this.request(`/pm/retro/${itemId}`, { method: 'DELETE' });
+  }
+
   // ---- PM analytics ----
   async getCumulativeFlow(projectId, days = 30) {
     return await this.request(`/pm/projects/${projectId}/reports/cumulative-flow?days=${days}`);

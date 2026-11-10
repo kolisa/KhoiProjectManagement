@@ -16,6 +16,7 @@ namespace KhoiProjectManagement.UnitTests.Services
         private readonly IRepository<ProjectTask> _tasks = Substitute.For<IRepository<ProjectTask>>();
         private readonly IRepository<TaskStatusHistory> _history = Substitute.For<IRepository<TaskStatusHistory>>();
         private readonly IPmWorkItemService _workItems = Substitute.For<IPmWorkItemService>();
+        private readonly IPmWorkflowService _workflow = Substitute.For<IPmWorkflowService>();
         private readonly IProjectAccessService _access = Substitute.For<IProjectAccessService>();
         private readonly IActivityLogService _activity = Substitute.For<IActivityLogService>();
         private readonly IUnitOfWork _uow = Substitute.For<IUnitOfWork>();
@@ -25,7 +26,7 @@ namespace KhoiProjectManagement.UnitTests.Services
             _workItems.GetAsync(default!, default).ReturnsForAnyArgs(new WorkItemDto());
         }
 
-        private PmBoardService CreateSut() => new(_columns, _tasks, _history, _workItems, _access, _activity, _uow);
+        private PmBoardService CreateSut() => new(_columns, _tasks, _history, _workItems, _workflow, _access, _activity, _uow);
 
         private void SetColumns(int? wipInProgress = null) =>
             _columns.Query().Returns(new List<BoardColumn>
@@ -82,6 +83,21 @@ namespace KhoiProjectManagement.UnitTests.Services
                 CreateSut().MoveAsync(Dev, 1, new MoveWorkItemDto { Status = "in-progress" }));
 
             Assert.Contains("WIP limit", ex.Message);
+            Assert.Equal("todo", card.Status);
+            _history.DidNotReceiveWithAnyArgs().Add(default!);
+        }
+
+        [Fact]
+        public async Task MoveAsync_ForbiddenByTheProjectWorkflow_IsRejected_AndChangesNothing()
+        {
+            SetColumns();
+            var card = new ProjectTask { Id = 1, ProjectId = 1, Type = "Task", Status = "todo" };
+            SetTasks(card);
+            _workflow.EnsureTransitionAllowedAsync(1, "todo", "completed").Returns(Task.FromException(new InvalidOperationException("workflow")));
+
+            await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                CreateSut().MoveAsync(Dev, 1, new MoveWorkItemDto { Status = "completed" }));
+
             Assert.Equal("todo", card.Status);
             _history.DidNotReceiveWithAnyArgs().Add(default!);
         }

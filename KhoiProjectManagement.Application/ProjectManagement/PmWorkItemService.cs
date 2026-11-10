@@ -26,6 +26,7 @@ namespace KhoiProjectManagement.Application
         private readonly IRepository<TaskStatusHistory> _history;
         private readonly IRepository<Attachment> _attachments;
         private readonly IFileStorage _storage;
+        private readonly IPmWorkflowService _workflow;
         private readonly IProjectAccessService _access;
         private readonly IActivityLogService _activity;
         private readonly IUnitOfWork _unitOfWork;
@@ -37,6 +38,7 @@ namespace KhoiProjectManagement.Application
             IRepository<TaskStatusHistory> history,
             IRepository<Attachment> attachments,
             IFileStorage storage,
+            IPmWorkflowService workflow,
             IProjectAccessService access,
             IActivityLogService activity,
             IUnitOfWork unitOfWork)
@@ -47,6 +49,7 @@ namespace KhoiProjectManagement.Application
             _history = history;
             _attachments = attachments;
             _storage = storage;
+            _workflow = workflow;
             _access = access;
             _activity = activity;
             _unitOfWork = unitOfWork;
@@ -118,6 +121,7 @@ namespace KhoiProjectManagement.Application
             await _access.RequireAsync(caller, item.ProjectId, PmAction.EditItem);
 
             await ValidateRelationsAsync(item.ProjectId, item, dto);
+            await _workflow.EnsureTransitionAllowedAsync(item.ProjectId, item.Status, dto.Status);
 
             // Changing Type must not strand existing children under a now-illegal parent.
             if (dto.Type != item.Type)

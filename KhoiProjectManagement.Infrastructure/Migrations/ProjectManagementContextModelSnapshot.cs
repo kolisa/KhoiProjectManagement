@@ -1661,6 +1661,45 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
                     b.ToTable("ReportExportHistories");
                 });
 
+            modelBuilder.Entity("KhoiProjectManagement.Domain.RetroItem", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AuthoredBy")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsDone")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("SprintId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AuthoredBy");
+
+                    b.HasIndex("SprintId");
+
+                    b.ToTable("RetroItems");
+                });
+
             modelBuilder.Entity("KhoiProjectManagement.Domain.Role", b =>
                 {
                     b.Property<int>("Id")
@@ -2925,6 +2964,35 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
                     b.ToTable("WorkItemLinks");
                 });
 
+            modelBuilder.Entity("KhoiProjectManagement.Domain.WorkflowRestriction", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("FromStatus")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<int>("ProjectId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ToStatus")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProjectId", "FromStatus", "ToStatus")
+                        .IsUnique();
+
+                    b.ToTable("WorkflowRestrictions");
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.DataProtection.EntityFrameworkCore.DataProtectionKey", b =>
                 {
                     b.Property<int>("Id")
@@ -3460,6 +3528,25 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
                     b.Navigation("GeneratedByUser");
                 });
 
+            modelBuilder.Entity("KhoiProjectManagement.Domain.RetroItem", b =>
+                {
+                    b.HasOne("KhoiProjectManagement.Domain.User", "Author")
+                        .WithMany()
+                        .HasForeignKey("AuthoredBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("KhoiProjectManagement.Domain.Sprint", "Sprint")
+                        .WithMany()
+                        .HasForeignKey("SprintId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Author");
+
+                    b.Navigation("Sprint");
+                });
+
             modelBuilder.Entity("KhoiProjectManagement.Domain.RolePermission", b =>
                 {
                     b.HasOne("KhoiProjectManagement.Domain.Permission", "Permission")
@@ -3859,6 +3946,17 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
                     b.Navigation("Source");
 
                     b.Navigation("Target");
+                });
+
+            modelBuilder.Entity("KhoiProjectManagement.Domain.WorkflowRestriction", b =>
+                {
+                    b.HasOne("KhoiProjectManagement.Domain.Project", "Project")
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Project");
                 });
 
             modelBuilder.Entity("KhoiProjectManagement.Domain.Group", b =>

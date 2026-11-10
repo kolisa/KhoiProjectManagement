@@ -63,11 +63,12 @@ namespace KhoiProjectManagement.UnitTests.Services
         private readonly IRepository<TaskStatusHistory> _history = Substitute.For<IRepository<TaskStatusHistory>>();
         private readonly IRepository<Attachment> _attachments = Substitute.For<IRepository<Attachment>>();
         private readonly IFileStorage _storage = Substitute.For<IFileStorage>();
+        private readonly IPmWorkflowService _workflow = Substitute.For<IPmWorkflowService>();
         private readonly IProjectAccessService _access = Substitute.For<IProjectAccessService>();
         private readonly IActivityLogService _activity = Substitute.For<IActivityLogService>();
         private readonly IUnitOfWork _uow = Substitute.For<IUnitOfWork>();
 
-        private PmWorkItemService CreateSut() => new(_tasks, _projects, _members, _history, _attachments, _storage, _access, _activity, _uow);
+        private PmWorkItemService CreateSut() => new(_tasks, _projects, _members, _history, _attachments, _storage, _workflow, _access, _activity, _uow);
 
         private void SetTasks(params ProjectTask[] items) => _tasks.Query().Returns(_ => items.ToList().BuildMock());
 
@@ -201,6 +202,21 @@ namespace KhoiProjectManagement.UnitTests.Services
 
             await Assert.ThrowsAsync<InvalidOperationException>(() =>
                 CreateSut().UpdateAsync(Dev, 1, new SaveWorkItemDto { Title = "F", Type = "Task" }));
+        }
+
+        [Fact]
+        public async Task UpdateAsync_StatusChangeForbiddenByWorkflow_IsRejected_AndChangesNothing()
+        {
+            var item = new ProjectTask { Id = 1, ProjectId = 1, Type = "Task", Title = "T", Status = "todo" };
+            SetTasks(item);
+            _workflow.EnsureTransitionAllowedAsync(1, "todo", "completed").Returns(Task.FromException(new InvalidOperationException("workflow")));
+
+            await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                CreateSut().UpdateAsync(Dev, 1, new SaveWorkItemDto { Title = "Renamed", Type = "Task", Status = "completed" }));
+
+            Assert.Equal("T", item.Title);
+            Assert.Equal("todo", item.Status);
+            await _uow.DidNotReceive().SaveChangesAsync();
         }
 
         [Fact]

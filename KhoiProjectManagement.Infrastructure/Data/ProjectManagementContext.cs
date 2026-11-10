@@ -30,6 +30,8 @@ namespace KhoiProjectManagement.Infrastructure.Data
         public DbSet<WorkItemComment> WorkItemComments { get; set; }
         public DbSet<ChecklistItem> ChecklistItems { get; set; }
         public DbSet<WorkItemLink> WorkItemLinks { get; set; }
+        public DbSet<WorkflowRestriction> WorkflowRestrictions { get; set; }
+        public DbSet<RetroItem> RetroItems { get; set; }
         public DbSet<ProjectTag> ProjectTags { get; set; }
         public DbSet<TaskTag> TaskTags { get; set; }
         public DbSet<EmailLog> EmailLogs { get; set; }
@@ -220,6 +222,23 @@ namespace KhoiProjectManagement.Infrastructure.Data
                 e.HasIndex(l => l.TargetId);
                 e.HasOne(l => l.Source).WithMany().HasForeignKey(l => l.SourceId).OnDelete(DeleteBehavior.Cascade);
                 e.HasOne(l => l.Target).WithMany().HasForeignKey(l => l.TargetId).OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<WorkflowRestriction>(e =>
+            {
+                e.Property(r => r.FromStatus).IsRequired().HasMaxLength(20);
+                e.Property(r => r.ToStatus).IsRequired().HasMaxLength(20);
+                e.HasIndex(r => new { r.ProjectId, r.FromStatus, r.ToStatus }).IsUnique();
+                e.HasOne(r => r.Project).WithMany().HasForeignKey(r => r.ProjectId).OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<RetroItem>(e =>
+            {
+                e.Property(r => r.Category).IsRequired().HasMaxLength(20);
+                e.Property(r => r.Text).IsRequired().HasMaxLength(500);
+                e.HasIndex(r => r.SprintId);
+                e.HasOne(r => r.Sprint).WithMany().HasForeignKey(r => r.SprintId).OnDelete(DeleteBehavior.Cascade);
+                e.HasOne(r => r.Author).WithMany().HasForeignKey(r => r.AuthoredBy).OnDelete(DeleteBehavior.Restrict);
             });
 
             modelBuilder.Entity<TaskStatusHistory>(e =>
