@@ -41,6 +41,7 @@ namespace KhoiProjectManagement.Application
         public string Status { get; set; } = string.Empty;
         public string Priority { get; set; } = string.Empty;
         public int? StoryPoints { get; set; }
+        public DateTime? StartedAt { get; set; }
         public int? AssignedToId { get; set; }
         public string? AssignedToName { get; set; }
         public int? ParentId { get; set; }

@@ -1,6 +1,6 @@
 namespace KhoiProjectManagement.Application
 {
-    public enum PmAction { View, CreateItem, EditItem, DeleteItem, RankItem, ManageMembers }
+    public enum PmAction { View, CreateItem, EditItem, DeleteItem, RankItem, ManageMembers, ManageBoard }
 
     // The caller of a PM-module operation; IsSuperAdmin comes from the "superadmin" JWT claim.
     public sealed record PmCaller(int UserId, bool IsSuperAdmin);
@@ -19,8 +19,8 @@ namespace KhoiProjectManagement.Application
         private static readonly Dictionary<string, PmAction[]> Matrix = new()
         {
             [ProjectAdmin] = Enum.GetValues<PmAction>(),
-            [ProjectManager] = new[] { PmAction.View, PmAction.CreateItem, PmAction.EditItem, PmAction.DeleteItem, PmAction.RankItem },
-            [ScrumMaster] = new[] { PmAction.View, PmAction.CreateItem, PmAction.EditItem, PmAction.DeleteItem, PmAction.RankItem },
+            [ProjectManager] = new[] { PmAction.View, PmAction.CreateItem, PmAction.EditItem, PmAction.DeleteItem, PmAction.RankItem, PmAction.ManageBoard },
+            [ScrumMaster] = new[] { PmAction.View, PmAction.CreateItem, PmAction.EditItem, PmAction.DeleteItem, PmAction.RankItem, PmAction.ManageBoard },
             [Developer] = new[] { PmAction.View, PmAction.CreateItem, PmAction.EditItem, PmAction.RankItem },
             [Tester] = new[] { PmAction.View, PmAction.CreateItem, PmAction.EditItem },
             [Viewer] = new[] { PmAction.View },

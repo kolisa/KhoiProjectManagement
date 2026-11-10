@@ -29,3 +29,26 @@ namespace KhoiProjectManagement.Application
         }
     }
 }
+
+namespace KhoiProjectManagement.Application
+{
+    public class SaveBoardColumnDtoValidator : AbstractValidator<SaveBoardColumnDto>
+    {
+        public SaveBoardColumnDtoValidator()
+        {
+            RuleFor(x => x.Status).Must(s => TaskStatusRule.Valid.Contains(s))
+                .WithMessage($"Status must be one of: {string.Join(", ", TaskStatusRule.Valid)}");
+            RuleFor(x => x.Name).NotEmpty().MaximumLength(40);
+            RuleFor(x => x.WipLimit).InclusiveBetween(1, 100).When(x => x.WipLimit.HasValue);
+        }
+    }
+
+    public class MoveWorkItemDtoValidator : AbstractValidator<MoveWorkItemDto>
+    {
+        public MoveWorkItemDtoValidator()
+        {
+            RuleFor(x => x.Status).Must(s => TaskStatusRule.Valid.Contains(s))
+                .WithMessage($"Status must be one of: {string.Join(", ", TaskStatusRule.Valid)}");
+        }
+    }
+}

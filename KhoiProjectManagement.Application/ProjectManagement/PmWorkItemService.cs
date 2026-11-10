@@ -18,11 +18,12 @@ namespace KhoiProjectManagement.Application
     // ProjectTask table (so the classic Tasks tab, notifications and reports keep seeing the same rows).
     public class PmWorkItemService : IPmWorkItemService
     {
-        private const double RankStep = 1000;
+        private const double RankStep = RankCalculator.Step;
 
         private readonly IRepository<ProjectTask> _tasks;
         private readonly IRepository<Project> _projects;
         private readonly IRepository<ProjectUser> _members;
+        private readonly IRepository<TaskStatusHistory> _history;
         private readonly IProjectAccessService _access;
         private readonly IActivityLogService _activity;
         private readonly IUnitOfWork _unitOfWork;
@@ -31,6 +32,7 @@ namespace KhoiProjectManagement.Application
             IRepository<ProjectTask> tasks,
             IRepository<Project> projects,
             IRepository<ProjectUser> members,
+            IRepository<TaskStatusHistory> history,
             IProjectAccessService access,
             IActivityLogService activity,
             IUnitOfWork unitOfWork)
@@ -38,6 +40,7 @@ namespace KhoiProjectManagement.Application
             _tasks = tasks;
             _projects = projects;
             _members = members;
+            _history = history;
             _access = access;
             _activity = activity;
             _unitOfWork = unitOfWork;
@@ -94,6 +97,7 @@ namespace KhoiProjectManagement.Application
                 CompletedAt = dto.Status == "completed" ? DateTime.UtcNow : null,
             };
             _tasks.Add(item);
+            WorkItemStatusTracker.Record(item, null, item.Status, caller.UserId, _history);
             await _unitOfWork.SaveChangesAsync();
 
             await _activity.LogAsync("WorkItem", item.Id, item.Title, caller.UserId, "created", $"{item.Type} in {project.Name}");
@@ -118,6 +122,7 @@ namespace KhoiProjectManagement.Application
                 }
             }
 
+            var oldStatus = item.Status;
             var wasCompleted = item.Status == "completed";
             item.Title = dto.Title.Trim();
             item.Description = dto.Description;
@@ -131,6 +136,7 @@ namespace KhoiProjectManagement.Application
             item.UpdatedAt = DateTime.UtcNow;
             if (dto.Status == "completed" && !wasCompleted) item.CompletedAt = DateTime.UtcNow;
             else if (dto.Status != "completed") item.CompletedAt = null;
+            WorkItemStatusTracker.Record(item, oldStatus, dto.Status, caller.UserId, _history);
 
             await _unitOfWork.SaveChangesAsync();
             await _activity.LogAsync("WorkItem", item.Id, item.Title, caller.UserId, "updated", item.Status);
@@ -144,18 +150,7 @@ namespace KhoiProjectManagement.Application
 
             var others = _tasks.Query().Where(t => t.ProjectId == item.ProjectId && t.Id != itemId);
 
-            if (dto.AfterItemId == null)
-            {
-                var first = await others.OrderBy(t => t.Rank).Select(t => (double?)t.Rank).FirstOrDefaultAsync();
-                item.Rank = first.HasValue ? first.Value - RankStep : RankStep;
-            }
-            else
-            {
-                var after = await others.Where(t => t.Id == dto.AfterItemId).Select(t => (double?)t.Rank).FirstOrDefaultAsync()
-                    ?? throw new InvalidOperationException("The item to place after is not in this project.");
-                var next = await others.Where(t => t.Rank > after).OrderBy(t => t.Rank).Select(t => (double?)t.Rank).FirstOrDefaultAsync();
-                item.Rank = next.HasValue ? (after + next.Value) / 2 : after + RankStep;
-            }
+            item.Rank = await RankCalculator.ComputeAsync(others, dto.AfterItemId, "The item to place after is not in this project.");
 
             item.UpdatedAt = DateTime.UtcNow;
             await _unitOfWork.SaveChangesAsync();
@@ -213,6 +208,7 @@ namespace KhoiProjectManagement.Application
                 Status = t.Status,
                 Priority = t.Priority,
                 StoryPoints = t.StoryPoints,
+                StartedAt = t.StartedAt,
                 AssignedToId = t.AssignedToId,
                 AssignedToName = t.AssignedTo != null ? t.AssignedTo.Name : null,
                 ParentId = t.ParentId,

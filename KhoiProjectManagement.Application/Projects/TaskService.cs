@@ -16,6 +16,7 @@ namespace KhoiProjectManagement.Application
         private readonly INotificationService _notificationService;
         private readonly IEmailService _emailService;
         private readonly IActivityLogService _activityLogService;
+        private readonly IRepository<TaskStatusHistory> _statusHistoryRepo;
 
         public TaskService(
             IRepository<ProjectTask> taskRepo,
@@ -26,8 +27,10 @@ namespace KhoiProjectManagement.Application
             IUnitOfWork unitOfWork,
             INotificationService notificationService,
             IEmailService emailService,
-            IActivityLogService activityLogService)
+            IActivityLogService activityLogService,
+            IRepository<TaskStatusHistory> statusHistoryRepo)
         {
+            _statusHistoryRepo = statusHistoryRepo;
             _taskRepo = taskRepo;
             _userRepo = userRepo;
             _projectRepo = projectRepo;
@@ -115,6 +118,7 @@ namespace KhoiProjectManagement.Application
                 };
 
                 _taskRepo.Add(task);
+                WorkItemStatusTracker.Record(task, null, task.Status, null, _statusHistoryRepo);
                 await _unitOfWork.SaveChangesAsync();
 
                 // Add tags
@@ -196,6 +200,7 @@ namespace KhoiProjectManagement.Application
                 task.Type = updateTaskDto.Type;
                 task.AssignedToId = updateTaskDto.AssignedToId;
                 task.DueDate = updateTaskDto.DueDate;
+                WorkItemStatusTracker.Record(task, oldStatus, updateTaskDto.Status, actingUserId, _statusHistoryRepo);
 
                 if (updateTaskDto.Status == "completed" && oldStatus != "completed")
                 {
@@ -280,6 +285,7 @@ namespace KhoiProjectManagement.Application
 
             var oldStatus = task.Status;
             task.Status = status;
+            WorkItemStatusTracker.Record(task, oldStatus, status, actingUserId, _statusHistoryRepo);
 
             if (status == "completed" && oldStatus != "completed")
             {

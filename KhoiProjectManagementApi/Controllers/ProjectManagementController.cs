@@ -17,9 +17,11 @@ namespace KhoiProjectManagementApi.Controllers
     {
         private readonly IPmProjectService _projects;
         private readonly IPmWorkItemService _workItems;
+        private readonly IPmBoardService _board;
 
-        public ProjectManagementController(IPmProjectService projects, IPmWorkItemService workItems)
+        public ProjectManagementController(IPmProjectService projects, IPmWorkItemService workItems, IPmBoardService board)
         {
+            _board = board;
             _projects = projects;
             _workItems = workItems;
         }
@@ -76,6 +78,18 @@ namespace KhoiProjectManagementApi.Controllers
         [HttpPut("work-items/{itemId:int}/rank")]
         public async Task<ActionResult<WorkItemDto>> RankWorkItem(int itemId, RankWorkItemDto dto) =>
             Ok(await _workItems.RankAsync(Caller, itemId, dto));
+
+        [HttpGet("projects/{projectId:int}/board")]
+        public async Task<ActionResult<BoardDto>> GetBoard(int projectId) =>
+            Ok(await _board.GetBoardAsync(Caller, projectId));
+
+        [HttpPut("projects/{projectId:int}/board/columns")]
+        public async Task<ActionResult<BoardDto>> SaveBoardColumns(int projectId, List<SaveBoardColumnDto> columns) =>
+            Ok(await _board.SaveColumnsAsync(Caller, projectId, columns));
+
+        [HttpPut("work-items/{itemId:int}/move")]
+        public async Task<ActionResult<WorkItemDto>> MoveWorkItem(int itemId, MoveWorkItemDto dto) =>
+            Ok(await _board.MoveAsync(Caller, itemId, dto));
 
         [HttpDelete("work-items/{itemId:int}")]
         public async Task<IActionResult> DeleteWorkItem(int itemId)

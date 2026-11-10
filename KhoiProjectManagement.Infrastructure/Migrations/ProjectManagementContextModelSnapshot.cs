@@ -119,6 +119,41 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
                     b.ToTable("Attachments");
                 });
 
+            modelBuilder.Entity("KhoiProjectManagement.Domain.BoardColumn", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ProjectId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<int?>("WipLimit")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProjectId", "Status")
+                        .IsUnique();
+
+                    b.ToTable("BoardColumns");
+                });
+
             modelBuilder.Entity("KhoiProjectManagement.Domain.CompanyEvent", b =>
                 {
                     b.Property<int>("Id")
@@ -1373,6 +1408,9 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
                     b.Property<double>("Rank")
                         .HasColumnType("double precision");
 
+                    b.Property<DateTime?>("StartedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasColumnType("text");
@@ -2108,6 +2146,43 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
                         });
                 });
 
+            modelBuilder.Entity("KhoiProjectManagement.Domain.TaskStatusHistory", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("ChangedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("ChangedById")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("FromStatus")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<int>("TaskId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ToStatus")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ChangedAt");
+
+                    b.HasIndex("ChangedById");
+
+                    b.HasIndex("TaskId", "ChangedAt");
+
+                    b.ToTable("TaskStatusHistories");
+                });
+
             modelBuilder.Entity("KhoiProjectManagement.Domain.TaskTag", b =>
                 {
                     b.Property<int>("TaskId")
@@ -2729,6 +2804,17 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
                     b.Navigation("UploadedByUser");
                 });
 
+            modelBuilder.Entity("KhoiProjectManagement.Domain.BoardColumn", b =>
+                {
+                    b.HasOne("KhoiProjectManagement.Domain.Project", "Project")
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Project");
+                });
+
             modelBuilder.Entity("KhoiProjectManagement.Domain.CompanyEvent", b =>
                 {
                     b.HasOne("KhoiProjectManagement.Domain.User", "Creator")
@@ -3270,6 +3356,24 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("UpdatedByUser");
+                });
+
+            modelBuilder.Entity("KhoiProjectManagement.Domain.TaskStatusHistory", b =>
+                {
+                    b.HasOne("KhoiProjectManagement.Domain.User", "ChangedBy")
+                        .WithMany()
+                        .HasForeignKey("ChangedById")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("KhoiProjectManagement.Domain.ProjectTask", "Task")
+                        .WithMany()
+                        .HasForeignKey("TaskId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ChangedBy");
+
+                    b.Navigation("Task");
                 });
 
             modelBuilder.Entity("KhoiProjectManagement.Domain.TaskTag", b =>

@@ -10,6 +10,8 @@ describe('pmConstants', () => {
     expect(can('Developer', 'rank')).toBe(true);
     expect(can('Tester', 'rank')).toBe(false);
     expect(can('Viewer', 'create')).toBe(false);
+    expect(can('ScrumMaster', 'board')).toBe(true);
+    expect(can('Developer', 'board')).toBe(false);
     expect(can('SuperAdmin', 'members')).toBe(true);
     expect(can('Unknown', 'edit')).toBe(false);
   });

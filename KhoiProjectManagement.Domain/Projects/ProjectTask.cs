@@ -40,6 +40,9 @@ namespace KhoiProjectManagement.Domain
         public virtual ProjectTask? Parent { get; set; }
         public virtual ICollection<ProjectTask> Children { get; set; } = new List<ProjectTask>();
         public int? StoryPoints { get; set; }
+        // First time the item entered "in-progress" (see WorkItemStatusTracker) - cycle time is
+        // CompletedAt - StartedAt. Null for work that predates the PM module or never started.
+        public DateTime? StartedAt { get; set; }
         // Backlog ordering within a project - lower sorts first. A double so a drag-reorder can take
         // the midpoint of its neighbours without renumbering every row.
         public double Rank { get; set; }

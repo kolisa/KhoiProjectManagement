@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import LoadingSpinner from '../Common/LoadingSpinner';
 import ErrorMessage from '../Common/ErrorMessage';
 import PmBacklog from './PmBacklog';
+import PmBoard from './PmBoard';
 import PmMembers from './PmMembers';
 import PmAccessAdmin from './PmAccessAdmin';
 import { hasPermission } from '../../utils/permissions';
@@ -47,6 +48,7 @@ const PmWorkspace = ({ apiService, user }) => {
 
   const tabs = [
     { key: 'backlog', label: 'Backlog' },
+    { key: 'board', label: 'Board' },
     { key: 'members', label: 'Members' },
     ...(isPmAdmin ? [{ key: 'access', label: 'Module access' }] : []),
   ];
@@ -91,15 +93,15 @@ const PmWorkspace = ({ apiService, user }) => {
       ) : activeTab === 'members' ? (
         <PmMembers key={project.id} apiService={apiService} project={project} onChanged={loadProjects} />
       ) : (
-        <PmBacklogWithMembers key={project.id} apiService={apiService} project={project} />
+        <PmWithMembers key={`${tab}-${project.id}`} apiService={apiService} project={project} view={activeTab} />
       )}
     </div>
   );
 };
 
-// The backlog needs the roster for its assignee picker/filter; load it once per project here so
-// PmBacklog stays a pure consumer.
-const PmBacklogWithMembers = ({ apiService, project }) => {
+// The backlog and board both need the roster for their assignee pickers/filters; load it here so
+// they stay pure consumers.
+const PmWithMembers = ({ apiService, project, view }) => {
   const [members, setMembers] = useState(null);
   useEffect(() => {
     let cancelled = false;
@@ -107,7 +109,8 @@ const PmBacklogWithMembers = ({ apiService, project }) => {
     return () => { cancelled = true; };
   }, [apiService, project.id]);
   if (!members) return <LoadingSpinner />;
-  return <PmBacklog apiService={apiService} project={project} members={members} />;
+  const View = view === 'board' ? PmBoard : PmBacklog;
+  return <View apiService={apiService} project={project} members={members} />;
 };
 
 export default PmWorkspace;

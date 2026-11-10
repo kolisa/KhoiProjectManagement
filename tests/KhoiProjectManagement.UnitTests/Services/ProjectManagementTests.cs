@@ -19,6 +19,9 @@ namespace KhoiProjectManagement.UnitTests.Services
         [InlineData(ProjectRoles.Tester, PmAction.EditItem, true)]
         [InlineData(ProjectRoles.Tester, PmAction.RankItem, false)]
         [InlineData(ProjectRoles.Viewer, PmAction.View, true)]
+        [InlineData(ProjectRoles.ScrumMaster, PmAction.ManageBoard, true)]
+        [InlineData(ProjectRoles.ProjectManager, PmAction.ManageBoard, true)]
+        [InlineData(ProjectRoles.Developer, PmAction.ManageBoard, false)]
         [InlineData(ProjectRoles.Viewer, PmAction.CreateItem, false)]
         [InlineData("Nonsense", PmAction.View, false)]
         [InlineData(null, PmAction.View, false)]
@@ -54,11 +57,12 @@ namespace KhoiProjectManagement.UnitTests.Services
         private readonly IRepository<ProjectTask> _tasks = Substitute.For<IRepository<ProjectTask>>();
         private readonly IRepository<Project> _projects = Substitute.For<IRepository<Project>>();
         private readonly IRepository<ProjectUser> _members = Substitute.For<IRepository<ProjectUser>>();
+        private readonly IRepository<TaskStatusHistory> _history = Substitute.For<IRepository<TaskStatusHistory>>();
         private readonly IProjectAccessService _access = Substitute.For<IProjectAccessService>();
         private readonly IActivityLogService _activity = Substitute.For<IActivityLogService>();
         private readonly IUnitOfWork _uow = Substitute.For<IUnitOfWork>();
 
-        private PmWorkItemService CreateSut() => new(_tasks, _projects, _members, _access, _activity, _uow);
+        private PmWorkItemService CreateSut() => new(_tasks, _projects, _members, _history, _access, _activity, _uow);
 
         private void SetTasks(params ProjectTask[] items) => _tasks.Query().Returns(_ => items.ToList().BuildMock());
 

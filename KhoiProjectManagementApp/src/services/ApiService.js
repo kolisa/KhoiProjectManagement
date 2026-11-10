@@ -1400,6 +1400,24 @@ class ApiService {
     return await this.request(`/pm/work-items/${itemId}`, { method: 'DELETE' });
   }
 
+  async getBoard(projectId) {
+    return await this.request(`/pm/projects/${projectId}/board`);
+  }
+
+  async saveBoardColumns(projectId, columns) {
+    return await this.request(`/pm/projects/${projectId}/board/columns`, {
+      method: 'PUT',
+      body: JSON.stringify(columns),
+    });
+  }
+
+  async moveWorkItem(itemId, status, afterItemId = null) {
+    return await this.request(`/pm/work-items/${itemId}/move`, {
+      method: 'PUT',
+      body: JSON.stringify({ status, afterItemId }),
+    });
+  }
+
   async getPmAccessUsers() {
     return await this.request('/pm/access/users');
   }

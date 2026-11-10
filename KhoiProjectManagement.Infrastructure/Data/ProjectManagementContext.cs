@@ -24,6 +24,8 @@ namespace KhoiProjectManagement.Infrastructure.Data
         public DbSet<Attachment> Attachments { get; set; }
         public DbSet<Notification> Notifications { get; set; }
         public DbSet<ProjectUser> ProjectUsers { get; set; }
+        public DbSet<BoardColumn> BoardColumns { get; set; }
+        public DbSet<TaskStatusHistory> TaskStatusHistories { get; set; }
         public DbSet<ProjectTag> ProjectTags { get; set; }
         public DbSet<TaskTag> TaskTags { get; set; }
         public DbSet<EmailLog> EmailLogs { get; set; }
@@ -170,6 +172,24 @@ namespace KhoiProjectManagement.Infrastructure.Data
                 e.HasOne(t => t.Parent).WithMany(t => t.Children).HasForeignKey(t => t.ParentId).OnDelete(DeleteBehavior.Restrict);
                 e.HasIndex(t => new { t.ProjectId, t.Rank });
                 e.HasIndex(t => t.ParentId);
+            });
+
+            modelBuilder.Entity<BoardColumn>(e =>
+            {
+                e.Property(c => c.Status).IsRequired().HasMaxLength(20);
+                e.Property(c => c.Name).IsRequired().HasMaxLength(40);
+                e.HasIndex(c => new { c.ProjectId, c.Status }).IsUnique();
+                e.HasOne(c => c.Project).WithMany().HasForeignKey(c => c.ProjectId).OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<TaskStatusHistory>(e =>
+            {
+                e.Property(h => h.FromStatus).HasMaxLength(20);
+                e.Property(h => h.ToStatus).IsRequired().HasMaxLength(20);
+                e.HasIndex(h => new { h.TaskId, h.ChangedAt });
+                e.HasIndex(h => h.ChangedAt);
+                e.HasOne(h => h.Task).WithMany().HasForeignKey(h => h.TaskId).OnDelete(DeleteBehavior.Cascade);
+                e.HasOne(h => h.ChangedBy).WithMany().HasForeignKey(h => h.ChangedById).OnDelete(DeleteBehavior.SetNull);
             });
 
             modelBuilder.Entity<ProjectUser>()
