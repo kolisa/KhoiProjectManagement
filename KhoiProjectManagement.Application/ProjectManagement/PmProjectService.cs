@@ -54,6 +54,7 @@ namespace KhoiProjectManagement.Application
             if (!await _access.HasModuleAccessAsync(caller))
                 throw new ForbiddenException("You do not have access to the Project Management module.");
 
+            var readOnly = await _access.IsReadOnlyAsync(caller);
             var projects = _projects.Query().AsNoTracking();
             if (!caller.IsSuperAdmin)
                 projects = projects.Where(p => p.ProjectUsers.Any(m => m.UserId == caller.UserId));
@@ -74,6 +75,7 @@ namespace KhoiProjectManagement.Application
                 Name = r.Name,
                 Status = r.Status,
                 MyRole = caller.IsSuperAdmin ? ProjectAccessService.SuperAdminRole : r.Role ?? string.Empty,
+                ReadOnly = readOnly,
                 TotalItems = r.Total,
                 OpenItems = r.Open,
             }).ToList();
@@ -85,7 +87,7 @@ namespace KhoiProjectManagement.Application
             return await _members.Query().AsNoTracking()
                 .Where(m => m.ProjectId == projectId)
                 .OrderBy(m => m.User.Name)
-                .Select(m => new PmMemberDto { UserId = m.UserId, Name = m.User.Name, Email = m.User.Email, Role = m.ProjectRole })
+                .Select(m => new PmMemberDto { UserId = m.UserId, Name = m.User.Name, Email = m.User.Email, Role = m.ProjectRole, ModuleReadOnly = m.User.PmReadOnly })
                 .ToListAsync();
         }
 
@@ -136,6 +138,8 @@ namespace KhoiProjectManagement.Application
                 throw new ForbiddenException("Only a SuperAdmin can grant Project Management module access.");
             if (dto.ModuleOnly && !dto.GrantModuleAccess)
                 throw new InvalidOperationException("Module-only accounts must also be granted module access.");
+            if (dto.ReadOnlyAccess && !dto.GrantModuleAccess)
+                throw new InvalidOperationException("A read-only access level only applies when module access is being granted.");
 
             var wantedEmails = dto.Rows.Select(r => (r.Email ?? string.Empty).Trim().ToLowerInvariant()).Where(e => e.Length > 0).Distinct().ToList();
             var users = await UsersByEmailQuery(_users.Query(), wantedEmails).ToListAsync();
@@ -236,11 +240,12 @@ namespace KhoiProjectManagement.Application
                         : dto.ModuleOnly
                             ? " Module access granted. Not confined to the module, because this account has other permissions in the app."
                             : " Module access granted.";
+                    if (dto.ReadOnlyAccess) row.Message += " Read-only access.";
                 }
                 finalRoles[user.Id] = role;
 
                 if (dto.DryRun) continue;
-                if (grant) { user.PmAccess = true; user.PmOnly = confine; }
+                if (grant) { user.PmAccess = true; user.PmOnly = confine; user.PmReadOnly = dto.ReadOnlyAccess; }
                 if (existing == null) _members.Add(new ProjectUser { ProjectId = projectId, UserId = user.Id, ProjectRole = role });
                 else existing.ProjectRole = role;
             }
@@ -293,7 +298,7 @@ namespace KhoiProjectManagement.Application
             await _users.Query().AsNoTracking()
                 .Where(u => u.IsActive)
                 .OrderBy(u => u.Name)
-                .Select(u => new PmAccessUserDto { Id = u.Id, Name = u.Name, Email = u.Email, PmAccess = u.PmAccess, PmOnly = u.PmOnly })
+                .Select(u => new PmAccessUserDto { Id = u.Id, Name = u.Name, Email = u.Email, PmAccess = u.PmAccess, PmOnly = u.PmOnly, PmReadOnly = u.PmReadOnly })
                 .ToListAsync();
 
         public async Task SetAccessAsync(int actingUserId, int userId, SetPmAccessDto dto)
@@ -305,10 +310,16 @@ namespace KhoiProjectManagement.Application
             if (dto.PmOnly && !dto.PmAccess)
                 throw new InvalidOperationException("A module-only user must also have Project Management access.");
 
+            // Likewise a read-only level only means something for someone who has access.
+            if (dto.ReadOnly && !dto.PmAccess)
+                throw new InvalidOperationException("Read-only access needs Project Management access.");
+
             user.PmAccess = dto.PmAccess;
             user.PmOnly = dto.PmOnly;
+            user.PmReadOnly = dto.PmAccess && dto.ReadOnly;
             await _unitOfWork.SaveChangesAsync();
-            await _activity.LogAsync("User", user.Id, user.Name, actingUserId, "pm-access-set", $"access={dto.PmAccess}, moduleOnly={dto.PmOnly}");
+            await _activity.LogAsync("User", user.Id, user.Name, actingUserId, "pm-access-set",
+                $"access={(dto.PmAccess ? (dto.ReadOnly ? "read-only" : "read-write") : "none")}, moduleOnly={dto.PmOnly}");
         }
 
         private async Task EnsureAnotherAdminAsync(int projectId, int excludingUserId)

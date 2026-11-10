@@ -47,6 +47,9 @@ namespace KhoiProjectManagement.Domain
         // (see ModuleOnlyAccessFilter) and the frontend renders only the PM workspace.
         public bool PmAccess { get; set; }
         public bool PmOnly { get; set; }
+        // The module access LEVEL: when true the person can read everything they are a member of but change nothing,
+        // whatever their project roles allow. False (the default) means read and write, as roles permit.
+        public bool PmReadOnly { get; set; }
 
         // Navigation properties
         public virtual ICollection<ProjectUser> ProjectUsers { get; set; } = new List<ProjectUser>();

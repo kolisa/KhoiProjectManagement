@@ -44,6 +44,7 @@ namespace KhoiProjectManagement.Application
             var sprint = await SprintAsync(sprintId);
             await _access.RequireAsync(caller, sprint.ProjectId, PmAction.View);
             var moderator = await CanModerateAsync(caller, sprint.ProjectId);
+            var readOnly = await _access.IsReadOnlyAsync(caller);
 
             var rows = await _items.Query().AsNoTracking().Where(i => i.SprintId == sprintId)
                 .OrderBy(i => i.CreatedAt).ThenBy(i => i.Id)
@@ -54,7 +55,7 @@ namespace KhoiProjectManagement.Application
             {
                 Id = i.Id, SprintId = i.SprintId, Category = i.Category, Text = i.Text, AuthorId = i.AuthoredBy, AuthorName = i.Name,
                 IsDone = i.IsDone, CreatedAt = i.CreatedAt,
-                CanEdit = i.AuthoredBy == caller.UserId, CanDelete = i.AuthoredBy == caller.UserId || moderator,
+                CanEdit = !readOnly && i.AuthoredBy == caller.UserId, CanDelete = !readOnly && (i.AuthoredBy == caller.UserId || moderator),
             }).ToList();
         }
 

@@ -2469,6 +2469,9 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
                     b.Property<bool>("PmOnly")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("PmReadOnly")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("Position")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -2499,6 +2502,7 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
                             PasswordHash = "$2a$11$Mg5gaJc5mAg7.lr7Nn6ire/RyTfOGkwGc3uid3jUmn43hN4NOBvbe",
                             PmAccess = false,
                             PmOnly = false,
+                            PmReadOnly = false,
                             Position = "Full stack Developer",
                             Role = "admin"
                         },
@@ -2513,6 +2517,7 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
                             PasswordHash = "$2a$11$yaq0/sKRX14GeyRfr8CMrehqRat5ufDxjqz9wPdTaAIwzsBBBsb7C",
                             PmAccess = false,
                             PmOnly = false,
+                            PmReadOnly = false,
                             Position = "Business Analyst",
                             Role = "manager"
                         },
@@ -2527,6 +2532,7 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
                             PasswordHash = "$2a$11$Gz1fjWb8BDrfP21Iq2g9tO2fJjSJRLqMUO2N7/v0oboJNPiQVAkZy",
                             PmAccess = false,
                             PmOnly = false,
+                            PmReadOnly = false,
                             Position = "System Analyst",
                             Role = "member"
                         },
@@ -2541,6 +2547,7 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
                             PasswordHash = "$2a$11$Gz1fjWb8BDrfP21Iq2g9tO2fJjSJRLqMUO2N7/v0oboJNPiQVAkZy",
                             PmAccess = false,
                             PmOnly = false,
+                            PmReadOnly = false,
                             Position = "Marketing Manager",
                             Role = "member"
                         },
@@ -2555,6 +2562,7 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
                             PasswordHash = "$2a$11$Gz1fjWb8BDrfP21Iq2g9tO2fJjSJRLqMUO2N7/v0oboJNPiQVAkZy",
                             PmAccess = false,
                             PmOnly = false,
+                            PmReadOnly = false,
                             Position = "Finance Manager",
                             Role = "member"
                         },
@@ -2569,6 +2577,7 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
                             PasswordHash = "$2a$11$Gz1fjWb8BDrfP21Iq2g9tO2fJjSJRLqMUO2N7/v0oboJNPiQVAkZy",
                             PmAccess = false,
                             PmOnly = false,
+                            PmReadOnly = false,
                             Position = "Client Support Manager",
                             Role = "member"
                         });
