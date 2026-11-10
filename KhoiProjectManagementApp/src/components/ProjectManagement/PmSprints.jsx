@@ -5,6 +5,7 @@ import ErrorMessage from '../Common/ErrorMessage';
 import StatusBadge from '../Common/StatusBadge';
 import { SprintModal, CompleteSprintModal } from './SprintModals';
 import RetroModal from './RetroModal';
+import SprintEffort from './SprintEffort';
 import { BurndownChart, VelocityChart } from './PmCharts';
 import { useToast } from '../../contexts/ToastContext';
 import { useConfirm } from '../../contexts/ConfirmContext';
@@ -212,6 +213,8 @@ const PmSprints = ({ apiService, project }) => {
           </ul>
         )}
       </section>
+
+      <SprintEffort apiService={apiService} sprints={sprints} refreshKey={items} />
 
       <div className="grid gap-6 lg:grid-cols-2">
         <section aria-label="Burndown" className="bg-white border border-gray-200 rounded-xl p-4">

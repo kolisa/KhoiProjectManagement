@@ -183,8 +183,14 @@ namespace KhoiProjectManagement.Application
                 targetName = target.Name;
             }
 
+            var previousSprintId = item.SprintId;
             item.SprintId = sprintId;
             item.UpdatedAt = DateTime.UtcNow;
+            // Moving an item moves its subtasks with it (the ones that were in the same sprint, or in none), so a person's
+            // effort on a subtask is counted in the sprint the parent is planned in.
+            var subtasks = await _tasks.Query().Where(t => t.ParentId == itemId && t.Type == "Subtask" && t.Status != "completed"
+                && (t.SprintId == previousSprintId || t.SprintId == null)).ToListAsync();
+            foreach (var sub in subtasks) { sub.SprintId = sprintId; sub.UpdatedAt = DateTime.UtcNow; }
             await _unitOfWork.SaveChangesAsync();
             await _activity.LogAsync("WorkItem", item.Id, item.Title, caller.UserId, "sprint-changed", targetName ?? "backlog");
             return await _workItems.GetAsync(caller, itemId);

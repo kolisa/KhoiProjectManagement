@@ -1504,6 +1504,18 @@ class ApiService {
     return await this.request(`/pm/work-items/${itemId}/labels`, { method: 'PUT', body: JSON.stringify({ labels }) });
   }
 
+  async getWorkItemEffort(itemId) {
+    return await this.request(`/pm/work-items/${itemId}/effort`);
+  }
+
+  async saveWorkItemEffort(itemId, people) {
+    return await this.request(`/pm/work-items/${itemId}/effort`, { method: 'PUT', body: JSON.stringify({ people }) });
+  }
+
+  async getSprintEffort(sprintId) {
+    return await this.request(`/pm/sprints/${sprintId}/effort`);
+  }
+
   async importPmMembers(projectId, payload) {
     return await this.request(`/pm/projects/${projectId}/members/import`, { method: 'POST', body: JSON.stringify(payload) });
   }

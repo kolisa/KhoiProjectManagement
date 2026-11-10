@@ -1424,8 +1424,8 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
 
                     b.Property<string>("Description")
                         .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
+                        .HasMaxLength(20000)
+                        .HasColumnType("character varying(20000)");
 
                     b.Property<DateTime>("DueDate")
                         .HasColumnType("timestamp with time zone");
@@ -2941,6 +2941,39 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
                     b.ToTable("WorkItemComments");
                 });
 
+            modelBuilder.Entity("KhoiProjectManagement.Domain.WorkItemEffort", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<decimal?>("Points")
+                        .HasPrecision(7, 2)
+                        .HasColumnType("numeric(7,2)");
+
+                    b.Property<int>("TaskId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("TaskId", "UserId", "Category")
+                        .IsUnique();
+
+                    b.ToTable("WorkItemEfforts");
+                });
+
             modelBuilder.Entity("KhoiProjectManagement.Domain.WorkItemLink", b =>
                 {
                     b.Property<int>("Id")
@@ -3946,6 +3979,25 @@ namespace KhoiProjectManagement.Infrastructure.Migrations
                     b.Navigation("Author");
 
                     b.Navigation("Task");
+                });
+
+            modelBuilder.Entity("KhoiProjectManagement.Domain.WorkItemEffort", b =>
+                {
+                    b.HasOne("KhoiProjectManagement.Domain.ProjectTask", "Task")
+                        .WithMany()
+                        .HasForeignKey("TaskId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("KhoiProjectManagement.Domain.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Task");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("KhoiProjectManagement.Domain.WorkItemLink", b =>

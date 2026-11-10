@@ -165,6 +165,7 @@ namespace KhoiProjectManagementApi.Extensions
             services.AddScoped<IPmRetroService, PmRetroService>();
             services.AddScoped<IPmInsightsService, PmInsightsService>();
             services.AddScoped<IPmLabelService, PmLabelService>();
+            services.AddScoped<IPmEffortService, PmEffortService>();
             // Work-item attachments: local disk by default, Cloudflare R2 when Storage:Provider is "R2".
             if (string.Equals(configuration["Storage:Provider"], "R2", StringComparison.OrdinalIgnoreCase))
             {

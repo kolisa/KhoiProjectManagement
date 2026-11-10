@@ -13,6 +13,7 @@
 		<PackageReference Include="QuestPDF" />
 		<PackageReference Include="System.IdentityModel.Tokens.Jwt" />
 		<PackageReference Include="FluentValidation.AspNetCore" />
+		<PackageReference Include="HtmlSanitizer" />
 	</ItemGroup>
 
 	<ItemGroup>

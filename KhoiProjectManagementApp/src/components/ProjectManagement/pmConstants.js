@@ -115,3 +115,20 @@ export const denyReason = (project, action) => {
   if (project.readOnly) return 'Your access is read-only, so you can view this but not change it. Ask an administrator for read and write access.';
   return `Your role (${roleLabel(project.actualRole || project.myRole)}) can't ${ACTION_WORDS[action] || 'do this'}.`;
 };
+
+// ---- Effort (points) -------------------------------------------------------------------------------------------
+// Points are allocated per person and per category on a work item; a sprint sums them per person. Mirrors
+// EffortCategories on the server. A null value means N/A, which is not the same as 0.
+export const EFFORT_CATEGORIES = [
+  { key: 'AnalysisDesign', label: 'Analysis & design' },
+  { key: 'DevEffort', label: 'Dev effort' },
+  { key: 'DevTesting', label: 'Dev testing' },
+  { key: 'Deployment', label: 'Deployment' },
+  { key: 'Demo', label: 'Demo' },
+  { key: 'Monitoring', label: 'Monitoring' },
+  { key: 'Training', label: 'Training' },
+];
+export const effortLabel = (key) => EFFORT_CATEGORIES.find((c) => c.key === key)?.label || key;
+
+// 12 -> "12", 0.5 -> "0.5", 7.25 -> "7.25"
+export const fmtPoints = (n) => (n == null ? 'N/A' : String(Math.round(n * 100) / 100));
