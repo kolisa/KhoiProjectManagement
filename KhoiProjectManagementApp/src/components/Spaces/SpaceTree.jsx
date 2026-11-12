@@ -33,10 +33,10 @@ const SpaceTreeNode = ({ apiService, space, selectedSpaceId, onSelect, depth }) 
         }`}
         style={{ paddingLeft: `${depth * 16 + 8}px` }}
       >
-        <button onClick={toggleExpand} className="mr-1 flex-shrink-0" aria-label="Toggle">
+        <button onClick={toggleExpand} className="mr-1 shrink-0" aria-label="Toggle">
           {expanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
         </button>
-        <Folder className="h-4 w-4 mr-1.5 flex-shrink-0 text-gray-400" />
+        <Folder className="h-4 w-4 mr-1.5 shrink-0 text-gray-400" />
         <span className="truncate" onClick={() => onSelect(space)}>{space.name}</span>
       </div>
       {expanded && (

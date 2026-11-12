@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Trash2, Upload, UserPlus, ChevronRight } from 'lucide-react';
+import { Button } from '../ui';
 import LoadingSpinner from '../Common/LoadingSpinner';
 import ErrorMessage from '../Common/ErrorMessage';
 import { useToast } from '../../contexts/ToastContext';
@@ -11,7 +12,7 @@ import ImportMembersModal from './ImportMembersModal';
 import Combobox, { peopleOptions } from './Combobox';
 import RoleMatrix from './RoleMatrix';
 
-const selectClass = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500';
+const selectClass = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500';
 const labelClass = 'block text-xs font-medium text-gray-600 mb-1';
 
 // The project's people: who is on it, what role each has and what that means they can do (Read only / Read & write /
@@ -129,7 +130,7 @@ const PmMembers = ({ apiService, project, onChanged, otherProjects = [], canGran
             <UserPlus className="h-4 w-4 text-blue-600" aria-hidden="true" /> Add people to {project.name}
           </h2>
           <form onSubmit={add} className="flex flex-wrap items-end gap-3">
-            <div className="min-w-[14rem] flex-1">
+            <div className="min-w-56 flex-1">
               <label htmlFor="pm-add-person" className={labelClass}>Person</label>
               <Combobox id="pm-add-person" disabled={!canManage} value={newUserId} onChange={(v) => setNewUserId(String(v))} placeholder="Choose a person…" searchPlaceholder="Search by name or email…"
                 options={addable.map((u) => ({ value: u.id, label: u.name, description: u.email, person: true }))} emptyLabel="Choose a person…" />
@@ -140,7 +141,7 @@ const PmMembers = ({ apiService, project, onChanged, otherProjects = [], canGran
                 {PROJECT_ROLES.map((r) => <option key={r.key} value={r.key}>{r.label}</option>)}
               </select>
             </div>
-            <button type="submit" disabled={!canManage || !newUserId} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">Add to project</button>
+            <Button type="submit" disabled={!canManage || !newUserId}>Add to project</Button>
             <button type="button" onClick={() => setShowImport(true)} disabled={!canManage} className="ml-auto disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50">
               <Upload className="h-4 w-4" aria-hidden="true" /> Import members
             </button>
@@ -156,7 +157,7 @@ const PmMembers = ({ apiService, project, onChanged, otherProjects = [], canGran
           {members.length > 0 && (
             <div className="ml-auto flex flex-wrap items-center gap-2 text-sm">
               <label className="inline-flex items-center gap-2 text-gray-700">
-                <input type="checkbox" className="h-4 w-4 rounded border-gray-300" aria-label="Select everyone" disabled={!canManage} title={manageReason || undefined} checked={everyoneSelected}
+                <input type="checkbox" className="h-4 w-4 rounded-sm border-gray-300" aria-label="Select everyone" disabled={!canManage} title={manageReason || undefined} checked={everyoneSelected}
                   onChange={() => setSelected(everyoneSelected ? new Set() : new Set(members.map((m) => m.userId)))} />
                 {selected.size > 0 ? `${selected.size} selected` : 'Select'}
               </label>
@@ -176,7 +177,7 @@ const PmMembers = ({ apiService, project, onChanged, otherProjects = [], canGran
         <ul className="divide-y divide-gray-100">
           {members.map((m) => (
             <li key={m.userId} className="flex flex-wrap items-center gap-3 px-4 py-3">
-              <input type="checkbox" className="h-4 w-4 rounded border-gray-300 disabled:cursor-not-allowed" aria-label={`Select ${m.name}`} disabled={!canManage} title={manageReason || undefined}
+              <input type="checkbox" className="h-4 w-4 rounded-sm border-gray-300 disabled:cursor-not-allowed" aria-label={`Select ${m.name}`} disabled={!canManage} title={manageReason || undefined}
                 checked={selected.has(m.userId)} onChange={() => toggle(m.userId)} />
               <Avatar name={m.name} />
               <div className="min-w-0 flex-1">

@@ -4,10 +4,9 @@
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
 import { validateVaultEntry, hasErrors } from '../../utils/validation';
-import useModalA11y from '../Common/useModalA11y';
+import { Button, Input, Textarea, Modal } from '../ui';
 
 const VaultEntryModal = ({ spaceId, entry, onSave, onClose }) => {
-  const modalRef = useModalA11y(onClose);
   const [form, setForm] = useState({
     name: entry?.name || '',
     systemOrUrl: entry?.systemOrUrl || '',
@@ -56,8 +55,15 @@ const VaultEntryModal = ({ spaceId, entry, onSave, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div ref={modalRef} role="dialog" aria-modal="true" aria-labelledby="vault-entry-modal-title" tabIndex={-1} className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden max-h-screen flex flex-col outline-none">
+    <Modal
+      onClose={onClose}
+      closeOnBackdrop={false}
+      titleId="vault-entry-modal-title"
+      size="md"
+      padded={false}
+      scroll={false}
+      className="flex flex-col overflow-hidden max-h-screen"
+      header={(
         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
           <h3 id="vault-entry-modal-title" className="text-base font-semibold text-gray-900">{entry ? 'Edit Vault Entry' : 'New Vault Entry'}</h3>
           <button
@@ -69,74 +75,62 @@ const VaultEntryModal = ({ spaceId, entry, onSave, onClose }) => {
             <X className="h-5 w-5" />
           </button>
         </div>
+      )}
+    >
         <form onSubmit={handleSubmit} className="flex flex-col overflow-y-auto">
           <div className="px-6 py-5 space-y-4">
             {error && <div className="text-sm text-red-600">{error}</div>}
             <div>
-              <input
+              <Input
                 type="text"
                 placeholder="Name"
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
-                className={`w-full border rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow ${fieldErrors.name ? 'border-red-400' : 'border-gray-300'}`}
-                aria-invalid={!!fieldErrors.name}
+                invalid={!!fieldErrors.name}
                 required
               />
               {fieldErrors.name && <p className="text-xs text-red-600 mt-1">{fieldErrors.name}</p>}
             </div>
-            <input
+            <Input
               type="text"
               placeholder="System / URL"
               value={form.systemOrUrl}
               onChange={(e) => setForm({ ...form, systemOrUrl: e.target.value })}
-              className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
             />
-            <input
+            <Input
               type="text"
               placeholder="Username"
               value={form.username}
               onChange={(e) => setForm({ ...form, username: e.target.value })}
-              className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
             />
             <div>
-              <input
+              <Input
                 type="password"
                 placeholder={entry ? 'New secret (leave blank to keep current)' : 'Secret'}
                 value={form.secretValue}
                 onChange={(e) => setForm({ ...form, secretValue: e.target.value })}
-                className={`w-full border rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow ${fieldErrors.secretValue ? 'border-red-400' : 'border-gray-300'}`}
-                aria-invalid={!!fieldErrors.secretValue}
+                invalid={!!fieldErrors.secretValue}
                 required={!entry}
               />
               {fieldErrors.secretValue && <p className="text-xs text-red-600 mt-1">{fieldErrors.secretValue}</p>}
             </div>
-            <textarea
+            <Textarea
               placeholder="Notes"
               value={form.notes}
               onChange={(e) => setForm({ ...form, notes: e.target.value })}
-              className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
               rows="3"
             />
           </div>
           <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3">
-            <button
-              type="submit"
-              disabled={saving}
-              className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors disabled:opacity-50"
-            >
+            <Button type="submit" disabled={saving}>
               {saving ? 'Saving...' : entry ? 'Save Changes' : 'Create Entry'}
-            </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className="inline-flex items-center gap-2 bg-white text-gray-700 border border-gray-300 px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-gray-50 transition-colors"
-            >
+            </Button>
+            <Button type="button" variant="outline" onClick={onClose}>
               Cancel
-            </button>
+            </Button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   );
 };
 

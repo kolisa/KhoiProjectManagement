@@ -10,6 +10,7 @@ import ReminderDetail from './ReminderDetail';
 import BulkReminderActions from './BulkReminderActions';
 import { useToast } from '../../contexts/ToastContext';
 import { reportApiError } from '../../utils/apiError';
+import { Button, Card, Skeleton } from '../ui';
 
 const VIEW_TABS = [
   { key: null, label: 'All' },
@@ -250,13 +251,10 @@ const RemindersPage = ({ apiService, user }) => {
           </h2>
           <p className="text-gray-600">Stay on top of what's due, snooze what can wait, never lose track</p>
         </div>
-        <button
-          onClick={() => setShowForm(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center"
-        >
-          <Plus className="h-5 w-5 mr-2" />
+        <Button onClick={() => setShowForm(true)}>
+          <Plus className="h-5 w-5" />
           New Reminder
-        </button>
+        </Button>
       </div>
 
       <ReminderSummaryCards
@@ -302,28 +300,28 @@ const RemindersPage = ({ apiService, user }) => {
       <div className={`grid grid-cols-1 ${selectedReminder ? 'lg:grid-cols-3' : ''} gap-6`}>
         <div className={selectedReminder ? 'lg:col-span-2' : ''}>
           {reminders === null && (
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-3" aria-busy="true" aria-label="Loading reminders">
+            <Card className="p-6 space-y-3" aria-busy="true" aria-label="Loading reminders">
               {[...Array(4)].map((_, i) => (
-                <div key={i} className="h-12 bg-gray-100 rounded-lg animate-pulse" />
+                <Skeleton key={i} className="h-12" />
               ))}
-            </div>
+            </Card>
           )}
 
           {reminders?.length === 0 && (
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-10 text-center text-gray-400">
+            <Card className="p-10 text-center text-gray-400">
               <Bell className="h-10 w-10 mx-auto mb-3 text-gray-300" />
               {Object.keys(filters).length > 0 ? (
                 <>
                   <p>No reminders match your filters.</p>
-                  <button onClick={handleReset} className="text-blue-600 hover:text-blue-800 text-sm mt-2">Reset filters</button>
+                  <Button variant="link" size="sm" onClick={handleReset} className="mt-2 h-auto">Reset filters</Button>
                 </>
               ) : (
                 <>
                   <p>No reminders yet.</p>
-                  <button onClick={() => setShowForm(true)} className="text-blue-600 hover:text-blue-800 text-sm mt-2">Create your first reminder</button>
+                  <Button variant="link" size="sm" onClick={() => setShowForm(true)} className="mt-2 h-auto">Create your first reminder</Button>
                 </>
               )}
-            </div>
+            </Card>
           )}
 
           {reminders?.length > 0 && (

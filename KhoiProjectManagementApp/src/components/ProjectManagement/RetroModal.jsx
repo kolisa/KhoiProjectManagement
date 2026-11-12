@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { X, Trash2, Pencil } from 'lucide-react';
-import useModalA11y from '../Common/useModalA11y';
 import { useToast } from '../../contexts/ToastContext';
 import { useConfirm } from '../../contexts/ConfirmContext';
 import { reportApiError } from '../../utils/apiError';
+import { Modal } from '../ui';
 
 const COLUMNS = [
   { key: 'WentWell', title: 'Went well', tone: 'bg-green-50 border-green-200', placeholder: 'Something that worked…' },
@@ -11,7 +11,7 @@ const COLUMNS = [
   { key: 'Action', title: 'Actions', tone: 'bg-blue-50 border-blue-200', placeholder: 'A concrete follow-up…' },
 ];
 
-const fieldClass = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500';
+const fieldClass = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500';
 
 const RetroColumn = ({ column, items, canAdd, addReason, onAdd, onEdit, onDelete, onToggle }) => {
   const [draft, setDraft] = useState('');
@@ -46,9 +46,9 @@ const RetroColumn = ({ column, items, canAdd, addReason, onAdd, onEdit, onDelete
               <>
                 <div className="flex items-start gap-2">
                   {column.key === 'Action' && (
-                    <input type="checkbox" aria-label={`Mark done: ${i.text}`} checked={i.isDone} onChange={(e) => onToggle(i, e.target.checked)} className="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600" />
+                    <input type="checkbox" aria-label={`Mark done: ${i.text}`} checked={i.isDone} onChange={(e) => onToggle(i, e.target.checked)} className="mt-1 h-4 w-4 rounded-sm border-gray-300 text-blue-600" />
                   )}
-                  <p className={`flex-1 text-sm whitespace-pre-wrap break-words ${i.isDone ? 'line-through text-gray-400' : 'text-gray-800'}`}>{i.text}</p>
+                  <p className={`flex-1 text-sm whitespace-pre-wrap wrap-break-word ${i.isDone ? 'line-through text-gray-400' : 'text-gray-800'}`}>{i.text}</p>
                 </div>
                 <div className="flex items-center justify-between mt-1 text-xs text-gray-500">
                   <span>{i.authorName}</span>
@@ -76,7 +76,6 @@ const RetroColumn = ({ column, items, canAdd, addReason, onAdd, onEdit, onDelete
 // Retrospective board for one sprint: went well / to improve / actions. The server decides who can
 // edit or delete each card (the flags on each item); `canAdd` just hides the input for read-only roles.
 const RetroModal = ({ apiService, sprint, canAdd, addReason, onClose }) => {
-  const ref = useModalA11y(onClose);
   const toast = useToast();
   const confirm = useConfirm();
   const [items, setItems] = useState(null);
@@ -106,13 +105,13 @@ const RetroModal = ({ apiService, sprint, canAdd, addReason, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-      <div ref={ref} role="dialog" aria-modal="true" aria-labelledby="retro-title" tabIndex={-1}
-        className="bg-white rounded-xl shadow-xl w-full max-w-5xl max-h-[90vh] overflow-y-auto">
+    <Modal onClose={onClose} size={null} className="max-w-5xl" closeOnBackdrop={false} padded={false} titleId="retro-title"
+      header={(
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
           <h2 id="retro-title" className="text-lg font-semibold text-gray-900">Retrospective · {sprint.name}</h2>
           <button onClick={onClose} aria-label="Close" className="text-gray-400 hover:text-gray-600"><X className="h-5 w-5" /></button>
         </div>
+      )}>
         <div className="p-5">
           {items === null ? <p className="text-sm text-gray-500">Loading…</p> : (
             <div className="grid gap-4 md:grid-cols-3">
@@ -123,8 +122,7 @@ const RetroModal = ({ apiService, sprint, canAdd, addReason, onClose }) => {
             </div>
           )}
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 };
 

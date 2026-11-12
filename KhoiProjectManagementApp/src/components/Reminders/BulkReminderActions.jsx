@@ -1,6 +1,7 @@
 // src/components/Reminders/BulkReminderActions.js
 import React, { useState } from 'react';
 import { CheckCircle, Trash2, Clock, X } from 'lucide-react';
+import { Button } from '../ui';
 
 const BulkReminderActions = ({ count, onComplete, onDelete, onReschedule, onPriority, onAssign, users, onClear }) => {
   const [confirmingDelete, setConfirmingDelete] = useState(false);
@@ -13,27 +14,27 @@ const BulkReminderActions = ({ count, onComplete, onDelete, onReschedule, onPrio
     <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 flex flex-wrap items-center gap-2">
       <span className="text-sm font-medium text-blue-900 mr-2">{count} selected</span>
 
-      <button onClick={onComplete} className="inline-flex items-center gap-1.5 text-sm font-medium bg-white border border-gray-300 rounded-lg px-3 py-1.5 hover:bg-gray-50 transition-colors">
-        <CheckCircle className="h-4 w-4 mr-1.5 text-green-600" />
+      <Button variant="outline" size="sm" onClick={onComplete}>
+        <CheckCircle className="h-4 w-4 text-green-600" />
         Complete
-      </button>
+      </Button>
 
       <div className="relative">
-        <button onClick={() => setShowReschedule(!showReschedule)} className="inline-flex items-center gap-1.5 text-sm font-medium bg-white border border-gray-300 rounded-lg px-3 py-1.5 hover:bg-gray-50 transition-colors">
-          <Clock className="h-4 w-4 mr-1.5 text-gray-600" />
+        <Button variant="outline" size="sm" onClick={() => setShowReschedule(!showReschedule)}>
+          <Clock className="h-4 w-4 text-gray-600" />
           Reschedule
-        </button>
+        </Button>
         {showReschedule && (
           <div className="absolute mt-1 bg-white border rounded-lg shadow-lg p-2 z-10 flex space-x-1">
             <input
               type="datetime-local"
               value={rescheduleValue}
               onChange={(e) => setRescheduleValue(e.target.value)}
-              className="border rounded px-1 py-0.5 text-xs"
+              className="border rounded-sm px-1 py-0.5 text-xs"
             />
             <button
               onClick={() => { if (rescheduleValue) { onReschedule(new Date(rescheduleValue).toISOString()); setShowReschedule(false); } }}
-              className="text-xs bg-blue-600 text-white px-2 rounded"
+              className="text-xs bg-blue-600 text-white px-2 rounded-sm"
             >
               Set
             </button>
@@ -78,15 +79,15 @@ const BulkReminderActions = ({ count, onComplete, onDelete, onReschedule, onPrio
           </button>
         </div>
       ) : (
-        <button onClick={() => setConfirmingDelete(true)} className="inline-flex items-center gap-1.5 text-sm font-medium bg-white border border-gray-300 rounded-lg px-3 py-1.5 hover:bg-red-50 transition-colors text-red-600">
-          <Trash2 className="h-4 w-4 mr-1.5" />
+        <Button variant="outline" size="sm" onClick={() => setConfirmingDelete(true)} className="text-red-600 hover:bg-red-50">
+          <Trash2 className="h-4 w-4" />
           Delete
-        </button>
+        </Button>
       )}
 
-      <button onClick={onClear} className="ml-auto text-gray-400 hover:text-gray-600" aria-label="Clear selection">
+      <Button variant="ghost" size="sm" icon onClick={onClear} className="ml-auto text-gray-400 hover:text-gray-600" aria-label="Clear selection">
         <X className="h-4 w-4" />
-      </button>
+      </Button>
     </div>
   );
 };

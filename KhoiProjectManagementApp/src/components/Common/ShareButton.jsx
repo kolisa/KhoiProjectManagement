@@ -52,11 +52,11 @@ const ShareButton = ({ url, label }) => {
               readOnly
               value={url}
               onClick={(e) => e.target.select()}
-              className="flex-1 border border-gray-300 rounded-md px-2 py-1.5 text-xs text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+              className="flex-1 border border-gray-300 rounded-md px-2 py-1.5 text-xs text-gray-600 focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
             />
             <button
               onClick={handleCopy}
-              className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-800 transition-colors flex-shrink-0"
+              className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-800 transition-colors shrink-0"
             >
               {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
               {copied ? 'Copied' : 'Copy'}
@@ -64,7 +64,7 @@ const ShareButton = ({ url, label }) => {
           </div>
           <button
             onClick={handleWhatsApp}
-            className="w-full inline-flex items-center justify-center text-sm font-semibold bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 shadow-sm transition-colors"
+            className="w-full inline-flex items-center justify-center text-sm font-semibold bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 shadow-xs transition-colors"
           >
             Share via WhatsApp
           </button>

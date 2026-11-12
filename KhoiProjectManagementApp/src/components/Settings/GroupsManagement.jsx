@@ -9,10 +9,9 @@ import { Users, Plus, X, Pencil } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import { reportApiError } from '../../utils/apiError';
 import { validateGroup, hasErrors } from '../../utils/validation';
-import useModalA11y from '../Common/useModalA11y';
+import { Button, Input, Modal } from '../ui';
 
 const NewGroupModal = ({ onSave, onClose }) => {
-  const modalRef = useModalA11y(onClose);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [saving, setSaving] = useState(false);
@@ -36,44 +35,50 @@ const NewGroupModal = ({ onSave, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div ref={modalRef} role="dialog" aria-modal="true" aria-labelledby="new-group-modal-title" tabIndex={-1} className="bg-white rounded-2xl shadow-xl overflow-hidden w-full max-w-md outline-none">
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-          <h3 id="new-group-modal-title" className="text-base font-semibold text-gray-900">New Group</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600" aria-label="Close">
-            <X className="h-4 w-4" />
-          </button>
-        </div>
+    <Modal
+      onClose={onClose}
+      closeOnBackdrop={false}
+      titleId="new-group-modal-title"
+      size="md"
+      padded={false}
+      scroll={false}
+      className="overflow-hidden"
+      header={(
+          <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+            <h3 id="new-group-modal-title" className="text-base font-semibold text-gray-900">New Group</h3>
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-600" aria-label="Close">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+      )}
+    >
         <div className="px-6 py-5 space-y-4">
           {error && <div className="text-red-600 text-sm">{error}</div>}
-          <input
+          <Input
             type="text"
             placeholder="Group name"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
             autoFocus
           />
-          <input
+          <Input
             type="text"
             placeholder="Description (optional)"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
           />
         </div>
         <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3">
-          <button onClick={onClose} className="inline-flex items-center gap-2 bg-white text-gray-700 border border-gray-300 px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-gray-50 transition-colors">Cancel</button>
-          <button
+          <Button variant="outline" onClick={onClose} >Cancel</Button>
+          <Button
             onClick={handleSave}
             disabled={saving || !name.trim()}
-            className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors disabled:opacity-50"
+            
           >
             {saving ? 'Creating...' : 'Create'}
-          </button>
+          </Button>
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 };
 
@@ -201,7 +206,7 @@ const GroupsManagement = ({ apiService, teamMembers = [] }) => {
         </div>
         <button
           onClick={() => setShowNewGroup(true)}
-          className="inline-flex items-center gap-2 bg-blue-600 text-white px-3.5 py-2 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors"
+          className="inline-flex items-center gap-2 bg-blue-600 text-white px-3.5 py-2 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-xs transition-colors"
         >
           <Plus className="h-4 w-4" />
           New Group
@@ -209,7 +214,7 @@ const GroupsManagement = ({ apiService, teamMembers = [] }) => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 max-w-4xl">
-        <div className="md:col-span-1 bg-white rounded-2xl border border-gray-100 shadow-sm divide-y divide-gray-100 overflow-hidden">
+        <div className="md:col-span-1 bg-white rounded-2xl border border-gray-100 shadow-xs divide-y divide-gray-100 overflow-hidden">
           {groups.length === 0 && (
             <div className="px-4 py-3 text-sm text-gray-400">No groups yet.</div>
           )}
@@ -226,7 +231,7 @@ const GroupsManagement = ({ apiService, teamMembers = [] }) => {
           ))}
         </div>
 
-        <div className="md:col-span-3 bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+        <div className="md:col-span-3 bg-white rounded-2xl border border-gray-100 shadow-xs p-5">
           {!selectedGroup ? (
             <div className="text-gray-400 text-sm">Select a group to edit its members.</div>
           ) : loadingMembers ? (
@@ -240,14 +245,14 @@ const GroupsManagement = ({ apiService, teamMembers = [] }) => {
                     value={editName}
                     onChange={(e) => setEditName(e.target.value)}
                     placeholder="Group name"
-                    className="w-full border border-gray-300 rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full border border-gray-300 rounded-md px-2.5 py-1.5 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                   <input
                     type="text"
                     value={editDescription}
                     onChange={(e) => setEditDescription(e.target.value)}
                     placeholder="Description (optional)"
-                    className="w-full border border-gray-300 rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full border border-gray-300 rounded-md px-2.5 py-1.5 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                   <div className="flex justify-end gap-2">
                     <button onClick={() => setEditingGroup(false)} className="text-xs font-semibold text-gray-600 hover:text-gray-800 px-2.5 py-1.5">Cancel</button>
@@ -274,7 +279,7 @@ const GroupsManagement = ({ apiService, teamMembers = [] }) => {
                   <button
                     onClick={handleSave}
                     disabled={saving || !dirty}
-                    className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors disabled:opacity-50"
+                    className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-xs transition-colors disabled:opacity-50"
                   >
                     {saving ? 'Saving...' : 'Save changes'}
                   </button>
@@ -291,7 +296,7 @@ const GroupsManagement = ({ apiService, teamMembers = [] }) => {
                         type="checkbox"
                         checked={memberIds.has(member.id)}
                         onChange={() => toggleMember(member.id)}
-                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        className="rounded-sm border-gray-300 text-blue-600 focus:ring-blue-500"
                       />
                       <span className="text-gray-900">{member.name}</span>
                       <span className="text-gray-400 text-xs">{member.position}</span>

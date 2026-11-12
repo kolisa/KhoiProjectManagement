@@ -11,7 +11,7 @@ import { hasPermission } from '../../utils/permissions';
 import { useToast } from '../../contexts/ToastContext';
 import { useConfirm } from '../../contexts/ConfirmContext';
 import { reportApiError } from '../../utils/apiError';
-import useModalA11y from '../Common/useModalA11y';
+import { Button, Modal } from '../ui';
 
 // Extracted so useModalA11y's mount-time focus-trap setup runs exactly when this modal actually
 // appears - VaultPage itself never unmounts while the Vault tab is open, so a hook call placed
@@ -19,10 +19,8 @@ import useModalA11y from '../Common/useModalA11y';
 // flips true. Same JSX/classNames/handlers as before, just wrapped in a component that
 // mounts/unmounts with the modal itself (the same shape VaultEntryModal/VaultImportModal use).
 const NewVaultCategoryModal = ({ parentId, parentSpaceName, name, onNameChange, creating, error, onCreate, onClose }) => {
-  const modalRef = useModalA11y(onClose);
   return (
-    <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div ref={modalRef} role="dialog" aria-modal="true" aria-labelledby="vault-new-category-modal-title" tabIndex={-1} className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden outline-none">
+    <Modal onClose={onClose} closeOnBackdrop={false} titleId="vault-new-category-modal-title" size="sm" padded={false} scroll={false} className="overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
           <h3 id="vault-new-category-modal-title" className="text-base font-semibold text-gray-900">
             {parentId ? `New subcategory under "${parentSpaceName}"` : 'New category'}
@@ -48,27 +46,26 @@ const NewVaultCategoryModal = ({ parentId, parentSpaceName, name, onNameChange, 
             onChange={(e) => onNameChange(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') onCreate(); }}
             placeholder="Category name"
-            className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+            className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
           />
           {error && <div className="text-red-600 text-sm">{error}</div>}
         </div>
         <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3">
-          <button
+          <Button variant="outline"
             onClick={onClose}
-            className="inline-flex items-center gap-2 bg-white text-gray-700 border border-gray-300 px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-gray-50 transition-colors"
+            
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={onCreate}
             disabled={creating || !name.trim()}
-            className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors disabled:opacity-50"
+            
           >
             {creating ? 'Creating...' : 'Create'}
-          </button>
+          </Button>
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 };
 
@@ -200,7 +197,7 @@ const VaultPage = ({ apiService, user, teamMembers = [] }) => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="md:col-span-1 bg-white rounded-2xl border border-gray-100 shadow-sm p-3">
+        <div className="md:col-span-1 bg-white rounded-2xl border border-gray-100 shadow-xs p-3">
           <div className="flex justify-between items-center mb-2 px-1">
             <span className="text-xs font-semibold text-gray-500 uppercase">Categories</span>
             {canCreateRootCategory && (
@@ -219,7 +216,7 @@ const VaultPage = ({ apiService, user, teamMembers = [] }) => {
 
         <div className="md:col-span-3 space-y-4">
           {!selectedSpace && (
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center text-gray-400">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-xs p-8 text-center text-gray-400">
               Select a category on the left to view its entries.
             </div>
           )}
@@ -276,7 +273,7 @@ const VaultPage = ({ apiService, user, teamMembers = [] }) => {
                   {canWrite && (
                     <button
                       onClick={() => { setEditingEntry(null); setShowModal(true); }}
-                      className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors"
+                      className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-xs transition-colors"
                     >
                       <Plus className="h-5 w-5" />
                       New Entry
@@ -289,7 +286,7 @@ const VaultPage = ({ apiService, user, teamMembers = [] }) => {
               {loadingEntries && <div className="text-gray-400">Loading entries...</div>}
 
               {!loadingEntries && !selectedEntryId && (
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm divide-y divide-gray-100">
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-xs divide-y divide-gray-100">
                   {entries.length === 0 && (
                     <div className="p-6 text-center text-gray-400">No entries in this category yet.</div>
                   )}

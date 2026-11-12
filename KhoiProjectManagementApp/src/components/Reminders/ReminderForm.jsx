@@ -2,13 +2,12 @@
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
 import { validateReminder, hasErrors } from '../../utils/validation';
-import useModalA11y from '../Common/useModalA11y';
+import { Button, Input, Label, Modal, Select, Textarea } from '../ui';
 
 const toLocalDateInput = (iso) => (iso ? new Date(iso).toISOString().slice(0, 10) : '');
 const toLocalTimeInput = (iso) => (iso ? new Date(iso).toISOString().slice(11, 16) : '09:00');
 
 const ReminderForm = ({ reminder, users, projects, canAssignOthers, onSave, onClose }) => {
-  const modalRef = useModalA11y(onClose);
   const isEdit = !!reminder;
   const [title, setTitle] = useState(reminder?.title || '');
   const [description, setDescription] = useState(reminder?.description || '');
@@ -64,34 +63,28 @@ const ReminderForm = ({ reminder, users, projects, canAssignOthers, onSave, onCl
   };
 
   return (
-    <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <form
-        ref={modalRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="reminder-form-modal-title"
-        tabIndex={-1}
-        onSubmit={handleSubmit}
-        className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col outline-none"
-      >
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
+    <Modal onClose={onClose} size="lg" scroll={false} padded={false} closeOnBackdrop={false} titleId="reminder-form-modal-title"
+      className="max-h-[90vh] overflow-hidden flex flex-col"
+      header={(
+        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between shrink-0">
           <h3 id="reminder-form-modal-title" className="text-lg font-semibold text-gray-900">{isEdit ? 'Edit Reminder' : 'New Reminder'}</h3>
-          <button type="button" onClick={onClose} className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 p-1 rounded-md transition-colors" aria-label="Close">
+          <Button variant="ghost" size="sm" icon onClick={onClose} className="text-gray-400 hover:text-gray-600" aria-label="Close">
             <X className="h-4 w-4" />
-          </button>
+          </Button>
         </div>
-
+      )}>
+      <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
         <div className="px-6 py-5 space-y-3 overflow-y-auto">
         {apiError && <div className="text-red-600 text-sm mb-3">{apiError}</div>}
 
           <div>
-            <label className="block text-sm text-gray-600 mb-1" htmlFor="reminder-title">Title</label>
-            <input
+            <Label htmlFor="reminder-title">Title</Label>
+            <Input
               id="reminder-title"
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className={`w-full border rounded-lg px-3 py-2 ${errors.title ? 'border-red-400' : ''} focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow`}
+              invalid={!!errors.title}
               aria-invalid={!!errors.title}
               aria-describedby={errors.title ? 'reminder-title-error' : undefined}
             />
@@ -99,75 +92,71 @@ const ReminderForm = ({ reminder, users, projects, canAssignOthers, onSave, onCl
           </div>
 
           <div>
-            <label className="block text-sm text-gray-600 mb-1" htmlFor="reminder-description">Description</label>
-            <textarea
+            <Label htmlFor="reminder-description">Description</Label>
+            <Textarea
               id="reminder-description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
-              className={`w-full border rounded-lg px-3 py-2 ${errors.description ? 'border-red-400' : ''} focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow`}
+              invalid={!!errors.description}
             />
             {errors.description && <p className="text-xs text-red-600 mt-1">{errors.description}</p>}
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm text-gray-600 mb-1" htmlFor="reminder-due-date">Due date</label>
-              <input
+              <Label htmlFor="reminder-due-date">Due date</Label>
+              <Input
                 id="reminder-due-date"
                 type="date"
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
-                className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
               />
             </div>
             <div>
-              <label className="block text-sm text-gray-600 mb-1" htmlFor="reminder-due-time">Due time</label>
-              <input
+              <Label htmlFor="reminder-due-time">Due time</Label>
+              <Input
                 id="reminder-due-time"
                 type="time"
                 value={dueTime}
                 onChange={(e) => setDueTime(e.target.value)}
-                className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm text-gray-600 mb-1" htmlFor="reminder-priority">Priority</label>
-              <select
+              <Label htmlFor="reminder-priority">Priority</Label>
+              <Select
                 id="reminder-priority"
                 value={priority}
                 onChange={(e) => setPriority(e.target.value)}
-                className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
               >
                 <option value="low">Low</option>
                 <option value="medium">Medium</option>
                 <option value="high">High</option>
-              </select>
+              </Select>
             </div>
             <div>
-              <label className="block text-sm text-gray-600 mb-1" htmlFor="reminder-category">Category</label>
-              <input
+              <Label htmlFor="reminder-category">Category</Label>
+              <Input
                 id="reminder-category"
                 type="text"
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
                 placeholder="e.g. Follow-up"
-                className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm text-gray-600 mb-1" htmlFor="reminder-assigned">Assigned to</label>
+            <Label htmlFor="reminder-assigned">Assigned to</Label>
             <select
               id="reminder-assigned"
               value={assignedToId}
               onChange={(e) => setAssignedToId(e.target.value)}
               disabled={!canAssignOthers}
-              className="w-full border rounded-lg px-3 py-2 disabled:bg-gray-100 disabled:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+              className="disabled:bg-gray-100 disabled:text-gray-500"
             >
               <option value="">Myself</option>
               {canAssignOthers && users?.map((u) => (
@@ -180,33 +169,31 @@ const ReminderForm = ({ reminder, users, projects, canAssignOthers, onSave, onCl
           </div>
 
           <div>
-            <label className="block text-sm text-gray-600 mb-1" htmlFor="reminder-channel">Notify via</label>
-            <select
+            <Label htmlFor="reminder-channel">Notify via</Label>
+            <Select
               id="reminder-channel"
               value={channel}
               onChange={(e) => setChannel(e.target.value)}
-              className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
             >
               <option value="InApp">In-app only</option>
               <option value="Email">Email only</option>
               <option value="Both">In-app and email</option>
-            </select>
+            </Select>
           </div>
 
           {projects?.length > 0 && (
             <div>
-              <label className="block text-sm text-gray-600 mb-1" htmlFor="reminder-related-project">Related project (optional)</label>
-              <select
+              <Label htmlFor="reminder-related-project">Related project (optional)</Label>
+              <Select
                 id="reminder-related-project"
                 value={relatedProjectId}
                 onChange={(e) => setRelatedProjectId(e.target.value)}
-                className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
               >
                 <option value="">None</option>
                 {projects.map((p) => (
                   <option key={p.id} value={p.id}>{p.name}</option>
                 ))}
-              </select>
+              </Select>
             </div>
           )}
 
@@ -229,7 +216,7 @@ const ReminderForm = ({ reminder, users, projects, canAssignOthers, onSave, onCl
                     id="reminder-recurrence-type"
                     value={recurrenceType}
                     onChange={(e) => setRecurrenceType(e.target.value)}
-                    className="w-full border rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                    className="w-full border rounded-lg px-2 py-1.5 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
                   >
                     <option value="Daily">Daily</option>
                     <option value="Weekly">Weekly</option>
@@ -243,7 +230,7 @@ const ReminderForm = ({ reminder, users, projects, canAssignOthers, onSave, onCl
                     type="date"
                     value={recurrenceEndDate}
                     onChange={(e) => setRecurrenceEndDate(e.target.value)}
-                    className="w-full border rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                    className="w-full border rounded-lg px-2 py-1.5 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
                   />
                 </div>
                 <div className="col-span-2">
@@ -254,7 +241,7 @@ const ReminderForm = ({ reminder, users, projects, canAssignOthers, onSave, onCl
                     min="1"
                     value={recurrenceMaxOccurrences}
                     onChange={(e) => setRecurrenceMaxOccurrences(e.target.value)}
-                    className="w-full border rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                    className="w-full border rounded-lg px-2 py-1.5 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
                   />
                 </div>
                 {errors.recurrenceEndDate && (
@@ -265,20 +252,16 @@ const ReminderForm = ({ reminder, users, projects, canAssignOthers, onSave, onCl
           </div>
         </div>
 
-        <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3 flex-shrink-0">
-          <button type="button" onClick={onClose} className="inline-flex items-center gap-2 bg-white text-gray-700 border border-gray-300 px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-gray-50 transition-colors">
+        <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3 shrink-0">
+          <Button variant="outline" onClick={onClose}>
             Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={saving}
-            className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors disabled:opacity-50"
-          >
+          </Button>
+          <Button type="submit" disabled={saving}>
             {saving ? 'Saving...' : isEdit ? 'Save Changes' : 'Create Reminder'}
-          </button>
+          </Button>
         </div>
       </form>
-    </div>
+    </Modal>
   );
 };
 

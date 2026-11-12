@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, FileStack, X, CheckCircle, Clock, AlertCircle, TrendingUp } from 'lucide-react';
 import RandIcon from '../Common/RandIcon';
-import useModalA11y from '../Common/useModalA11y';
+import { Modal } from '../ui/Overlay';
 import { hasPermission } from '../../utils/permissions';
 import InvoiceDetail from './InvoiceDetail';
 import { useToast } from '../../contexts/ToastContext';
@@ -12,11 +12,11 @@ import { formatCurrency } from '../../utils/currency';
 import { validateInvoice, hasErrors } from '../../utils/validation';
 import StatusBadge from '../Common/StatusBadge';
 import { INVOICE_STATUS_COLORS } from './invoiceStatusColors';
+import { Button, Card, Input, Select, Label } from '../ui';
 
 const emptyLineItem = () => ({ description: '', quantity: 1, unitPrice: 0 });
 
 const InvoiceFormModal = ({ title, templates, onSave, onClose }) => {
-  const modalRef = useModalA11y(onClose);
   const [invoiceNumber, setInvoiceNumber] = useState('');
   const [clientName, setClientName] = useState('');
   const [issueDate, setIssueDate] = useState('');
@@ -58,88 +58,91 @@ const InvoiceFormModal = ({ title, templates, onSave, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div ref={modalRef} role="dialog" aria-modal="true" aria-labelledby="invoice-modal-title" tabIndex={-1} className="bg-white rounded-2xl shadow-xl overflow-hidden w-full max-w-lg max-h-[90vh] flex flex-col outline-none">
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-          <h3 id="invoice-modal-title" className="text-base font-semibold text-gray-900">{title}</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600" aria-label="Close">
-            <X className="h-4 w-4" />
-          </button>
-        </div>
+    <Modal onClose={onClose} titleId="invoice-modal-title" closeOnBackdrop={false} size="lg" padded={false} scroll={false}
+      className="overflow-hidden max-h-[90vh] flex flex-col"
+      header={(
+          <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+            <h3 id="invoice-modal-title" className="text-base font-semibold text-gray-900">{title}</h3>
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-600" aria-label="Close">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+      )}
+      footer={(
+        <>
+            <Button variant="outline" onClick={onClose}>Cancel</Button>
+            <Button
+              onClick={handleSave}
+              disabled={saving || !invoiceNumber.trim() || !clientName.trim()}
+            >
+              {saving ? 'Saving...' : 'Create'}
+            </Button>
+        </>
+      )}
+    >
 
         <div className="px-6 py-5 space-y-4 overflow-y-auto">
           {error && <div className="text-red-600 text-sm">{error}</div>}
 
           {templates && templates.length > 0 && (
             <div>
-              <label className="block text-sm text-gray-600 mb-1">Start from a template (optional)</label>
-              <select
+              <Label>Start from a template (optional)</Label>
+              <Select
                 value={templateId}
                 onChange={(e) => setTemplateId(e.target.value)}
-                className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
               >
                 <option value="">None - blank invoice</option>
                 {templates.map((t) => (
                   <option key={t.id} value={t.id}>{t.name} ({t.originalFileName})</option>
                 ))}
-              </select>
+              </Select>
             </div>
           )}
 
           <div className="grid grid-cols-2 gap-3">
-            <input placeholder="Invoice number" value={invoiceNumber} onChange={(e) => setInvoiceNumber(e.target.value)} className="border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow" />
-            <input placeholder="Client name" value={clientName} onChange={(e) => setClientName(e.target.value)} className="border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow" />
-            <input type="date" value={issueDate} onChange={(e) => setIssueDate(e.target.value)} className="border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow" />
-            <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} className="border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow" />
+            <Input placeholder="Invoice number" value={invoiceNumber} onChange={(e) => setInvoiceNumber(e.target.value)} />
+            <Input placeholder="Client name" value={clientName} onChange={(e) => setClientName(e.target.value)} />
+            <Input type="date" value={issueDate} onChange={(e) => setIssueDate(e.target.value)} />
+            <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
           </div>
 
           <div>
-            <label className="block text-sm text-gray-600 mb-1">Line items</label>
+            <Label>Line items</Label>
             {lineItems.map((li, i) => (
               <div key={i} className="flex space-x-2 mb-2">
                 <input
                   placeholder="Description"
                   value={li.description}
                   onChange={(e) => updateLineItem(i, 'description', e.target.value)}
-                  className="flex-1 border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                  className="flex-1 border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
                 />
                 <input
                   type="number"
                   placeholder="Qty"
                   value={li.quantity}
                   onChange={(e) => updateLineItem(i, 'quantity', e.target.value)}
-                  className="w-16 border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                  className="w-16 border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
                 />
                 <input
                   type="number"
                   placeholder="Unit price"
                   value={li.unitPrice}
                   onChange={(e) => updateLineItem(i, 'unitPrice', e.target.value)}
-                  className="w-24 border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                  className="w-24 border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
                 />
               </div>
             ))}
-            <button
+            <Button
+              variant="link"
+              size="sm"
               onClick={() => setLineItems((prev) => [...prev, emptyLineItem()])}
-              className="text-sm text-blue-600 hover:text-blue-800"
+              className="h-auto px-0"
             >
               + Add line item
-            </button>
+            </Button>
           </div>
         </div>
-
-        <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3">
-          <button onClick={onClose} className="inline-flex items-center gap-2 bg-white text-gray-700 border border-gray-300 px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-gray-50 transition-colors">Cancel</button>
-          <button
-            onClick={handleSave}
-            disabled={saving || !invoiceNumber.trim() || !clientName.trim()}
-            className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors disabled:opacity-50"
-          >
-            {saving ? 'Saving...' : 'Create'}
-          </button>
-        </div>
-      </div>
-    </div>
+    </Modal>
   );
 };
 
@@ -206,9 +209,9 @@ const InvoicesPage = ({ apiService, user }) => {
 
   if (!canView) {
     return (
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center text-gray-400">
+      <Card className="p-8 text-center text-gray-400">
         You don't have access to Finance.
-      </div>
+      </Card>
     );
   }
 
@@ -233,13 +236,10 @@ const InvoicesPage = ({ apiService, user }) => {
           </p>
         </div>
         {canManage && (
-          <button
-            onClick={() => setShowForm(true)}
-            className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors"
-          >
+          <Button onClick={() => setShowForm(true)}>
             <Plus className="h-5 w-5" />
             New Invoice
-          </button>
+          </Button>
         )}
       </div>
 
@@ -269,9 +269,9 @@ const InvoicesPage = ({ apiService, user }) => {
 
         return (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+            <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-xs">
               <div className="flex items-center">
-                <div className="bg-green-50 rounded-lg p-3 mr-3 flex-shrink-0">
+                <div className="bg-green-50 rounded-lg p-3 mr-3 shrink-0">
                   <CheckCircle className="h-6 w-6 text-green-600" />
                 </div>
                 <div>
@@ -280,9 +280,9 @@ const InvoicesPage = ({ apiService, user }) => {
                 </div>
               </div>
             </div>
-            <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+            <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-xs">
               <div className="flex items-center">
-                <div className="bg-amber-50 rounded-lg p-3 mr-3 flex-shrink-0">
+                <div className="bg-amber-50 rounded-lg p-3 mr-3 shrink-0">
                   <Clock className="h-6 w-6 text-amber-600" />
                 </div>
                 <div>
@@ -291,9 +291,9 @@ const InvoicesPage = ({ apiService, user }) => {
                 </div>
               </div>
             </div>
-            <div className={`bg-white p-5 rounded-2xl border shadow-sm ${overdueCount > 0 ? 'border-[#DB4241]/30' : 'border-gray-100'}`}>
+            <div className={`bg-white p-5 rounded-2xl border shadow-xs ${overdueCount > 0 ? 'border-[#DB4241]/30' : 'border-gray-100'}`}>
               <div className="flex items-center">
-                <div className="bg-red-50 rounded-lg p-3 mr-3 flex-shrink-0">
+                <div className="bg-red-50 rounded-lg p-3 mr-3 shrink-0">
                   <AlertCircle className="h-6 w-6 text-red-600" />
                 </div>
                 <div>
@@ -303,9 +303,9 @@ const InvoicesPage = ({ apiService, user }) => {
                 </div>
               </div>
             </div>
-            <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+            <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-xs">
               <div className="flex items-center">
-                <div className="bg-blue-50 rounded-lg p-3 mr-3 flex-shrink-0">
+                <div className="bg-blue-50 rounded-lg p-3 mr-3 shrink-0">
                   <TrendingUp className="h-6 w-6 text-blue-600" />
                 </div>
                 <div>
@@ -319,7 +319,7 @@ const InvoicesPage = ({ apiService, user }) => {
       })()}
 
       {templates.length > 0 && (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-xs">
           <button
             onClick={() => setShowTemplates((v) => !v)}
             className="w-full text-sm text-gray-500 flex items-center px-4 py-3 hover:bg-gray-50/60 transition-colors"
@@ -345,7 +345,7 @@ const InvoicesPage = ({ apiService, user }) => {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm divide-y divide-gray-100">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-xs divide-y divide-gray-100">
           {invoices === null && <div className="p-6 text-gray-400">Loading...</div>}
           {invoices?.length === 0 && <div className="p-6 text-center text-gray-400">No invoices yet.</div>}
           {invoices?.map((inv) => (
@@ -377,9 +377,9 @@ const InvoicesPage = ({ apiService, user }) => {
               onDeleted={() => { setSelectedId(null); load(); }}
             />
           ) : (
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center text-gray-400">
+            <Card className="p-8 text-center text-gray-400">
               Select an invoice to view details.
-            </div>
+            </Card>
           )}
         </div>
       </div>

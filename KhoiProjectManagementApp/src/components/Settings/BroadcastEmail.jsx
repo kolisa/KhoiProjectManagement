@@ -8,6 +8,7 @@ import { Megaphone, Send } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import { useConfirm } from '../../contexts/ConfirmContext';
 import { reportApiError } from '../../utils/apiError';
+import { Button, Input, Textarea, Label } from '../ui';
 
 const BroadcastEmail = ({ apiService }) => {
   const toast = useToast();
@@ -79,7 +80,7 @@ const BroadcastEmail = ({ apiService }) => {
                 type="checkbox"
                 checked={selectedRoleIds.includes(role.id)}
                 onChange={() => toggleRole(role.id)}
-                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                className="rounded-sm border-gray-300 text-blue-600 focus:ring-blue-500"
               />
               {role.name}
             </label>
@@ -88,39 +89,36 @@ const BroadcastEmail = ({ apiService }) => {
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="broadcast-subject">Subject</label>
-        <input
+        <Label htmlFor="broadcast-subject">Subject</Label>
+        <Input
           id="broadcast-subject"
           type="text"
           value={subject}
           onChange={(e) => setSubject(e.target.value)}
           maxLength={200}
-          className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         />
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="broadcast-body">Message</label>
-        <textarea
+        <Label htmlFor="broadcast-body">Message</Label>
+        <Textarea
           id="broadcast-body"
           value={body}
           onChange={(e) => setBody(e.target.value)}
           rows={6}
           maxLength={10000}
-          className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         />
       </div>
 
       <div className="flex justify-end">
-        <button
-          type="button"
+        <Button
           onClick={handleSend}
           disabled={sending}
-          className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors disabled:opacity-50"
+          
         >
           <Send className="h-4 w-4" />
           {sending ? 'Sending...' : 'Send'}
-        </button>
+        </Button>
       </div>
     </div>
   );

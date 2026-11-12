@@ -8,6 +8,7 @@ import { reportApiError } from '../../utils/apiError';
 import StatusBadge from '../Common/StatusBadge';
 import { downloadTimesheetCsv } from './timesheetExport';
 import { splitHours, combineHours, formatDuration } from './duration';
+import { Alert, Button, Card, Input, Label, Textarea } from '../ui';
 
 const STATUS_COLORS = {
   Submitted: 'bg-[#EEEEFF] text-[#4131B0]',
@@ -189,22 +190,22 @@ const TimesheetDetail = ({ apiService, user, timesheet, initialPeriod, initialEn
           </div>
         </div>
         {!isNew && (
-          <button type="button" onClick={() => downloadTimesheetCsv(timesheet)} className="inline-flex items-center gap-2 bg-white text-gray-700 border border-gray-300 px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-gray-50 transition-colors flex-shrink-0">
+          <Button variant="outline" onClick={() => downloadTimesheetCsv(timesheet)} className="shrink-0">
             <Download className="h-4 w-4" /> Download
-          </button>
+          </Button>
         )}
       </div>
 
       {!isNew && timesheet.status === 'Rejected' && timesheet.rejectionReason && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
+        <Alert variant="destructive" className="p-3">
           <span className="font-semibold">Rejection reason: </span>{timesheet.rejectionReason}
-        </div>
+        </Alert>
       )}
       {!isNew && timesheet.status === 'Approved' && (
         <p className="text-sm text-gray-500">Approved by {timesheet.approverName} on {new Date(timesheet.approvedAt).toLocaleDateString()}.</p>
       )}
 
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+      <Card className="overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-gray-50/60 text-xs uppercase tracking-wide text-gray-500">
@@ -226,28 +227,28 @@ const TimesheetDetail = ({ apiService, user, timesheet, initialPeriod, initialEn
                 const taskSelectValue = isPreset ? entry.description : (entry.description ? 'Other' : '');
                 return (
                   <tr key={i}>
-                    <td className="px-3 py-2 min-w-[9.5rem]">
+                    <td className="px-3 py-2 min-w-38">
                       {canEdit ? (
                         <input type="date" value={entry.entryDate} onChange={(e) => updateEntry(i, 'entryDate', e.target.value)}
-                          className="w-full border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+                          className="w-full border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
                       ) : new Date(entry.entryDate).toLocaleDateString()}
                     </td>
-                    <td className="px-3 py-2 min-w-[9rem]">
+                    <td className="px-3 py-2 min-w-36">
                       {canEdit ? (
                         <select value={entry.projectId} onChange={(e) => updateEntry(i, 'projectId', e.target.value)}
-                          className="w-full border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                          className="w-full border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                           <option value="">Non-billable</option>
                           {projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
                         </select>
                       ) : (entry.projectId ? (entry.projectName || '—') : 'Non-billable')}
                     </td>
-                    <td className="px-3 py-2 min-w-[10rem]">
+                    <td className="px-3 py-2 min-w-40">
                       {canEdit ? (
                         <div className="space-y-1">
                           <select
                             value={taskSelectValue}
                             onChange={(e) => updateEntry(i, 'description', e.target.value === 'Other' ? '' : e.target.value)}
-                            className="w-full border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            className="w-full border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                           >
                             <option value="">Select a task...</option>
                             {TASK_PRESETS.map((p) => <option key={p} value={p}>{p}</option>)}
@@ -256,21 +257,21 @@ const TimesheetDetail = ({ apiService, user, timesheet, initialPeriod, initialEn
                           {taskSelectValue === 'Other' && (
                             <input type="text" value={entry.description} onChange={(e) => updateEntry(i, 'description', e.target.value)}
                               placeholder="What did you work on?" autoFocus
-                              className="w-full border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+                              className="w-full border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
                           )}
                         </div>
                       ) : (entry.description || '—')}
                     </td>
-                    <td className="px-3 py-2 min-w-[7rem]">
+                    <td className="px-3 py-2 min-w-28">
                       {canEdit ? (
                         <input type="time" value={entry.entryTime} onChange={(e) => updateEntry(i, 'entryTime', e.target.value)}
-                          className="w-full border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+                          className="w-full border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
                       ) : (entry.entryTime || (() => {
                         const d = new Date(entry.entryDate);
                         return hasTimeComponent(d) ? formatTime(d) : '—';
                       })())}
                     </td>
-                    <td className="px-3 py-2 min-w-[8.5rem]">
+                    <td className="px-3 py-2 min-w-34">
                       {canEdit ? (() => {
                         const { wholeHours, minutes } = splitHours(entry.hours);
                         return (
@@ -278,12 +279,12 @@ const TimesheetDetail = ({ apiService, user, timesheet, initialPeriod, initialEn
                             <input type="number" min="0" max="24" step="1" value={entry.hours ? wholeHours : ''}
                               onChange={(e) => updateEntry(i, 'hours', String(combineHours(e.target.value, minutes)))}
                               placeholder="0" aria-label="Hours"
-                              className="w-14 border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+                              className="w-14 border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
                             <span className="text-gray-400 text-xs">h</span>
                             <input type="number" min="0" max="59" step="5" value={entry.hours ? minutes : ''}
                               onChange={(e) => updateEntry(i, 'hours', String(combineHours(wholeHours, e.target.value)))}
                               placeholder="0" aria-label="Minutes"
-                              className="w-14 border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+                              className="w-14 border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
                             <span className="text-gray-400 text-xs">m</span>
                           </div>
                         );
@@ -307,7 +308,7 @@ const TimesheetDetail = ({ apiService, user, timesheet, initialPeriod, initialEn
             <Plus className="h-4 w-4" /> Add entry
           </button>
         )}
-      </div>
+      </Card>
 
       <div className="flex justify-end items-baseline gap-2 text-sm text-gray-600 bg-gray-50 rounded-lg px-4 py-2.5">
         Total: <span className="text-lg font-semibold text-gray-900">{formatDuration(totalHours)}</span>
@@ -315,66 +316,64 @@ const TimesheetDetail = ({ apiService, user, timesheet, initialPeriod, initialEn
 
       {showSubmitPrompt && (
         <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 space-y-2">
-          <label className="block text-sm text-gray-600" htmlFor="ts-cc-emails">CC anyone else (optional, e.g. your manager)</label>
-          <input
+          <Label className="mb-0" htmlFor="ts-cc-emails">CC anyone else (optional, e.g. your manager)</Label>
+          <Input
             id="ts-cc-emails"
             type="text"
             value={ccEmails}
             onChange={(e) => setCcEmails(e.target.value)}
             placeholder="manager@company.com, another@company.com"
-            className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
           />
         </div>
       )}
 
       {showRejectPrompt && (
         <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 space-y-2">
-          <label className="block text-sm text-gray-600" htmlFor="ts-reject-reason">Rejection reason</label>
-          <textarea
+          <Label className="mb-0" htmlFor="ts-reject-reason">Rejection reason</Label>
+          <Textarea
             id="ts-reject-reason"
             value={rejectReason}
             onChange={(e) => setRejectReason(e.target.value)}
             rows="2"
-            className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
           />
         </div>
       )}
 
       <div className="flex justify-end gap-3">
-        <button type="button" onClick={onClose} disabled={saving} className="inline-flex items-center gap-2 bg-white text-gray-700 border border-gray-300 px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-gray-50 transition-colors disabled:opacity-50">
+        <Button variant="outline" onClick={onClose} disabled={saving}>
           {canEdit || canApprove ? 'Cancel' : 'Back'}
-        </button>
+        </Button>
 
         {canApprove && !showRejectPrompt && (
-          <button type="button" onClick={() => setShowRejectPrompt(true)} disabled={saving} className="inline-flex items-center gap-2 bg-white text-red-600 border border-red-200 px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-red-50 transition-colors disabled:opacity-50">
+          <Button variant="outline" onClick={() => setShowRejectPrompt(true)} disabled={saving} className="text-red-600 border-red-200 hover:bg-red-50">
             <Ban className="h-4 w-4" /> Reject
-          </button>
+          </Button>
         )}
         {canApprove && showRejectPrompt && (
-          <button type="button" onClick={handleReject} disabled={saving} className="inline-flex items-center gap-2 bg-red-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-red-700 shadow-sm transition-colors disabled:opacity-50">
+          <Button variant="destructive" onClick={handleReject} disabled={saving}>
             {saving ? 'Rejecting...' : 'Confirm Reject'}
-          </button>
+          </Button>
         )}
         {canApprove && !showRejectPrompt && (
-          <button type="button" onClick={handleApprove} disabled={saving} className="inline-flex items-center gap-2 bg-green-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-green-700 shadow-sm transition-colors disabled:opacity-50">
+          <Button variant="success" onClick={handleApprove} disabled={saving}>
             <Check className="h-4 w-4" /> {saving ? 'Approving...' : 'Approve'}
-          </button>
+          </Button>
         )}
 
         {canEdit && (
-          <button type="button" onClick={handleSave} disabled={saving} className="inline-flex items-center gap-2 bg-white text-blue-600 border border-blue-200 px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-50 transition-colors disabled:opacity-50">
+          <Button variant="outline" onClick={handleSave} disabled={saving} className="text-blue-600 border-blue-200 hover:bg-blue-50">
             {saving ? 'Saving...' : isNew ? 'Create Draft' : 'Save Draft'}
-          </button>
+          </Button>
         )}
         {canEdit && !isNew && !showSubmitPrompt && (
-          <button type="button" onClick={() => setShowSubmitPrompt(true)} disabled={saving} className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors disabled:opacity-50">
+          <Button onClick={() => setShowSubmitPrompt(true)} disabled={saving}>
             <Send className="h-4 w-4" /> Submit
-          </button>
+          </Button>
         )}
         {canEdit && !isNew && showSubmitPrompt && (
-          <button type="button" onClick={handleSubmit} disabled={saving} className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors disabled:opacity-50">
+          <Button onClick={handleSubmit} disabled={saving}>
             {saving ? 'Submitting...' : 'Confirm Submit'}
-          </button>
+          </Button>
         )}
       </div>
     </div>

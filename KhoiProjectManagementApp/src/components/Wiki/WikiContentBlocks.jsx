@@ -34,7 +34,7 @@ const WikiContentBlocks = ({ content, comments, canWrite, currentUserId, canMana
   return (
     <div className="prose prose-sm max-w-none">
       {blocks.map((block, i) => (
-        <div key={i} className="group relative rounded hover:bg-blue-50/50 -mx-2 px-2">
+        <div key={i} className="group relative rounded-sm hover:bg-blue-50/50 -mx-2 px-2">
           <ReactMarkdown>{block}</ReactMarkdown>
 
           {canWrite && (
@@ -60,7 +60,7 @@ const WikiContentBlocks = ({ content, comments, canWrite, currentUserId, canMana
                   {(c.authorId === currentUserId || canManage) && (
                     <button
                       onClick={() => onDeleteComment(c.id)}
-                      className="text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md p-0.5 flex-shrink-0 ml-2 transition-colors"
+                      className="text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md p-0.5 shrink-0 ml-2 transition-colors"
                       aria-label="Delete comment"
                     >
                       <Trash2 className="h-3 w-3" />
@@ -80,9 +80,9 @@ const WikiContentBlocks = ({ content, comments, canWrite, currentUserId, canMana
                 onChange={(e) => setDraftBody(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') handleSubmit(i); }}
                 placeholder="Comment on this section..."
-                className="flex-1 border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                className="flex-1 border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
               />
-              <button onClick={() => handleSubmit(i)} className="inline-flex items-center text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg font-semibold hover:bg-blue-700 shadow-sm transition-colors">
+              <button onClick={() => handleSubmit(i)} className="inline-flex items-center text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg font-semibold hover:bg-blue-700 shadow-xs transition-colors">
                 Add
               </button>
               <button onClick={() => { setCommentingIndex(null); setDraftBody(''); }} className="text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md px-2 py-1.5 transition-colors">

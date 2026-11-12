@@ -65,15 +65,15 @@ const PmAccessAdmin = ({ apiService }) => {
     <div className="space-y-4">
       <section aria-label="Access levels explained" className={`${cardClass} grid gap-4 p-4 sm:grid-cols-3`}>
         <div className="flex gap-3">
-          <Eye className="mt-0.5 h-5 w-5 flex-shrink-0 text-gray-500" aria-hidden="true" />
+          <Eye className="mt-0.5 h-5 w-5 shrink-0 text-gray-500" aria-hidden="true" />
           <div><p className="text-sm font-semibold text-gray-900">Read only</p><p className="text-xs text-gray-500">Can see everything on the projects they belong to, and change nothing, whatever their project role.</p></div>
         </div>
         <div className="flex gap-3">
-          <Pencil className="mt-0.5 h-5 w-5 flex-shrink-0 text-blue-600" aria-hidden="true" />
+          <Pencil className="mt-0.5 h-5 w-5 shrink-0 text-blue-600" aria-hidden="true" />
           <div><p className="text-sm font-semibold text-gray-900">Read &amp; write</p><p className="text-xs text-gray-500">Can read and change work as their project role allows (a Viewer role stays read only).</p></div>
         </div>
         <div className="flex gap-3">
-          <Lock className="mt-0.5 h-5 w-5 flex-shrink-0 text-violet-600" aria-hidden="true" />
+          <Lock className="mt-0.5 h-5 w-5 shrink-0 text-violet-600" aria-hidden="true" />
           <div><p className="text-sm font-semibold text-gray-900">Module only</p><p className="text-xs text-gray-500">Confines the account to this module: it cannot open any other part of the app.</p></div>
         </div>
       </section>
@@ -81,7 +81,7 @@ const PmAccessAdmin = ({ apiService }) => {
       <div className="relative max-w-sm">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" aria-hidden="true" />
         <input aria-label="Find a person" placeholder="Find a person" value={query} onChange={(e) => setQuery(e.target.value)}
-          className="w-full rounded-lg border border-gray-300 py-2 pl-9 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          className="w-full rounded-lg border border-gray-300 py-2 pl-9 pr-3 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500" />
       </div>
 
       <div className={`${cardClass} overflow-x-auto`}>
@@ -122,7 +122,7 @@ const PmAccessAdmin = ({ apiService }) => {
                   </td>
                   <td className="px-4 py-3">
                     <input type="checkbox" aria-label={`Confine ${u.name} to the Project Management module`} checked={u.pmOnly} disabled={level === 'none' || savingId === u.id}
-                      onChange={(e) => update(u, { pmOnly: e.target.checked })} className="h-4 w-4 rounded border-gray-300 text-blue-600 disabled:opacity-40" />
+                      onChange={(e) => update(u, { pmOnly: e.target.checked })} className="h-4 w-4 rounded-sm border-gray-300 text-blue-600 disabled:opacity-40" />
                   </td>
                 </tr>
               );

@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Clock, CheckCircle, RotateCcw, MoreVertical } from 'lucide-react';
 import PriorityBadge from '../Common/PriorityBadge';
 import StatusBadge from '../Common/StatusBadge';
+import { Card } from '../ui';
 
 const STATUS_COLORS = {
   Pending: 'bg-[#EEEEFF] text-[#4131B0]',
@@ -43,11 +44,11 @@ const SnoozeMenu = ({ onSnooze, onClose }) => {
             type="datetime-local"
             value={customValue}
             onChange={(e) => setCustomValue(e.target.value)}
-            className="flex-1 border rounded px-1 py-0.5 text-xs"
+            className="flex-1 border rounded-sm px-1 py-0.5 text-xs"
           />
           <button
             onClick={() => { if (customValue) { onSnooze(new Date(customValue).toISOString()); onClose(); } }}
-            className="text-xs bg-blue-600 text-white px-2 rounded"
+            className="text-xs bg-blue-600 text-white px-2 rounded-sm"
           >
             Set
           </button>
@@ -62,7 +63,7 @@ const ReminderList = ({ reminders, selectedId, selectedIds, onSelect, onToggleSe
   const allSelected = reminders.length > 0 && reminders.every((r) => selectedIds.includes(r.id));
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+    <Card className="overflow-hidden">
       {/* Desktop table */}
       <table className="w-full text-sm hidden md:table">
         <thead className="bg-gray-50 border-b text-left text-xs text-gray-500 uppercase">
@@ -187,7 +188,7 @@ const ReminderList = ({ reminders, selectedId, selectedIds, onSelect, onToggleSe
           </div>
         ))}
       </div>
-    </div>
+    </Card>
   );
 };
 

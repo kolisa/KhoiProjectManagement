@@ -5,7 +5,7 @@ import { useConfirm } from '../../contexts/ConfirmContext';
 import { reportApiError } from '../../utils/apiError';
 import { STATUS_STYLES, TYPE_STYLES, statusLabel } from './pmConstants';
 
-const fieldClass = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500';
+const fieldClass = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500';
 const btnPrimary = 'px-3 py-1.5 text-sm rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 disabled:opacity-60';
 const btnGhost = 'px-3 py-1.5 text-sm rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50';
 
@@ -18,7 +18,7 @@ const MentionText = ({ text, members }) => {
   if (names.length === 0) return <>{text}</>;
   const re = new RegExp(`(@(?:${names.map(escapeRegExp).join('|')}))`, 'gi');
   return text.split(re).map((part, i) => (i % 2 === 1
-    ? <span key={i} className="font-medium text-blue-700 bg-blue-50 rounded px-0.5">{part}</span>
+    ? <span key={i} className="font-medium text-blue-700 bg-blue-50 rounded-sm px-0.5">{part}</span>
     : <React.Fragment key={i}>{part}</React.Fragment>));
 };
 
@@ -122,7 +122,7 @@ const CommentsPanel = ({ apiService, itemId, members, canComment, reason, onCoun
                 </div>
               </div>
             ) : (
-              <p className="mt-1 text-sm text-gray-800 whitespace-pre-wrap break-words"><MentionText text={c.body} members={members} /></p>
+              <p className="mt-1 text-sm text-gray-800 whitespace-pre-wrap wrap-break-word"><MentionText text={c.body} members={members} /></p>
             )}
           </li>
         ))}
@@ -196,8 +196,8 @@ const ChecklistPanel = ({ apiService, itemId, canEdit, reason, onCount }) => {
           <li key={i.id} className="flex items-center gap-2 group">
             <input id={`cl-${i.id}`} type="checkbox" checked={i.isDone} disabled={!canEdit}
               onChange={(e) => run(() => apiService.updateChecklistItem(i.id, i.text, e.target.checked), 'Could not update the item.')}
-              className="h-4 w-4 rounded border-gray-300 text-blue-600" />
-            <label htmlFor={`cl-${i.id}`} className={`flex-1 text-sm break-words ${i.isDone ? 'line-through text-gray-400' : 'text-gray-800'}`}>{i.text}</label>
+              className="h-4 w-4 rounded-sm border-gray-300 text-blue-600" />
+            <label htmlFor={`cl-${i.id}`} className={`flex-1 text-sm wrap-break-word ${i.isDone ? 'line-through text-gray-400' : 'text-gray-800'}`}>{i.text}</label>
             <button aria-label={`Remove ${i.text}`} onClick={() => run(() => apiService.deleteChecklistItem(i.id), 'Could not remove the item.')} disabled={!canEdit} title={reason || undefined}
               className="text-gray-300 hover:text-red-600 disabled:hover:text-gray-300 disabled:cursor-not-allowed"><Trash2 className="h-3.5 w-3.5" /></button>
           </li>
@@ -284,8 +284,8 @@ const LinksPanel = ({ apiService, item, items, canEdit, reason, onCount, active 
       <ul className="space-y-1.5">
         {links.map((l) => (
           <li key={l.id} className="flex items-center gap-2 text-sm bg-gray-50 rounded-lg px-3 py-2">
-            <span className="text-xs font-medium text-gray-500 w-24 flex-shrink-0">{l.relation}</span>
-            <span className={`px-1.5 py-0.5 rounded text-[10.5px] font-semibold ${TYPE_STYLES[l.otherType] || 'bg-gray-100 text-gray-700'}`}>{l.otherType}</span>
+            <span className="text-xs font-medium text-gray-500 w-24 shrink-0">{l.relation}</span>
+            <span className={`px-1.5 py-0.5 rounded-sm text-[10.5px] font-semibold ${TYPE_STYLES[l.otherType] || 'bg-gray-100 text-gray-700'}`}>{l.otherType}</span>
             <span className="flex-1 truncate text-gray-800" title={l.otherTitle}>#{l.otherId} {l.otherTitle}</span>
             <span className={`px-2 py-0.5 rounded-full text-[11px] font-medium ${STATUS_STYLES[l.otherStatus] || 'bg-gray-100 text-gray-700'}`}>{statusLabel(l.otherStatus)}</span>
             <button aria-label={`Remove link to ${l.otherTitle}`} onClick={() => remove(l.id)} disabled={!canEdit} title={reason || undefined} className="text-gray-300 hover:text-red-600 disabled:hover:text-gray-300 disabled:cursor-not-allowed"><X className="h-4 w-4" /></button>
@@ -296,7 +296,7 @@ const LinksPanel = ({ apiService, item, items, canEdit, reason, onCount, active 
         <select aria-label="Link type" value={type} onChange={(e) => setType(e.target.value)} disabled={!canEdit} className="border border-gray-300 rounded-lg px-2 py-2 text-sm bg-white disabled:bg-gray-50 disabled:cursor-not-allowed">
           {LINK_TYPES.map((t) => <option key={t.key} value={t.key}>{t.label}</option>)}
         </select>
-        <select aria-label="Item to link" value={targetId} onChange={(e) => setTargetId(e.target.value)} disabled={!canEdit} className="flex-1 min-w-[10rem] border border-gray-300 rounded-lg px-2 py-2 text-sm bg-white disabled:bg-gray-50 disabled:cursor-not-allowed">
+        <select aria-label="Item to link" value={targetId} onChange={(e) => setTargetId(e.target.value)} disabled={!canEdit} className="flex-1 min-w-40 border border-gray-300 rounded-lg px-2 py-2 text-sm bg-white disabled:bg-gray-50 disabled:cursor-not-allowed">
           <option value="">Select an item…</option>
           {candidates.map((i) => <option key={i.id} value={i.id}>#{i.id} {i.title}</option>)}
         </select>
@@ -321,8 +321,8 @@ const ImageThumb = ({ apiService, attachment }) => {
       .catch(() => {});
     return () => { cancelled = true; if (url) window.URL.revokeObjectURL(url); };
   }, [apiService, attachment.id]);
-  if (!src) return <div className="h-12 w-12 rounded bg-gray-200 flex-shrink-0" aria-hidden="true" />;
-  return <img src={src} alt={attachment.fileName} className="h-12 w-12 rounded object-cover flex-shrink-0" />;
+  if (!src) return <div className="h-12 w-12 rounded-sm bg-gray-200 shrink-0" aria-hidden="true" />;
+  return <img src={src} alt={attachment.fileName} className="h-12 w-12 rounded-sm object-cover shrink-0" />;
 };
 
 const AttachmentsPanel = ({ apiService, itemId, canUpload, reason, onCount, active }) => {
@@ -378,7 +378,7 @@ const AttachmentsPanel = ({ apiService, itemId, canUpload, reason, onCount, acti
       <ul className="space-y-1.5">
         {files.map((f) => (
           <li key={f.id} className="flex items-center gap-3 bg-gray-50 rounded-lg px-3 py-2">
-            {f.isImage && active && f.fileSize <= THUMB_MAX_BYTES ? <ImageThumb apiService={apiService} attachment={f} /> : <Paperclip className="h-5 w-5 text-gray-400 flex-shrink-0" aria-hidden="true" />}
+            {f.isImage && active && f.fileSize <= THUMB_MAX_BYTES ? <ImageThumb apiService={apiService} attachment={f} /> : <Paperclip className="h-5 w-5 text-gray-400 shrink-0" aria-hidden="true" />}
             <div className="flex-1 min-w-0">
               <div className="text-sm text-gray-800 truncate" title={f.fileName}>{f.fileName}</div>
               <div className="text-xs text-gray-500">{formatSize(f.fileSize)} · {f.uploadedBy} · {formatWhen(f.uploadedAt)}</div>
@@ -422,7 +422,7 @@ const ActivityPanel = ({ apiService, itemId, active }) => {
     <ol className="space-y-2">
       {entries.map((e, i) => (
         <li key={`${e.when}-${i}`} className="flex gap-2 text-sm">
-          <span className={`mt-1.5 h-2 w-2 rounded-full flex-shrink-0 ${e.kind === 'status' ? 'bg-blue-500' : 'bg-gray-300'}`} aria-hidden="true" />
+          <span className={`mt-1.5 h-2 w-2 rounded-full shrink-0 ${e.kind === 'status' ? 'bg-blue-500' : 'bg-gray-300'}`} aria-hidden="true" />
           <span className="flex-1 text-gray-800"><span className="font-medium">{e.actorName}</span> {e.text}</span>
           <span className="text-xs text-gray-500 whitespace-nowrap">{formatWhen(e.when)}</span>
         </li>
@@ -482,7 +482,7 @@ const LabelsEditor = ({ apiService, item, canEdit, reason, onChanged }) => {
         <form onSubmit={add} className="inline-flex" title={!canEdit ? reason || undefined : undefined}>
           <label htmlFor="pm-label-input" className="sr-only">Add a label{!canEdit && reason ? ` (${reason})` : ''}</label>
           <input id="pm-label-input" list="pm-label-options" value={draft} onChange={(e) => setDraft(e.target.value)} maxLength={30} disabled={busy || !canEdit}
-            placeholder="Add label…" className="border border-gray-300 rounded-full px-2.5 py-0.5 text-xs w-28 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:cursor-not-allowed" />
+            placeholder="Add label…" className="border border-gray-300 rounded-full px-2.5 py-0.5 text-xs w-28 focus:outline-hidden focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:cursor-not-allowed" />
           <datalist id="pm-label-options">{known.map((k) => <option key={k.id} value={k.name} />)}</datalist>
         </form>
       </div>

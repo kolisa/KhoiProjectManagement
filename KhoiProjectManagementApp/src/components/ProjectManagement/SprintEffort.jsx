@@ -23,7 +23,7 @@ const ItemRow = ({ item }) => {
       <button type="button" aria-expanded={open} onClick={() => setOpen((o) => !o)}
         className="flex w-full items-center gap-2 px-4 py-2 pl-10 text-left text-sm hover:bg-gray-50">
         <ChevronRight className={`h-3.5 w-3.5 shrink-0 text-gray-400 transition-transform ${open ? 'rotate-90' : ''}`} aria-hidden="true" />
-        <span className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ${TYPE_STYLES[item.type] || 'bg-gray-100 text-gray-700'}`}>{item.type}</span>
+        <span className={`rounded-sm px-1.5 py-0.5 text-[10px] font-semibold ${TYPE_STYLES[item.type] || 'bg-gray-100 text-gray-700'}`}>{item.type}</span>
         <span className="min-w-0 flex-1 truncate text-gray-900">
           {item.title}{item.parentTitle && <span className="text-gray-500"> · in {item.parentTitle}</span>}
         </span>

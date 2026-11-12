@@ -1,25 +1,21 @@
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
-import useModalA11y from '../Common/useModalA11y';
+import { Button, Modal } from '../ui';
 
-const fieldClass = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500';
+const fieldClass = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500';
 const labelClass = 'block text-sm font-medium text-gray-700 mb-1';
 
-const Shell = ({ title, titleId, onClose, children }) => {
-  const ref = useModalA11y(onClose);
-  return (
-    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-      <div ref={ref} role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1}
-        className="bg-white rounded-xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
-          <h2 id={titleId} className="text-lg font-semibold text-gray-900">{title}</h2>
-          <button onClick={onClose} aria-label="Close" className="text-gray-400 hover:text-gray-600"><X className="h-5 w-5" /></button>
-        </div>
-        {children}
+const Shell = ({ title, titleId, onClose, children }) => (
+  <Modal onClose={onClose} size="md" closeOnBackdrop={false} padded={false} titleId={titleId}
+    header={(
+      <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
+        <h2 id={titleId} className="text-lg font-semibold text-gray-900">{title}</h2>
+        <button onClick={onClose} aria-label="Close" className="text-gray-400 hover:text-gray-600"><X className="h-5 w-5" /></button>
       </div>
-    </div>
-  );
-};
+    )}>
+    {children}
+  </Modal>
+);
 
 const toDateInput = (d) => (d ? new Date(d).toISOString().slice(0, 10) : '');
 
@@ -84,8 +80,8 @@ export const SprintModal = ({ sprint, onSave, onClose }) => {
           <input id="sp-cap" type="number" min="0" max="1000" className={fieldClass} value={form.capacity} onChange={set('capacity')} placeholder="Optional" />
         </div>
         <div className="flex justify-end gap-2 pt-2">
-          <button type="button" onClick={onClose} className="px-4 py-2 text-sm rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50">Cancel</button>
-          <button type="submit" disabled={saving} className="px-4 py-2 text-sm rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 disabled:opacity-60">{saving ? 'Saving…' : 'Save'}</button>
+          <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+          <Button type="submit" disabled={saving}>{saving ? 'Saving…' : 'Save'}</Button>
         </div>
       </form>
     </Shell>
@@ -130,8 +126,8 @@ export const CompleteSprintModal = ({ sprint, unfinishedCount, plannedSprints, o
         )}
         <p className="text-xs text-gray-500">Completing locks the sprint's velocity. This cannot be undone.</p>
         <div className="flex justify-end gap-2 pt-2">
-          <button type="button" onClick={onClose} className="px-4 py-2 text-sm rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50">Cancel</button>
-          <button type="submit" disabled={saving} className="px-4 py-2 text-sm rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 disabled:opacity-60">{saving ? 'Completing…' : 'Complete sprint'}</button>
+          <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+          <Button type="submit" disabled={saving}>{saving ? 'Completing…' : 'Complete sprint'}</Button>
         </div>
       </form>
     </Shell>

@@ -26,7 +26,7 @@ const Card = ({ title, children, empty }) => (
 
 const ItemRow = ({ item }) => (
   <li className="flex items-center gap-2 py-1.5 text-sm">
-    <span className={`px-1.5 py-0.5 rounded text-[10.5px] font-semibold ${TYPE_STYLES[item.type] || 'bg-gray-100 text-gray-700'}`}>{item.type}</span>
+    <span className={`px-1.5 py-0.5 rounded-sm text-[10.5px] font-semibold ${TYPE_STYLES[item.type] || 'bg-gray-100 text-gray-700'}`}>{item.type}</span>
     <span className="flex-1 truncate text-gray-900" title={item.title}>#{item.id} {item.title}</span>
     <PriorityBadge priority={item.priority} />
     <span className={`text-xs w-16 text-right ${item.isOverdue ? 'text-red-600 font-medium' : 'text-gray-500'}`}>{item.hasDueDate ? fmtDay(item.dueDate) : '–'}</span>
@@ -90,7 +90,7 @@ const PmOverview = ({ apiService, project }) => {
           <ul className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
             {STATUSES.map((s) => (
               <li key={s.key} className="flex items-center gap-2">
-                <span className={`h-2.5 w-2.5 rounded-sm ${SEGMENT_COLORS[s.key]}`} aria-hidden="true" />
+                <span className={`h-2.5 w-2.5 rounded-xs ${SEGMENT_COLORS[s.key]}`} aria-hidden="true" />
                 <span className="text-gray-700">{statusLabel(s.key)}</span>
                 <span className="ml-auto tabular-nums text-gray-900">{data.statusCounts[s.key] || 0}</span>
               </li>

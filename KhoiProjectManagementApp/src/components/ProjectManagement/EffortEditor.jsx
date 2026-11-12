@@ -6,7 +6,7 @@ import { reportApiError } from '../../utils/apiError';
 import { EFFORT_CATEGORIES, fmtPoints } from './pmConstants';
 import Combobox, { peopleOptions } from './Combobox';
 
-const inputClass = 'w-full border border-gray-300 rounded-lg px-2 py-1 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed';
+const inputClass = 'w-full border border-gray-300 rounded-lg px-2 py-1 text-sm text-right focus:outline-hidden focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed';
 
 // A cell in the editor: text (what is typed) or N/A. Empty text = not allocated (nothing is saved for it).
 const cellFrom = (c) => (c ? (c.points == null ? { text: '', na: true } : { text: String(c.points), na: false }) : { text: '', na: false });
@@ -114,7 +114,7 @@ const EffortEditor = ({ apiService, item, members, canEdit, reason, onSaved, onD
                       onChange={(e) => setCell(r.userId, c.key, { text: e.target.value })} className={inputClass} />
                     <label className="mt-0.5 flex items-center gap-1 text-[11px] text-gray-500">
                       <input type="checkbox" checked={cell.na} disabled={!canEdit} aria-label={`${c.label} is not applicable for ${nameOf(r.userId)}`}
-                        onChange={(e) => setCell(r.userId, c.key, { na: e.target.checked, text: e.target.checked ? '' : cell.text })} className="h-3 w-3 rounded border-gray-300" /> N/A
+                        onChange={(e) => setCell(r.userId, c.key, { na: e.target.checked, text: e.target.checked ? '' : cell.text })} className="h-3 w-3 rounded-sm border-gray-300" /> N/A
                     </label>
                   </div>
                 );

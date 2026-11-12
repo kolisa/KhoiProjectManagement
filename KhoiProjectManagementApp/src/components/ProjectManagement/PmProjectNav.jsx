@@ -3,7 +3,7 @@ import { Search, ListTodo, ShieldCheck, Eye } from 'lucide-react';
 import { Avatar } from './pmUi';
 import { roleLabel } from './pmConstants';
 
-const itemBase = 'group flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500';
+const itemBase = 'group flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left text-sm transition-colors focus:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500';
 const itemIdle = 'text-gray-700 hover:bg-gray-100';
 const itemActive = 'bg-blue-50 text-blue-800 font-medium';
 
@@ -46,7 +46,7 @@ const PmProjectNav = ({ projects, route, canAdminAccess, onOpenProject, onOpenSe
         <div className="relative mb-1.5 px-0.5">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" aria-hidden="true" />
           <input aria-label="Find a project" placeholder="Find a project" value={query} onChange={(e) => setQuery(e.target.value)}
-            className="w-full rounded-lg border border-gray-300 py-1.5 pl-8 pr-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            className="w-full rounded-lg border border-gray-300 py-1.5 pl-8 pr-2 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500" />
         </div>
       )}
       {shown.length === 0 ? (

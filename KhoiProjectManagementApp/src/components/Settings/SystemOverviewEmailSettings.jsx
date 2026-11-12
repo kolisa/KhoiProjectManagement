@@ -8,6 +8,7 @@ import { Clock } from 'lucide-react';
 import Toggle from '../Common/Toggle';
 import { useToast } from '../../contexts/ToastContext';
 import { reportApiError } from '../../utils/apiError';
+import { Button, Label } from '../ui';
 
 // Matches JS Date.getDay()'s own 0-6 numbering, so the API's int-serialized DayOfWeek needs no
 // translation table.
@@ -87,13 +88,13 @@ const SystemOverviewEmailSettings = ({ apiService }) => {
 
       <div className="flex flex-wrap items-end gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="overview-email-day">Day</label>
+          <Label htmlFor="overview-email-day">Day</Label>
           <select
             id="overview-email-day"
             value={dayOfWeek}
             disabled={saving}
             onChange={(e) => setDayOfWeek(Number(e.target.value))}
-            className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
             {DAY_LABELS.map((label, index) => (
               <option key={label} value={index}>{label}</option>
@@ -102,25 +103,24 @@ const SystemOverviewEmailSettings = ({ apiService }) => {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="overview-email-time">Time</label>
+          <Label htmlFor="overview-email-time">Time</Label>
           <input
             id="overview-email-time"
             type="time"
             value={time}
             disabled={saving}
             onChange={(e) => setTime(e.target.value)}
-            className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           />
         </div>
 
-        <button
-          type="button"
+        <Button
           onClick={handleSave}
           disabled={saving}
-          className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors disabled:opacity-50"
+          
         >
           {saving ? 'Saving...' : 'Save'}
-        </button>
+        </Button>
       </div>
 
       {lastChanged && (

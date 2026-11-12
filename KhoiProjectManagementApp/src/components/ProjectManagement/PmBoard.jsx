@@ -205,7 +205,7 @@ const PmBoard = ({ apiService, project, members }) => {
           <Plus className="h-4 w-4" aria-hidden="true" /> New sprint
         </button>
         <select aria-label="Group cards into swimlanes" value={laneMode} onChange={(e) => setLaneMode(e.target.value)}
-          className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+          className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500">
           {LANE_MODES.map((m) => <option key={m.key} value={m.key}>{m.label}</option>)}
         </select>
         <span className="text-xs text-gray-500">{allCards.length} card{allCards.length === 1 ? '' : 's'} · Epics and Features stay on the backlog</span>
@@ -224,7 +224,7 @@ const PmBoard = ({ apiService, project, members }) => {
       {sprint && (
         <div role="region" aria-label={`${sprint.name} summary`} className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-xl border border-blue-100 bg-blue-50/60 px-4 py-2.5">
           <span className="text-sm font-semibold text-gray-900">{sprint.name}</span>
-          <span className={`text-[11px] font-semibold rounded px-2 py-0.5 ${sprint.state === 'Active' ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-600'}`}>{sprint.state}</span>
+          <span className={`text-[11px] font-semibold rounded-sm px-2 py-0.5 ${sprint.state === 'Active' ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-600'}`}>{sprint.state}</span>
           <span className="text-xs text-gray-600">{new Date(sprint.startDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} – {new Date(sprint.endDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}{daysLeft != null && ` · ${daysLeft > 0 ? `${daysLeft} day${daysLeft === 1 ? '' : 's'} left` : 'ends today or overdue'}`}</span>
           <span className="text-xs text-gray-600">{sprint.donePoints} / {sprint.totalPoints} pts done</span>
           {sprint.goal && <span className="flex items-center gap-1 text-xs text-gray-700"><Target className="h-3.5 w-3.5 text-blue-500" aria-hidden="true" />{sprint.goal}</span>}
@@ -287,7 +287,7 @@ const PmBoard = ({ apiService, project, members }) => {
               onDragOver={(e) => { if (drag && canEdit && moveAllowed(drag.fromStatus, col.status)) { e.preventDefault(); setOverStatus(col.status); } }}
               onDragLeave={() => setOverStatus((s) => (s === col.status ? null : s))}
               onDrop={(e) => { e.preventDefault(); dropOn(col.status, null); }}
-              className={`w-72 flex-shrink-0 rounded-xl bg-gray-50 border ${overStatus === col.status ? 'border-blue-400 ring-2 ring-blue-200' : 'border-gray-200'}`}
+              className={`w-72 shrink-0 rounded-xl bg-gray-50 border ${overStatus === col.status ? 'border-blue-400 ring-2 ring-blue-200' : 'border-gray-200'}`}
             >
               <header className="flex items-center justify-between px-3 py-2.5">
                 <h3 className="flex items-center gap-2 text-sm font-semibold text-gray-800"><span className={`h-2.5 w-2.5 rounded-full ${STATUS_DOT[col.status] || 'bg-gray-400'}`} aria-hidden="true" />{col.name}</h3>
@@ -298,7 +298,7 @@ const PmBoard = ({ apiService, project, members }) => {
                 </span>
               </header>
 
-              <ul className="px-2 pb-2 space-y-2 min-h-[4rem]">
+              <ul className="px-2 pb-2 space-y-2 min-h-16">
                 {cards.map((item) => {
                   const timing = cardTiming(item);
                   return (
@@ -309,13 +309,13 @@ const PmBoard = ({ apiService, project, members }) => {
                       onDragEnd={() => { setDrag(null); setOverStatus(null); }}
                       onDragOver={(e) => { if (drag && drag.id !== item.id && canEdit && moveAllowed(drag.fromStatus, col.status)) e.preventDefault(); }}
                       onDrop={(e) => { e.preventDefault(); e.stopPropagation(); if (drag && drag.id !== item.id) dropOn(col.status, item.id); }}
-                      className={`bg-white rounded-lg border border-gray-200 shadow-sm p-3 transition-shadow hover:border-gray-300 hover:shadow-md ${canEdit ? 'cursor-grab' : ''} ${drag?.id === item.id ? 'opacity-40' : ''}`}
+                      className={`bg-white rounded-lg border border-gray-200 shadow-xs p-3 transition-shadow hover:border-gray-300 hover:shadow-md ${canEdit ? 'cursor-grab' : ''} ${drag?.id === item.id ? 'opacity-40' : ''}`}
                     >
                       <button onClick={() => setEditing(item)} className="block w-full text-left">
-                        <span className="block text-sm font-medium text-gray-900 break-words">{item.title}</span>
+                        <span className="block text-sm font-medium text-gray-900 wrap-break-word">{item.title}</span>
                       </button>
                       <div className="flex flex-wrap items-center gap-1.5 mt-2">
-                        <span className={`px-1.5 py-0.5 rounded text-[10.5px] font-semibold ${TYPE_STYLES[item.type] || 'bg-gray-100 text-gray-700'}`}>{item.type}</span>
+                        <span className={`px-1.5 py-0.5 rounded-sm text-[10.5px] font-semibold ${TYPE_STYLES[item.type] || 'bg-gray-100 text-gray-700'}`}>{item.type}</span>
                         <PriorityBadge priority={item.priority} />
                         {item.storyPoints != null && <span className="text-[11px] font-semibold bg-gray-100 text-gray-700 rounded-full px-2 py-0.5" title="Story points">{item.storyPoints}</span>}
                         {item.isOverdue && <span className="text-[11px] font-medium text-red-600">overdue</span>}
@@ -327,12 +327,12 @@ const PmBoard = ({ apiService, project, members }) => {
                           {timing && <span title="Time since work started">{timing}</span>}
                         </span>
                         {item.assignedToId != null ? (
-                          <span className="flex-shrink-0" title={item.assignedToName}>
+                          <span className="shrink-0" title={item.assignedToName}>
                             <Avatar name={item.assignedToName || '?'} size="sm" />
                             <span className="sr-only">Assigned to {item.assignedToName}</span>
                           </span>
                         ) : (
-                          <span className="flex-shrink-0 inline-flex h-7 w-7 items-center justify-center rounded-full border border-dashed border-gray-300 text-gray-400" title="Unassigned">
+                          <span className="shrink-0 inline-flex h-7 w-7 items-center justify-center rounded-full border border-dashed border-gray-300 text-gray-400" title="Unassigned">
                             <UserRound className="h-3.5 w-3.5" aria-hidden="true" /><span className="sr-only">Unassigned</span>
                           </span>
                         )}
@@ -340,7 +340,7 @@ const PmBoard = ({ apiService, project, members }) => {
                       <label className="block mt-2">
                         <span className="sr-only">Move {item.title} to</span>
                         <select value={item.status} onChange={(e) => move(item.id, e.target.value, null)} disabled={!canEdit} title={editReason || undefined}
-                          className="w-full border border-gray-200 rounded px-2 py-1 text-xs bg-white text-gray-600 disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed">
+                          className="w-full border border-gray-200 rounded-sm px-2 py-1 text-xs bg-white text-gray-600 disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed">
                           {board.columns.map((c) => <option key={c.status} value={c.status} disabled={!moveAllowed(item.status, c.status)}>{c.name}</option>)}
                         </select>
                       </label>

@@ -51,13 +51,13 @@ const SentEmailsView = ({ apiService }) => {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search recipient..."
-            className="w-full border border-gray-300 rounded-md pl-8 pr-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full border border-gray-300 rounded-md pl-8 pr-2.5 py-1.5 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           />
         </div>
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="text-sm border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          className="text-sm border border-gray-300 rounded-md px-2 py-1.5 focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         >
           <option value="all">All statuses</option>
           <option value="Pending">Pending</option>
@@ -162,14 +162,14 @@ const ErrorLogsView = ({ apiService }) => {
         <select
           value={selectedDate}
           onChange={(e) => setSelectedDate(e.target.value)}
-          className="text-sm border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          className="text-sm border border-gray-300 rounded-md px-2 py-1.5 focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         >
           {dates.map((d) => <option key={d} value={d}>{d}</option>)}
         </select>
         <select
           value={levelFilter}
           onChange={(e) => setLevelFilter(e.target.value)}
-          className="text-sm border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          className="text-sm border border-gray-300 rounded-md px-2 py-1.5 focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         >
           <option value="">All levels</option>
           <option value="Warning">Warning</option>
@@ -182,7 +182,7 @@ const ErrorLogsView = ({ apiService }) => {
       ) : entries.length === 0 ? (
         <div className="text-sm text-gray-400 italic p-4 text-center">No matching entries for this day.</div>
       ) : (
-        <div className="bg-gray-900 rounded-2xl p-4 max-h-[28rem] overflow-y-auto font-mono text-xs space-y-2">
+        <div className="bg-gray-900 rounded-2xl p-4 max-h-112 overflow-y-auto font-mono text-xs space-y-2">
           {entries.map((entry, i) => (
             <div key={i} className="whitespace-pre-wrap break-all">
               <span className="text-gray-500">{entry.timestamp ? new Date(entry.timestamp).toLocaleString() : ''}</span>{' '}
@@ -236,13 +236,13 @@ const LoginsView = ({ apiService }) => {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search email..."
-            className="w-full border border-gray-300 rounded-md pl-8 pr-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full border border-gray-300 rounded-md pl-8 pr-2.5 py-1.5 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           />
         </div>
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="text-sm border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          className="text-sm border border-gray-300 rounded-md px-2 py-1.5 focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         >
           <option value="all">All attempts</option>
           <option value="success">Success only</option>
@@ -346,7 +346,7 @@ const PageVisitsView = ({ apiService, teamMembers = [] }) => {
         <select
           value={userFilter}
           onChange={(e) => setUserFilter(e.target.value)}
-          className="text-sm border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          className="text-sm border border-gray-300 rounded-md px-2 py-1.5 focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         >
           <option value="all">All users</option>
           {teamMembers.map((member) => (
@@ -356,7 +356,7 @@ const PageVisitsView = ({ apiService, teamMembers = [] }) => {
         <select
           value={tabFilter}
           onChange={(e) => setTabFilter(e.target.value)}
-          className="text-sm border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          className="text-sm border border-gray-300 rounded-md px-2 py-1.5 focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         >
           <option value="all">All pages</option>
           {Object.entries(TAB_LABELS).map(([key, label]) => (

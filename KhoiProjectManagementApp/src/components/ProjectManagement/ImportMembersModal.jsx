@@ -1,17 +1,16 @@
 import React, { useState } from 'react';
 import { X, Download, Upload } from 'lucide-react';
-import useModalA11y from '../Common/useModalA11y';
+import { Button, Modal } from '../ui';
 import { useToast } from '../../contexts/ToastContext';
 import { reportApiError } from '../../utils/apiError';
 import { PROJECT_ROLES, roleLabel } from './pmConstants';
 import { parseMemberRows, MEMBER_TEMPLATE_CSV, downloadText, OUTCOME_STYLES, OUTCOME_LABELS } from './pmImport';
 
-const fieldClass = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500';
+const fieldClass = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500';
 
 // Bulk add / re-role people on a project from a pasted or uploaded list. Nothing changes until the person
 // has seen a preview: the first step is always a dry run that says, row by row, what would happen.
 const ImportMembersModal = ({ apiService, project, otherProjects = [], canGrantAccess, onImported, onClose }) => {
-  const ref = useModalA11y(onClose);
   const toast = useToast();
   const [text, setText] = useState('');
   const [defaultRole, setDefaultRole] = useState('Developer');
@@ -69,19 +68,19 @@ const ImportMembersModal = ({ apiService, project, otherProjects = [], canGrantA
   const changes = preview ? preview.added + preview.updated : 0;
 
   return (
-    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-      <div ref={ref} role="dialog" aria-modal="true" aria-labelledby="import-members-title" tabIndex={-1}
-        className="bg-white rounded-xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+    <Modal onClose={onClose} size={null} className="max-w-3xl" closeOnBackdrop={false} padded={false} titleId="import-members-title"
+      header={(
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
           <h2 id="import-members-title" className="text-lg font-semibold text-gray-900">Import members into {project.name}</h2>
           <button onClick={onClose} aria-label="Close" className="text-gray-400 hover:text-gray-600"><X className="h-5 w-5" /></button>
         </div>
+      )}>
 
         <div className="p-5 space-y-4">
           {error && <div role="alert" className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</div>}
 
           <p className="text-sm text-gray-600">
-            One person per line: <code className="bg-gray-100 px-1 rounded">email, role</code>. Roles can be written naturally
+            One person per line: <code className="bg-gray-100 px-1 rounded-sm">email, role</code>. Roles can be written naturally
             (Scrum Master, Dev, QA, Viewer…). People are matched to <strong>existing accounts</strong> by email; this never creates accounts.
           </p>
 
@@ -120,7 +119,7 @@ const ImportMembersModal = ({ apiService, project, otherProjects = [], canGrantA
               <fieldset className="text-sm">
                 <legend className="font-medium text-gray-700 mb-1">Module access</legend>
                 <label className="flex items-center gap-2 text-gray-700">
-                  <input type="checkbox" checked={grant} onChange={(e) => { setGrant(e.target.checked); setPreview(null); }} className="h-4 w-4 rounded border-gray-300" />
+                  <input type="checkbox" checked={grant} onChange={(e) => { setGrant(e.target.checked); setPreview(null); }} className="h-4 w-4 rounded-sm border-gray-300" />
                   Also enable Project Management access for people who lack it
                 </label>
                 <div role="radiogroup" aria-label="Access level for people who are newly enabled" className={`mt-1 ml-6 flex flex-wrap items-center gap-x-4 ${grant ? 'text-gray-700' : 'text-gray-400'}`}>
@@ -132,7 +131,7 @@ const ImportMembersModal = ({ apiService, project, otherProjects = [], canGrantA
                   </label>
                 </div>
                 <label className={`flex items-center gap-2 mt-1 ml-6 ${grant ? 'text-gray-700' : 'text-gray-400'}`}>
-                  <input type="checkbox" disabled={!grant} checked={moduleOnly} onChange={(e) => { setModuleOnly(e.target.checked); setPreview(null); }} className="h-4 w-4 rounded border-gray-300" />
+                  <input type="checkbox" disabled={!grant} checked={moduleOnly} onChange={(e) => { setModuleOnly(e.target.checked); setPreview(null); }} className="h-4 w-4 rounded-sm border-gray-300" />
                   Confine them to this module only <span className="text-xs text-gray-500">(only accounts with no other permissions)</span>
                 </label>
               </fieldset>
@@ -157,7 +156,7 @@ const ImportMembersModal = ({ apiService, project, otherProjects = [], canGrantA
                         <td className="px-3 py-1.5 text-gray-900 break-all">{r.email}</td>
                         <td className="px-3 py-1.5 text-gray-700">{r.role ? roleLabel(r.role) : '–'}</td>
                         <td className="px-3 py-1.5">
-                          <span className={`inline-block text-[11px] font-semibold rounded px-1.5 py-0.5 ${OUTCOME_STYLES[r.outcome] || 'bg-gray-100 text-gray-700'}`}>{OUTCOME_LABELS[r.outcome] || r.outcome}</span>
+                          <span className={`inline-block text-[11px] font-semibold rounded-sm px-1.5 py-0.5 ${OUTCOME_STYLES[r.outcome] || 'bg-gray-100 text-gray-700'}`}>{OUTCOME_LABELS[r.outcome] || r.outcome}</span>
                           <span className="block text-xs text-gray-500">{r.message}</span>
                         </td>
                       </tr>
@@ -169,19 +168,17 @@ const ImportMembersModal = ({ apiService, project, otherProjects = [], canGrantA
           )}
 
           <div className="flex justify-end gap-2 pt-1">
-            <button type="button" onClick={onClose} className="px-4 py-2 text-sm rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50">Cancel</button>
-            <button type="button" disabled={busy || rows.length === 0} onClick={() => run(true)}
-              className="px-4 py-2 text-sm rounded-lg border border-blue-600 text-blue-700 font-medium hover:bg-blue-50 disabled:opacity-50">
+            <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+            <Button type="button" variant="outline" disabled={busy || rows.length === 0} onClick={() => run(true)}
+              className="border-blue-600 text-blue-700 hover:bg-blue-50">
               {busy && !preview ? 'Checking…' : 'Preview'}
-            </button>
-            <button type="button" disabled={busy || !preview || changes === 0} onClick={() => run(false)}
-              className="px-4 py-2 text-sm rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 disabled:opacity-50">
+            </Button>
+            <Button type="button" disabled={busy || !preview || changes === 0} onClick={() => run(false)}>
               {busy && preview ? 'Importing…' : `Import ${changes || ''}`.trim()}
-            </button>
+            </Button>
           </div>
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 };
 

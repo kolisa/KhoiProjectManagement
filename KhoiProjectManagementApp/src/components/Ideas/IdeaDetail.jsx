@@ -8,6 +8,7 @@ import { useToast } from '../../contexts/ToastContext';
 import { useConfirm } from '../../contexts/ConfirmContext';
 import { reportApiError } from '../../utils/apiError';
 import StatusBadge from '../Common/StatusBadge';
+import { Button, Input, Textarea } from '../ui';
 
 const STATUS_OPTIONS = ['Submitted', 'UnderReview', 'Approved', 'Rejected'];
 
@@ -179,40 +180,38 @@ const IdeaDetail = ({ apiService, user, ideaId, onClose, onChanged }) => {
 
   if (editingIdea) {
     return (
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4">
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-xs p-6 space-y-4">
         <h3 className="text-base font-semibold text-gray-900">Edit idea</h3>
-        <input
+        <Input
           type="text"
           value={editTitle}
           onChange={(e) => setEditTitle(e.target.value)}
-          className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
           placeholder="Title"
         />
-        <textarea
+        <Textarea
           value={editDescription}
           onChange={(e) => setEditDescription(e.target.value)}
           rows={5}
-          className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
           placeholder="Description"
         />
         <div className="flex justify-end gap-3">
-          <button onClick={() => setEditingIdea(false)} className="inline-flex items-center gap-2 bg-white text-gray-700 border border-gray-300 px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-gray-50 transition-colors">
+          <Button variant="outline" onClick={() => setEditingIdea(false)}>
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={handleSaveIdea}
             disabled={savingIdea}
-            className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors disabled:opacity-50"
+            
           >
             {savingIdea ? 'Saving...' : 'Save'}
-          </button>
+          </Button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-xs p-6">
       <div className="flex justify-between items-start mb-2">
         <div>
           <h3 className="text-xl font-semibold text-gray-900 flex items-center gap-1.5">
@@ -243,7 +242,7 @@ const IdeaDetail = ({ apiService, user, ideaId, onClose, onChanged }) => {
           <select
             value={idea.status}
             onChange={(e) => handleStatusChange(e.target.value)}
-            className="border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+            className="border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
           >
             {STATUS_OPTIONS.map((s) => (
               <option key={s} value={s}>{s}</option>
@@ -255,7 +254,7 @@ const IdeaDetail = ({ apiService, user, ideaId, onClose, onChanged }) => {
           <button
             onClick={handleConvert}
             disabled={converting}
-            className="inline-flex items-center gap-2 text-sm bg-green-600 text-white px-3 py-1.5 rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors shadow-sm"
+            className="inline-flex items-center gap-2 text-sm bg-green-600 text-white px-3 py-1.5 rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors shadow-xs"
           >
             <ArrowRightCircle className="h-4 w-4" />
             {converting ? 'Converting...' : 'Convert to Project'}
@@ -344,15 +343,15 @@ const IdeaDetail = ({ apiService, user, ideaId, onClose, onChanged }) => {
             onChange={(e) => setCommentBody(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') handleAddComment(); }}
             placeholder="Add a comment... (use @Name to mention someone)"
-            className="flex-1 border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+            className="flex-1 border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
           />
-          <button
+          <Button
             onClick={handleAddComment}
             disabled={!commentBody.trim()}
-            className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors disabled:opacity-50"
+            
           >
             Comment
-          </button>
+          </Button>
         </div>
         <div className="space-y-2">
           {comments.map((c) => (
@@ -363,7 +362,7 @@ const IdeaDetail = ({ apiService, user, ideaId, onClose, onChanged }) => {
                 <p className="text-gray-700 mt-0.5">{c.body}</p>
               </div>
               {(c.authoredBy === user?.id || canManage) && (
-                <button onClick={() => handleDeleteComment(c.id)} className="text-red-400 hover:text-red-600 flex-shrink-0 ml-2" aria-label="Delete comment">
+                <button onClick={() => handleDeleteComment(c.id)} className="text-red-400 hover:text-red-600 shrink-0 ml-2" aria-label="Delete comment">
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>
               )}

@@ -55,7 +55,7 @@ export const ToastProvider = ({ children }) => {
     <ToastContext.Provider value={toast}>
       {children}
       <div
-        className="fixed top-4 right-4 z-[100] flex flex-col gap-2 w-full max-w-sm pointer-events-none"
+        className="fixed top-4 right-4 z-100 flex flex-col gap-2 w-full max-w-sm pointer-events-none"
         aria-live="polite"
         aria-atomic="false"
       >
@@ -68,11 +68,11 @@ export const ToastProvider = ({ children }) => {
               className="pointer-events-auto relative overflow-hidden bg-white rounded-[10px] shadow-lg border border-gray-100 flex items-start gap-2.5 p-3.5 pl-4 animate-[toast-in_0.15s_ease-out]"
             >
               <span className={`absolute left-0 top-0 bottom-0 w-1 ${barClass}`} />
-              <Icon className={`h-5 w-5 flex-shrink-0 mt-0.5 ${iconClass}`} />
+              <Icon className={`h-5 w-5 shrink-0 mt-0.5 ${iconClass}`} />
               <p className="text-sm text-gray-800 leading-snug flex-1 pt-0.5">{t.message}</p>
               <button
                 onClick={() => dismiss(t.id)}
-                className="text-gray-300 hover:text-gray-500 transition-colors flex-shrink-0"
+                className="text-gray-300 hover:text-gray-500 transition-colors shrink-0"
                 aria-label="Dismiss notification"
               >
                 <X className="h-4 w-4" />

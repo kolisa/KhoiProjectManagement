@@ -5,7 +5,7 @@ import IdeaDetail from './IdeaDetail';
 import { hasPermission } from '../../utils/permissions';
 import { useToast } from '../../contexts/ToastContext';
 import { validateIdea, hasErrors } from '../../utils/validation';
-import useModalA11y from '../Common/useModalA11y';
+import { Button, Input, Textarea, Modal } from '../ui';
 
 const COLUMNS = [
   { key: 'Submitted', label: 'Submitted' },
@@ -23,7 +23,6 @@ const formatIdeaAge = (iso) => {
 };
 
 const NewIdeaModal = ({ onSave, onClose }) => {
-  const modalRef = useModalA11y(onClose);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [saving, setSaving] = useState(false);
@@ -47,43 +46,49 @@ const NewIdeaModal = ({ onSave, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div ref={modalRef} role="dialog" aria-modal="true" aria-labelledby="new-idea-modal-title" tabIndex={-1} className="bg-white rounded-2xl shadow-xl overflow-hidden w-full max-w-lg outline-none">
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-          <h3 id="new-idea-modal-title" className="text-base font-semibold text-gray-900">New Idea</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600" aria-label="Close">
-            <X className="h-4 w-4" />
-          </button>
-        </div>
+    <Modal
+      onClose={onClose}
+      closeOnBackdrop={false}
+      titleId="new-idea-modal-title"
+      size="lg"
+      padded={false}
+      scroll={false}
+      className="overflow-hidden"
+      header={(
+          <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+            <h3 id="new-idea-modal-title" className="text-base font-semibold text-gray-900">New Idea</h3>
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-600" aria-label="Close">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+      )}
+    >
         <div className="px-6 py-5 space-y-4">
           {error && <div className="text-red-600 text-sm">{error}</div>}
-          <input
+          <Input
             type="text"
             placeholder="Title"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
           />
-          <textarea
+          <Textarea
             placeholder="Describe your idea..."
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={5}
-            className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
           />
         </div>
         <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3">
-          <button onClick={onClose} className="inline-flex items-center gap-2 bg-white text-gray-700 border border-gray-300 px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-gray-50 transition-colors">Cancel</button>
-          <button
+          <Button variant="outline" onClick={onClose} >Cancel</Button>
+          <Button
             onClick={handleSave}
             disabled={saving || !title.trim() || !description.trim()}
-            className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors disabled:opacity-50"
+            
           >
             {saving ? 'Submitting...' : 'Submit Idea'}
-          </button>
+          </Button>
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 };
 
@@ -93,7 +98,6 @@ const IdeasPage = ({ apiService, user }) => {
   const [error, setError] = useState(null);
   const [selectedId, setSelectedId] = useState(null);
   const [showNewIdea, setShowNewIdea] = useState(false);
-  const ideaDetailModalRef = useModalA11y(() => setSelectedId(null));
 
   const load = async () => {
     try {
@@ -140,7 +144,7 @@ const IdeasPage = ({ apiService, user }) => {
         </div>
         <button
           onClick={() => setShowNewIdea(true)}
-          className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors"
+          className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-xs transition-colors"
         >
           <Plus className="h-5 w-5" />
           New Idea
@@ -150,13 +154,13 @@ const IdeasPage = ({ apiService, user }) => {
       {error && <div className="text-red-600 text-sm">{error}</div>}
 
       {ideas === null ? (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 text-gray-400">Loading...</div>
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-xs p-6 text-gray-400">Loading...</div>
       ) : (
         <div className="flex gap-4 overflow-x-auto pb-2">
           {COLUMNS.map((col) => {
             const columnIdeas = ideas.filter((i) => i.status === col.key);
             return (
-              <div key={col.key} className="w-72 flex-shrink-0 flex flex-col">
+              <div key={col.key} className="w-72 shrink-0 flex flex-col">
                 <div className="flex items-center gap-2 px-1 pb-2">
                   <h3 className="text-sm font-semibold text-gray-700">{col.label}</h3>
                   <span className="text-xs font-medium text-gray-400 bg-gray-100 rounded-full px-2 py-0.5">{columnIdeas.length}</span>
@@ -169,7 +173,7 @@ const IdeasPage = ({ apiService, user }) => {
                     <div
                       key={idea.id}
                       onClick={() => setSelectedId(idea.id)}
-                      className="bg-white rounded-2xl border border-gray-100 shadow-sm p-3 cursor-pointer hover:shadow-md transition-shadow"
+                      className="bg-white rounded-2xl border border-gray-100 shadow-xs p-3 cursor-pointer hover:shadow-md transition-shadow"
                     >
                       <p className="text-sm font-medium text-gray-900 line-clamp-2">{idea.title}</p>
                       <div className="flex items-center justify-between mt-2 text-xs text-gray-500">
@@ -194,20 +198,15 @@ const IdeasPage = ({ apiService, user }) => {
       )}
 
       {selectedId && (
-        <div
-          className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50"
-          onClick={(e) => { if (e.target === e.currentTarget) setSelectedId(null); }}
-        >
-          <div ref={ideaDetailModalRef} role="dialog" aria-modal="true" aria-label="Idea details" tabIndex={-1} className="w-full max-w-2xl max-h-[90vh] overflow-y-auto outline-none">
-            <IdeaDetail
-              apiService={apiService}
-              user={user}
-              ideaId={selectedId}
-              onClose={() => setSelectedId(null)}
-              onChanged={load}
-            />
-          </div>
-        </div>
+        <Modal ariaLabel="Idea details" onClose={() => setSelectedId(null)} size="xl" bare padded={false}>
+          <IdeaDetail
+            apiService={apiService}
+            user={user}
+            ideaId={selectedId}
+            onClose={() => setSelectedId(null)}
+            onChanged={load}
+          />
+        </Modal>
       )}
 
       {showNewIdea && (

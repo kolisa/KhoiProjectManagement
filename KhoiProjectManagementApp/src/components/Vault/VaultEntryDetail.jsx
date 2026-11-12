@@ -75,7 +75,7 @@ const VaultEntryDetail = ({ apiService, entryId, myEffectiveLevel, onClose, onEd
   if (!entry) return <div className="p-4 text-gray-400">Loading...</div>;
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-xs p-6">
       <div className="flex justify-between items-start mb-4">
         <h3 className="text-base font-semibold text-gray-900">{entry.name}</h3>
         <div className="flex space-x-2">

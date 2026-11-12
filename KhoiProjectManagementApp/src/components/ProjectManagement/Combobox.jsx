@@ -68,19 +68,19 @@ const Combobox = ({
         disabled={disabled} title={title}
         onClick={() => setOpen((o) => !o)}
         onKeyDown={(e) => { if (!open && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) { e.preventDefault(); setOpen(true); } }}
-        className={`flex w-full items-center gap-2 rounded-lg border border-gray-300 bg-white text-left focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed ${pad}`}>
+        className={`flex w-full items-center gap-2 rounded-lg border border-gray-300 bg-white text-left focus:outline-hidden focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed ${pad}`}>
         {selected?.person && !selected.empty && <Avatar name={selected.label} size="sm" />}
         <span className={`min-w-0 flex-1 truncate ${selected && !selected.empty ? 'text-gray-900' : 'text-gray-500'}`}>{selected ? selected.label : placeholder}</span>
         <ChevronDown className="h-4 w-4 shrink-0 text-gray-400" aria-hidden="true" />
       </button>
 
       {open && (
-        <div className="absolute left-0 right-0 z-50 mt-1 min-w-[12rem] rounded-lg border border-gray-200 bg-white shadow-lg">
+        <div className="absolute left-0 right-0 z-50 mt-1 min-w-48 rounded-lg border border-gray-200 bg-white shadow-lg">
           <div className="flex items-center gap-2 border-b border-gray-100 px-2.5 py-1.5">
             <Search className="h-3.5 w-3.5 text-gray-400" aria-hidden="true" />
             <input ref={input} value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={onSearchKey} placeholder={searchPlaceholder}
               aria-label="Search options" aria-controls={listId} aria-activedescendant={shown[active] ? `${id}-opt-${active}` : undefined}
-              className="w-full bg-transparent text-sm outline-none placeholder:text-gray-400" />
+              className="w-full bg-transparent text-sm outline-hidden placeholder:text-gray-400" />
             {query && <button type="button" aria-label="Clear search" onClick={() => setQuery('')} className="text-gray-400 hover:text-gray-600"><X className="h-3.5 w-3.5" /></button>}
           </div>
           <ul id={listId} role="listbox" className="max-h-60 overflow-y-auto py-1">

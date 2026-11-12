@@ -5,7 +5,7 @@ import { accessLevel, ACCESS_LEVEL_LABELS, roleLabel } from './pmConstants';
 // Shared look for the Project Management module: one card style, one avatar, one set of badges, so the
 // workspace shell, the members page, the access admin and the overview read as a single design.
 
-export const cardClass = 'bg-white border border-gray-200 rounded-xl shadow-sm';
+export const cardClass = 'bg-white border border-gray-200 rounded-xl shadow-xs';
 
 const AVATAR_COLORS = [
   'bg-blue-100 text-blue-700',
@@ -33,7 +33,7 @@ const AVATAR_SIZES = { sm: 'h-7 w-7 text-[11px]', md: 'h-9 w-9 text-xs', lg: 'h-
 // printed next to it).
 export const Avatar = ({ name, size = 'md', square = false }) => (
   <span aria-hidden="true"
-    className={`inline-flex flex-shrink-0 items-center justify-center font-semibold ${square ? 'rounded-lg' : 'rounded-full'} ${AVATAR_SIZES[size]} ${colorFor(name)}`}>
+    className={`inline-flex shrink-0 items-center justify-center font-semibold ${square ? 'rounded-lg' : 'rounded-full'} ${AVATAR_SIZES[size]} ${colorFor(name)}`}>
     {initials(name)}
   </span>
 );

@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { X, Edit3, Trash2, CheckCircle, RotateCcw, Copy, Clock } from 'lucide-react';
 import PriorityBadge from '../Common/PriorityBadge';
 import StatusBadge from '../Common/StatusBadge';
+import { Button, Card } from '../ui';
 
 const STATUS_COLORS = {
   Pending: 'bg-[#EEEEFF] text-[#4131B0]',
@@ -18,7 +19,7 @@ const ReminderDetail = ({ reminder, onClose, onEdit, onComplete, onReopen, onDel
   const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+    <Card className="p-6">
       <div className="flex justify-between items-start mb-4">
         <div>
           <h3 className="text-xl font-semibold text-gray-900">{reminder.title}</h3>
@@ -33,9 +34,9 @@ const ReminderDetail = ({ reminder, onClose, onEdit, onComplete, onReopen, onDel
             )}
           </div>
         </div>
-        <button onClick={onClose} className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 p-1 rounded-md transition-colors" aria-label="Close">
+        <Button variant="ghost" size="sm" icon onClick={onClose} className="text-gray-400 hover:text-gray-600" aria-label="Close">
           <X className="h-4 w-4" />
-        </button>
+        </Button>
       </div>
 
       {reminder.description && <p className="text-gray-700 text-sm mb-4 whitespace-pre-wrap">{reminder.description}</p>}
@@ -91,24 +92,24 @@ const ReminderDetail = ({ reminder, onClose, onEdit, onComplete, onReopen, onDel
 
       <div className="flex flex-wrap gap-2 border-t pt-4">
         {reminder.status !== 'Completed' ? (
-          <button onClick={onComplete} className="inline-flex items-center gap-2 bg-green-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold shadow-sm hover:bg-green-700 transition-colors">
+          <Button variant="success" onClick={onComplete}>
             <CheckCircle className="h-4 w-4" />
             Complete
-          </button>
+          </Button>
         ) : (
-          <button onClick={onReopen} className="inline-flex items-center gap-2 bg-gray-100 text-gray-700 px-4 py-2.5 rounded-[10px] text-sm font-semibold shadow-sm hover:bg-gray-200 transition-colors">
+          <Button variant="secondary" onClick={onReopen}>
             <RotateCcw className="h-4 w-4" />
             Reopen
-          </button>
+          </Button>
         )}
-        <button onClick={onEdit} className="inline-flex items-center gap-2 border border-gray-300 bg-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-gray-50 transition-colors">
+        <Button variant="outline" onClick={onEdit}>
           <Edit3 className="h-4 w-4" />
           Edit
-        </button>
-        <button onClick={onDuplicate} className="inline-flex items-center gap-2 border border-gray-300 bg-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-gray-50 transition-colors">
+        </Button>
+        <Button variant="outline" onClick={onDuplicate}>
           <Copy className="h-4 w-4" />
           Duplicate
-        </button>
+        </Button>
         {confirmingDelete ? (
           <div className="flex items-center space-x-2 bg-red-50 border border-red-200 rounded-lg px-2 py-1">
             <span className="text-sm text-red-800">Delete this reminder?</span>
@@ -116,13 +117,13 @@ const ReminderDetail = ({ reminder, onClose, onEdit, onComplete, onReopen, onDel
             <button onClick={() => setConfirmingDelete(false)} className="text-sm text-gray-500 hover:text-gray-700">Cancel</button>
           </div>
         ) : (
-          <button onClick={() => setConfirmingDelete(true)} className="inline-flex items-center gap-2 border border-red-200 text-red-600 px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-red-50 transition-colors">
+          <Button variant="outline" onClick={() => setConfirmingDelete(true)} className="border-red-200 text-red-600 hover:bg-red-50">
             <Trash2 className="h-4 w-4" />
             Delete
-          </button>
+          </Button>
         )}
       </div>
-    </div>
+    </Card>
   );
 };
 

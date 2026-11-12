@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
-import useModalA11y from '../Common/useModalA11y';
+import { Button, Modal } from '../ui';
 import { WORK_ITEM_TYPES, STATUSES, TYPE_STYLES, allowedParentTypes, can, denyReason } from './pmConstants';
 import WorkItemCollab from './WorkItemCollab';
 import RichTextEditor from './RichTextEditor';
@@ -9,7 +9,7 @@ import SubtasksPanel from './SubtasksPanel';
 import EffortEditor from './EffortEditor';
 import { isEmptyHtml } from './richText';
 
-const fieldClass = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed';
+const fieldClass = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed';
 const labelClass = 'block text-xs font-medium text-gray-600 mb-1';
 
 // Create/edit a backlog work item. `item` is null for create. `items` is the project's current backlog (for the parent
@@ -17,7 +17,6 @@ const labelClass = 'block text-xs font-medium text-gray-600 mb-1';
 // Layout: the work itself (title, rich-text description, subtasks, effort) on the left, the item's details on the right,
 // the discussion below.
 const WorkItemModal = ({ item, items, members, canEdit, onSave, onClose, apiService, role, project, onChanged }) => {
-  const modalRef = useModalA11y(onClose);
   const [form, setForm] = useState({
     title: item?.title || '',
     description: item?.description || '',
@@ -84,17 +83,11 @@ const WorkItemModal = ({ item, items, members, canEdit, onSave, onClose, apiServ
   const typeStyle = TYPE_STYLES[form.type] || 'bg-gray-100 text-gray-700';
 
   return (
-    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-      <div
-        ref={modalRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="work-item-modal-title"
-        tabIndex={-1}
-        className="bg-white rounded-xl shadow-xl w-full max-w-5xl max-h-[92vh] flex flex-col outline-none"
-      >
+    <Modal onClose={onClose} size={null} scroll={false} padded={false} closeOnBackdrop={false} titleId="work-item-modal-title"
+      className="max-w-5xl max-h-[92vh] flex flex-col"
+      header={(
         <div className="flex items-center gap-3 px-6 py-4 border-b border-gray-200">
-          <span className={`px-2 py-0.5 rounded text-[11px] font-semibold ${typeStyle}`}>{form.type}</span>
+          <span className={`px-2 py-0.5 rounded-sm text-[11px] font-semibold ${typeStyle}`}>{form.type}</span>
           <h2 id="work-item-modal-title" className="text-lg font-semibold text-gray-900">
             {item ? `Work item #${item.id}` : 'New work item'}
           </h2>
@@ -102,6 +95,7 @@ const WorkItemModal = ({ item, items, members, canEdit, onSave, onClose, apiServ
             <X className="h-5 w-5" />
           </button>
         </div>
+      )}>
 
         <div className="flex-1 overflow-y-auto">
         <form id="work-item-form" onSubmit={submit} noValidate>
@@ -190,17 +184,16 @@ const WorkItemModal = ({ item, items, members, canEdit, onSave, onClose, apiServ
 
         <div className="flex items-center justify-end gap-2 px-6 py-3 border-t border-gray-200 bg-gray-50 rounded-b-xl">
           {effortDirty && <p role="status" className="mr-auto text-xs font-medium text-amber-700">You have unsaved effort changes - use &ldquo;Save effort&rdquo; first. Saving the item does not save them.</p>}
-          <button type="button" onClick={onClose} className="px-4 py-2 text-sm rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-50">
+          <Button type="button" variant="outline" onClick={onClose} className="bg-white">
             {canEdit ? 'Cancel' : 'Close'}
-          </button>
+          </Button>
           {canEdit && (
-            <button type="submit" form="work-item-form" disabled={saving} className="px-4 py-2 text-sm rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 disabled:opacity-60">
+            <Button type="submit" form="work-item-form" disabled={saving}>
               {saving ? 'Saving…' : 'Save'}
-            </button>
+            </Button>
           )}
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 };
 

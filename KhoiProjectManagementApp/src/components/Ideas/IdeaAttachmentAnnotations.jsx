@@ -59,14 +59,14 @@ const IdeaAttachmentAnnotations = ({ apiService, attachmentId, currentUserId, ca
       {error && <div className="text-xs text-red-600">{error}</div>}
       {annotations.length === 0 && <div className="text-xs text-gray-400 italic">No annotations on this file yet.</div>}
       {annotations.map((a) => (
-        <div key={a.id} className="flex justify-between items-start text-xs bg-white rounded p-2 border">
+        <div key={a.id} className="flex justify-between items-start text-xs bg-white rounded-sm p-2 border">
           <div>
             <span className="font-medium text-gray-900">{a.authorName}</span>{' '}
             <span className="text-gray-400">{new Date(a.createdAt).toLocaleString()}</span>
             <p className="text-gray-700 mt-0.5">{a.body}</p>
           </div>
           {(a.authoredBy === currentUserId || canManage) && (
-            <button onClick={() => handleDelete(a.id)} className="text-red-400 hover:text-red-600 flex-shrink-0 ml-2" aria-label="Delete annotation">
+            <button onClick={() => handleDelete(a.id)} className="text-red-400 hover:text-red-600 shrink-0 ml-2" aria-label="Delete annotation">
               <Trash2 className="h-3.5 w-3.5" />
             </button>
           )}
@@ -79,12 +79,12 @@ const IdeaAttachmentAnnotations = ({ apiService, attachmentId, currentUserId, ca
           onChange={(e) => setBody(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') handleAdd(); }}
           placeholder="Add an annotation on this file..."
-          className="flex-1 border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+          className="flex-1 border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-xs focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
         />
         <button
           onClick={handleAdd}
           disabled={posting || !body.trim()}
-          className="inline-flex items-center gap-2 text-xs font-semibold bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 shadow-sm transition-colors disabled:opacity-50"
+          className="inline-flex items-center gap-2 text-xs font-semibold bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 shadow-xs transition-colors disabled:opacity-50"
         >
           Add
         </button>

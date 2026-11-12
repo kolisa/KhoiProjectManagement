@@ -46,7 +46,7 @@ const PmMyWork = ({ apiService, onOpenProject }) => {
     <div>
       <div className="flex flex-wrap items-center gap-3 mb-3">
         <select aria-label="Filter by project" value={projectFilter} onChange={(e) => setProjectFilter(e.target.value)}
-          className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+          className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500">
           <option value="">All projects</option>
           {projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
         </select>
@@ -61,7 +61,7 @@ const PmMyWork = ({ apiService, onOpenProject }) => {
           <li key={i.id}>
             <button onClick={() => onOpenProject?.(i.projectId)} className="w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-gray-50"
               aria-label={`Open ${i.projectName} for ${i.title}`}>
-              <span className={`px-2 py-0.5 rounded text-[11px] font-semibold ${TYPE_STYLES[i.type] || 'bg-gray-100 text-gray-700'}`}>{i.type}</span>
+              <span className={`px-2 py-0.5 rounded-sm text-[11px] font-semibold ${TYPE_STYLES[i.type] || 'bg-gray-100 text-gray-700'}`}>{i.type}</span>
               <span className="flex-1 min-w-0">
                 <span className="block text-sm font-medium text-gray-900 truncate">{i.title}</span>
                 <span className="block text-xs text-gray-500 truncate">{i.projectName}{i.sprintName && ` · ${i.sprintName}`} · #{i.id}</span>
