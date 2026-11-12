@@ -3,24 +3,44 @@ import React, { useEffect, useId, useRef, useState } from 'react';
 import useModalA11y from '../Common/useModalA11y';
 import { cn } from './cn';
 
-const MODAL_SIZES = { sm: 'max-w-sm', md: 'max-w-lg', lg: 'max-w-2xl', xl: 'max-w-4xl' };
+const MODAL_SIZES = { sm: 'max-w-sm', md: 'max-w-md', lg: 'max-w-lg', xl: 'max-w-2xl', '2xl': 'max-w-4xl' };
 
-export function Modal({ open, onClose, title, size = 'md', children, footer }) {
+// Props:
+//  open            render nothing when false (default true, so conditionally-rendered modals can omit it)
+//  onClose         Escape / close button / (optionally) backdrop click
+//  closeOnBackdrop default true; pass false for forms so a stray click can't discard unsaved input
+//  title           default header text; the <h2> gets `titleId` so aria-labelledby stays stable
+//  titleId         explicit id for the title (existing tests/aria rely on fixed ids); generated if omitted
+//  ariaLabel       use instead of title when there is no visible heading
+//  header          replaces the default header entirely (render your own element carrying `titleId`)
+//  showClose       default true; the X button in the default header
+//  footer          rendered in a bordered, right-aligned footer bar
+//  padded          default true; false renders children straight into the panel (custom layouts)
+//  scroll          default true: panel gets max-h-[90vh] overflow-y-auto. Pass false when `className`
+//                  supplies its own flex/overflow layout (cn does not merge conflicting classes).
+//  className       extra classes on the panel (layout only; avoid re-declaring width/overflow)
+export function Modal({
+  open = true, onClose, title, titleId: titleIdProp, ariaLabel, header, showClose = true, size = 'md',
+  closeOnBackdrop = true, padded = true, scroll = true, className, children, footer,
+}) {
   const ref = useModalA11y(onClose);
-  const titleId = useId();
+  const generatedId = useId();
+  const titleId = titleIdProp || generatedId;
   if (!open) return null;
+  const labelled = !ariaLabel && (title || header);
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="modal-backdrop fixed inset-0 bg-black/40" onClick={onClose} />
-      <div ref={ref} role="dialog" aria-modal="true" aria-labelledby={title ? titleId : undefined} tabIndex={-1}
-        className={cn('relative w-full rounded-2xl border border-border bg-card shadow-xl focus:outline-hidden', MODAL_SIZES[size])}>
-        {title && (
+      <div className="modal-backdrop fixed inset-0 bg-black/40" onClick={closeOnBackdrop ? onClose : undefined} />
+      <div ref={ref} role="dialog" aria-modal="true" aria-label={ariaLabel} aria-labelledby={labelled ? titleId : undefined} tabIndex={-1}
+        className={cn('relative w-full rounded-2xl border border-border bg-card shadow-xl focus:outline-hidden', MODAL_SIZES[size], scroll && 'max-h-[90vh] overflow-y-auto', className)}>
+        {header}
+        {!header && title && (
           <div className="flex items-center justify-between border-b border-border px-6 py-4">
             <h2 id={titleId} className="text-lg font-semibold">{title}</h2>
-            <button type="button" onClick={onClose} aria-label="Close" className="rounded-sm p-1 text-muted-foreground hover:bg-muted">&times;</button>
+            {showClose && <button type="button" onClick={onClose} aria-label="Close" className="rounded-sm p-1 text-muted-foreground hover:bg-muted">&times;</button>}
           </div>
         )}
-        <div className="px-6 py-4">{children}</div>
+        {padded ? <div className="px-6 py-4">{children}</div> : children}
         {footer && <div className="flex justify-end gap-2 border-t border-border px-6 py-4">{footer}</div>}
       </div>
     </div>

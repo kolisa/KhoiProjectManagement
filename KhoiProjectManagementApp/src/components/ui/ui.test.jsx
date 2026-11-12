@@ -105,6 +105,24 @@ describe('UI kit', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
+  it('Modal honours closeOnBackdrop, a fixed titleId, a custom header and ariaLabel', async () => {
+    const onClose = vi.fn();
+    const { container, rerender } = render(
+      <Modal onClose={onClose} title="Edit" titleId="my-title" closeOnBackdrop={false}>Body</Modal>);
+    expect(screen.getByRole('dialog')).toHaveAttribute('aria-labelledby', 'my-title');
+    expect(document.getElementById('my-title')).toHaveTextContent('Edit');
+    await userEvent.click(container.querySelector('.modal-backdrop'));
+    expect(onClose).not.toHaveBeenCalled();
+
+    rerender(<Modal onClose={onClose} titleId="h" header={<h2 id="h">Custom</h2>} padded={false}>Raw</Modal>);
+    expect(screen.getByRole('dialog', { name: 'Custom' })).toBeInTheDocument();
+    await userEvent.click(container.querySelector('.modal-backdrop'));
+    expect(onClose).toHaveBeenCalledTimes(1);
+
+    rerender(<Modal onClose={onClose} ariaLabel="Idea details">Raw</Modal>);
+    expect(screen.getByRole('dialog', { name: 'Idea details' })).toBeInTheDocument();
+  });
+
   it('Dropdown opens, selects an item, and closes', async () => {
     const onSelect = vi.fn();
     render(<Dropdown trigger={<button>Menu</button>} items={[{ key: 'd', label: 'Delete', onSelect }]} />);
