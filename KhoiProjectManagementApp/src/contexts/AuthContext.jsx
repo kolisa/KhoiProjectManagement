@@ -3,7 +3,7 @@ import React, { createContext, useContext, useState, useEffect, useRef } from 'r
 import { Clock } from 'lucide-react';
 import ApiService, { onSessionExpired, getStoredToken } from '../services/ApiService';
 import { useToast } from './ToastContext';
-import useModalA11y from '../components/Common/useModalA11y';
+import { Modal, Button } from '../components/ui';
 
 const AuthContext = createContext();
 
@@ -148,8 +148,6 @@ export const AuthProvider = ({ children }) => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user]);
 
-    const idleModalRef = useModalA11y(() => resetIdleTimer());
-
     const value = {
         user,
         login,
@@ -161,16 +159,15 @@ export const AuthProvider = ({ children }) => {
         <AuthContext.Provider value={value}>
             {children}
             {idleWarningSecondsLeft !== null && (
-                <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-xs flex items-center justify-center p-4 z-120">
-                    <div
-                        ref={idleModalRef}
-                        role="dialog"
-                        aria-modal="true"
-                        aria-labelledby="idle-timeout-title"
-                        aria-describedby="idle-timeout-message"
-                        tabIndex={-1}
-                        className="bg-white rounded-2xl shadow-xl max-w-sm w-full outline-hidden"
-                    >
+                <Modal
+                    onClose={() => resetIdleTimer()}
+                    titleId="idle-timeout-title"
+                    describedBy="idle-timeout-message"
+                    zIndex="z-120"
+                    size="sm"
+                    closeOnBackdrop={false}
+                    padded={false}
+                    header={(
                         <div className="px-6 pt-6 pb-2 flex items-start gap-3">
                             <div className="bg-amber-50 rounded-lg p-2 shrink-0">
                                 <Clock className="h-5 w-5 text-amber-600" />
@@ -183,24 +180,13 @@ export const AuthProvider = ({ children }) => {
                                 </p>
                             </div>
                         </div>
-                        <div className="px-6 py-4 flex justify-end gap-3 mt-2">
-                            <button
-                                type="button"
-                                onClick={() => logout()}
-                                className="inline-flex items-center gap-2 bg-white text-gray-700 border border-gray-300 px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-gray-50 transition-colors"
-                            >
-                                Log out now
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => resetIdleTimer()}
-                                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-[10px] text-sm font-semibold shadow-xs transition-colors text-white bg-blue-600 hover:bg-blue-700"
-                            >
-                                Stay signed in
-                            </button>
-                        </div>
+                    )}
+                >
+                    <div className="px-6 py-4 flex justify-end gap-3 mt-2">
+                        <Button variant="outline" onClick={() => logout()}>Log out now</Button>
+                        <Button onClick={() => resetIdleTimer()}>Stay signed in</Button>
                     </div>
-                </div>
+                </Modal>
             )}
         </AuthContext.Provider>
     );

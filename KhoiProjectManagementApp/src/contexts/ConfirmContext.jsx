@@ -6,7 +6,7 @@
 // return;" already had - a minimal, low-risk swap at each site, not a redesign of the calling code.
 import React, { createContext, useCallback, useContext, useRef, useState } from 'react';
 import { AlertTriangle } from 'lucide-react';
-import useModalA11y from '../components/Common/useModalA11y';
+import { Modal, Button } from '../components/ui';
 
 const ConfirmContext = createContext(null);
 
@@ -33,25 +33,19 @@ export const ConfirmProvider = ({ children }) => {
     });
   }, []);
 
-  // Called unconditionally (same convention as every other modal ref in this app - see App.jsx) so
-  // hook order never depends on whether a confirm is currently pending; the ref just has nothing to
-  // attach to when `request` is null.
-  const modalRef = useModalA11y(() => settle(false));
-
   return (
     <ConfirmContext.Provider value={confirm}>
       {children}
       {request && (
-        <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-xs flex items-center justify-center p-4 z-110">
-          <div
-            ref={modalRef}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="confirm-dialog-title"
-            aria-describedby="confirm-dialog-message"
-            tabIndex={-1}
-            className="bg-white rounded-2xl shadow-xl max-w-sm w-full outline-hidden"
-          >
+        <Modal
+          onClose={() => settle(false)}
+          titleId="confirm-dialog-title"
+          describedBy="confirm-dialog-message"
+          zIndex="z-110"
+          size="sm"
+          closeOnBackdrop={false}
+          padded={false}
+          header={(
             <div className="px-6 pt-6 pb-2 flex items-start gap-3">
               {request.danger && (
                 <div className="bg-red-50 rounded-lg p-2 shrink-0">
@@ -63,29 +57,16 @@ export const ConfirmProvider = ({ children }) => {
                 <p id="confirm-dialog-message" className="text-sm text-gray-600 mt-1">{request.message}</p>
               </div>
             </div>
-            <div className="px-6 py-4 flex justify-end gap-3 mt-2">
-              {/* Cancel is first in DOM order, so useModalA11y's own "focus the first focusable
-                  element on mount" puts focus here, not on Confirm - a deliberate safety default for
-                  destructive confirms (an accidental Enter keypress cancels, not confirms). */}
-              <button
-                type="button"
-                onClick={() => settle(false)}
-                className="inline-flex items-center gap-2 bg-white text-gray-700 border border-gray-300 px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-gray-50 transition-colors"
-              >
-                {request.cancelText}
-              </button>
-              <button
-                type="button"
-                onClick={() => settle(true)}
-                className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-[10px] text-sm font-semibold shadow-xs transition-colors text-white ${
-                  request.danger ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'
-                }`}
-              >
-                {request.confirmText}
-              </button>
-            </div>
+          )}
+        >
+          <div className="px-6 py-4 flex justify-end gap-3 mt-2">
+            {/* Cancel is first in DOM order, so Modal's useModalA11y "focus the first focusable
+                element on mount" puts focus here, not on Confirm - a deliberate safety default for
+                destructive confirms (an accidental Enter keypress cancels, not confirms). */}
+            <Button variant="outline" onClick={() => settle(false)}>{request.cancelText}</Button>
+            <Button variant={request.danger ? 'destructive' : 'default'} onClick={() => settle(true)}>{request.confirmText}</Button>
           </div>
-        </div>
+        </Modal>
       )}
     </ConfirmContext.Provider>
   );

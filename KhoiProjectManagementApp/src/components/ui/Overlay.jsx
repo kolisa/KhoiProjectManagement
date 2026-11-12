@@ -18,9 +18,12 @@ const MODAL_SIZES = { sm: 'max-w-sm', md: 'max-w-md', lg: 'max-w-lg', xl: 'max-w
 //  padded          default true; false renders children straight into the panel (custom layouts)
 //  scroll          default true: panel gets max-h-[90vh] overflow-y-auto. Pass false when `className`
 //                  supplies its own flex/overflow layout (cn does not merge conflicting classes).
+//  describedBy     id of the element describing the dialog (aria-describedby)
+//  zIndex          stacking class for the overlay (default 'z-50'); confirm/idle dialogs sit above other modals
+//  bare            no panel chrome (bg/border/radius/shadow) for content that draws its own card
 //  className       extra classes on the panel (layout only; avoid re-declaring width/overflow)
 export function Modal({
-  open = true, onClose, title, titleId: titleIdProp, ariaLabel, header, showClose = true, size = 'md',
+  open = true, onClose, title, titleId: titleIdProp, ariaLabel, describedBy, zIndex = 'z-50', bare = false, header, showClose = true, size = 'md',
   closeOnBackdrop = true, padded = true, scroll = true, className, children, footer,
 }) {
   const ref = useModalA11y(onClose);
@@ -29,10 +32,10 @@ export function Modal({
   if (!open) return null;
   const labelled = !ariaLabel && (title || header);
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className={cn('fixed inset-0 flex items-center justify-center p-4', zIndex)}>
       <div className="modal-backdrop fixed inset-0 bg-black/40" onClick={closeOnBackdrop ? onClose : undefined} />
-      <div ref={ref} role="dialog" aria-modal="true" aria-label={ariaLabel} aria-labelledby={labelled ? titleId : undefined} tabIndex={-1}
-        className={cn('relative w-full rounded-2xl border border-border bg-card shadow-xl focus:outline-hidden', MODAL_SIZES[size], scroll && 'max-h-[90vh] overflow-y-auto', className)}>
+      <div ref={ref} role="dialog" aria-modal="true" aria-label={ariaLabel} aria-labelledby={labelled ? titleId : undefined} aria-describedby={describedBy} tabIndex={-1}
+        className={cn('relative w-full focus:outline-hidden', !bare && 'rounded-2xl border border-border bg-card shadow-xl', MODAL_SIZES[size], scroll && 'max-h-[90vh] overflow-y-auto', className)}>
         {header}
         {!header && title && (
           <div className="flex items-center justify-between border-b border-border px-6 py-4">

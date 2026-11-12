@@ -123,6 +123,14 @@ describe('UI kit', () => {
     expect(screen.getByRole('dialog', { name: 'Idea details' })).toBeInTheDocument();
   });
 
+  it('Modal supports describedBy, a custom stacking class and bare (chromeless) panels', () => {
+    render(<Modal onClose={() => {}} ariaLabel="Plain" describedBy="desc" zIndex="z-120" bare padded={false}><p id="desc">Why</p></Modal>);
+    const dialog = screen.getByRole('dialog', { name: 'Plain' });
+    expect(dialog).toHaveAttribute('aria-describedby', 'desc');
+    expect(dialog.parentElement).toHaveClass('z-120');
+    expect(dialog).not.toHaveClass('bg-card');
+  });
+
   it('Dropdown opens, selects an item, and closes', async () => {
     const onSelect = vi.fn();
     render(<Dropdown trigger={<button>Menu</button>} items={[{ key: 'd', label: 'Delete', onSelect }]} />);

@@ -5,7 +5,6 @@ import IdeaDetail from './IdeaDetail';
 import { hasPermission } from '../../utils/permissions';
 import { useToast } from '../../contexts/ToastContext';
 import { validateIdea, hasErrors } from '../../utils/validation';
-import useModalA11y from '../Common/useModalA11y';
 import { Button, Input, Textarea, Modal } from '../ui';
 
 const COLUMNS = [
@@ -99,7 +98,6 @@ const IdeasPage = ({ apiService, user }) => {
   const [error, setError] = useState(null);
   const [selectedId, setSelectedId] = useState(null);
   const [showNewIdea, setShowNewIdea] = useState(false);
-  const ideaDetailModalRef = useModalA11y(() => setSelectedId(null));
 
   const load = async () => {
     try {
@@ -200,20 +198,15 @@ const IdeasPage = ({ apiService, user }) => {
       )}
 
       {selectedId && (
-        <div
-          className="fixed inset-0 bg-gray-900/50 backdrop-blur-xs flex items-center justify-center p-4 z-50"
-          onClick={(e) => { if (e.target === e.currentTarget) setSelectedId(null); }}
-        >
-          <div ref={ideaDetailModalRef} role="dialog" aria-modal="true" aria-label="Idea details" tabIndex={-1} className="w-full max-w-2xl max-h-[90vh] overflow-y-auto outline-hidden">
-            <IdeaDetail
-              apiService={apiService}
-              user={user}
-              ideaId={selectedId}
-              onClose={() => setSelectedId(null)}
-              onChanged={load}
-            />
-          </div>
-        </div>
+        <Modal ariaLabel="Idea details" onClose={() => setSelectedId(null)} size="xl" bare padded={false}>
+          <IdeaDetail
+            apiService={apiService}
+            user={user}
+            ideaId={selectedId}
+            onClose={() => setSelectedId(null)}
+            onChanged={load}
+          />
+        </Modal>
       )}
 
       {showNewIdea && (
