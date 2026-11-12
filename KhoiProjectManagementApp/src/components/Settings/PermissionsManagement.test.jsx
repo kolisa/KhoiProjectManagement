@@ -160,7 +160,7 @@ describe('PermissionsManagement', () => {
     await screen.findByRole('button', { name: /admin/i });
     await user.click(screen.getByRole('button', { name: /new role/i }));
 
-    const modal = screen.getByRole('heading', { name: 'New Role' }).closest('div.bg-white');
+    const modal = screen.getByRole('dialog', { name: 'New Role' });
     await user.type(within(modal).getByPlaceholderText(/role name/i), 'Reviewer');
     await user.type(within(modal).getByPlaceholderText(/description/i), 'Reviews work');
     await user.click(within(modal).getByRole('button', { name: /^create$/i }));

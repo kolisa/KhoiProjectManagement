@@ -4,7 +4,7 @@ import { Clock, Plus, Upload } from 'lucide-react';
 import { hasPermission } from '../../utils/permissions';
 import { useToast } from '../../contexts/ToastContext';
 import { reportApiError } from '../../utils/apiError';
-import useModalA11y from '../Common/useModalA11y';
+import { Modal } from '../ui/Overlay';
 import StatusBadge from '../Common/StatusBadge';
 import TimesheetDetail from './TimesheetDetail';
 import { formatDuration } from './duration';
@@ -50,7 +50,6 @@ const TimesheetsPage = ({ apiService, user }) => {
     setShowNew(false);
     setNewPeriod(defaultPeriod());
   };
-  const newModalRef = useModalA11y(closeNewModal);
 
   const handleUploadClick = () => fileInputRef.current?.click();
 
@@ -202,11 +201,7 @@ const TimesheetsPage = ({ apiService, user }) => {
       </Card>
 
       {showNew && (
-        <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div ref={newModalRef} role="dialog" aria-modal="true" aria-labelledby="new-timesheet-title" tabIndex={-1} className="bg-white rounded-2xl shadow-xl max-w-sm w-full outline-hidden">
-            <div className="px-6 py-4 border-b border-gray-100">
-              <h3 id="new-timesheet-title" className="text-base font-semibold text-gray-900">New Timesheet</h3>
-            </div>
+        <Modal onClose={closeNewModal} title="New Timesheet" titleId="new-timesheet-title" showClose={false} closeOnBackdrop={false} size="sm" padded={false}>
             <form onSubmit={handleCreateNew}>
               <div className="px-6 py-5 space-y-4">
                 <div>
@@ -229,8 +224,7 @@ const TimesheetsPage = ({ apiService, user }) => {
                 </Button>
               </div>
             </form>
-          </div>
-        </div>
+        </Modal>
       )}
     </div>
   );

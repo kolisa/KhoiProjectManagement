@@ -148,7 +148,7 @@ describe('GroupsManagement', () => {
     await screen.findByRole('button', { name: /engineering leads/i });
     await user.click(screen.getByRole('button', { name: /new group/i }));
 
-    const modal = screen.getByRole('heading', { name: 'New Group' }).closest('div.bg-white');
+    const modal = screen.getByRole('dialog', { name: 'New Group' });
     await user.type(within(modal).getByPlaceholderText(/group name/i), 'Support');
     await user.type(within(modal).getByPlaceholderText(/description/i), 'Support rota');
     await user.click(within(modal).getByRole('button', { name: /^create$/i }));

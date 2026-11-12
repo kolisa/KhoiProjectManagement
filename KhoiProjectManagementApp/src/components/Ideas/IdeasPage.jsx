@@ -6,7 +6,7 @@ import { hasPermission } from '../../utils/permissions';
 import { useToast } from '../../contexts/ToastContext';
 import { validateIdea, hasErrors } from '../../utils/validation';
 import useModalA11y from '../Common/useModalA11y';
-import { Button, Input, Textarea } from '../ui';
+import { Button, Input, Textarea, Modal } from '../ui';
 
 const COLUMNS = [
   { key: 'Submitted', label: 'Submitted' },
@@ -24,7 +24,6 @@ const formatIdeaAge = (iso) => {
 };
 
 const NewIdeaModal = ({ onSave, onClose }) => {
-  const modalRef = useModalA11y(onClose);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [saving, setSaving] = useState(false);
@@ -48,14 +47,23 @@ const NewIdeaModal = ({ onSave, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-      <div ref={modalRef} role="dialog" aria-modal="true" aria-labelledby="new-idea-modal-title" tabIndex={-1} className="bg-white rounded-2xl shadow-xl overflow-hidden w-full max-w-lg outline-hidden">
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-          <h3 id="new-idea-modal-title" className="text-base font-semibold text-gray-900">New Idea</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600" aria-label="Close">
-            <X className="h-4 w-4" />
-          </button>
-        </div>
+    <Modal
+      onClose={onClose}
+      closeOnBackdrop={false}
+      titleId="new-idea-modal-title"
+      size="lg"
+      padded={false}
+      scroll={false}
+      className="overflow-hidden"
+      header={(
+          <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+            <h3 id="new-idea-modal-title" className="text-base font-semibold text-gray-900">New Idea</h3>
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-600" aria-label="Close">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+      )}
+    >
         <div className="px-6 py-5 space-y-4">
           {error && <div className="text-red-600 text-sm">{error}</div>}
           <Input
@@ -81,8 +89,7 @@ const NewIdeaModal = ({ onSave, onClose }) => {
             {saving ? 'Submitting...' : 'Submit Idea'}
           </Button>
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 };
 

@@ -2,14 +2,12 @@
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
 import { validateReminder, hasErrors } from '../../utils/validation';
-import useModalA11y from '../Common/useModalA11y';
-import { Button, Input, Label, Select, Textarea } from '../ui';
+import { Button, Input, Label, Modal, Select, Textarea } from '../ui';
 
 const toLocalDateInput = (iso) => (iso ? new Date(iso).toISOString().slice(0, 10) : '');
 const toLocalTimeInput = (iso) => (iso ? new Date(iso).toISOString().slice(11, 16) : '09:00');
 
 const ReminderForm = ({ reminder, users, projects, canAssignOthers, onSave, onClose }) => {
-  const modalRef = useModalA11y(onClose);
   const isEdit = !!reminder;
   const [title, setTitle] = useState(reminder?.title || '');
   const [description, setDescription] = useState(reminder?.description || '');
@@ -65,23 +63,17 @@ const ReminderForm = ({ reminder, users, projects, canAssignOthers, onSave, onCl
   };
 
   return (
-    <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-      <form
-        ref={modalRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="reminder-form-modal-title"
-        tabIndex={-1}
-        onSubmit={handleSubmit}
-        className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col outline-hidden"
-      >
+    <Modal onClose={onClose} size="lg" scroll={false} padded={false} closeOnBackdrop={false} titleId="reminder-form-modal-title"
+      className="max-h-[90vh] overflow-hidden flex flex-col"
+      header={(
         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between shrink-0">
           <h3 id="reminder-form-modal-title" className="text-lg font-semibold text-gray-900">{isEdit ? 'Edit Reminder' : 'New Reminder'}</h3>
           <Button variant="ghost" size="sm" icon onClick={onClose} className="text-gray-400 hover:text-gray-600" aria-label="Close">
             <X className="h-4 w-4" />
           </Button>
         </div>
-
+      )}>
+      <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
         <div className="px-6 py-5 space-y-3 overflow-y-auto">
         {apiError && <div className="text-red-600 text-sm mb-3">{apiError}</div>}
 
@@ -269,7 +261,7 @@ const ReminderForm = ({ reminder, users, projects, canAssignOthers, onSave, onCl
           </Button>
         </div>
       </form>
-    </div>
+    </Modal>
   );
 };
 

@@ -1,14 +1,12 @@
 import React, { useState } from 'react';
 import { X, ArrowUp, ArrowDown } from 'lucide-react';
-import { Button } from '../ui';
-import useModalA11y from '../Common/useModalA11y';
+import { Button, Modal } from '../ui';
 import { statusLabel } from './pmConstants';
 
 // Rename, reorder and set WIP limits on the board's columns. Each column is bound to a status (the
 // real work-item status), so columns can't be added or removed here - that arrives with configurable
 // workflows.
 const BoardSettingsModal = ({ columns, onSave, onClose }) => {
-  const modalRef = useModalA11y(onClose);
   const [rows, setRows] = useState(() =>
     [...columns].sort((a, b) => a.position - b.position).map((c) => ({
       status: c.status, name: c.name, wipLimit: c.wipLimit ?? '',
@@ -41,13 +39,13 @@ const BoardSettingsModal = ({ columns, onSave, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-      <div ref={modalRef} role="dialog" aria-modal="true" aria-labelledby="board-settings-title" tabIndex={-1}
-        className="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+    <Modal onClose={onClose} size="lg" closeOnBackdrop={false} padded={false} titleId="board-settings-title"
+      header={(
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
           <h2 id="board-settings-title" className="text-lg font-semibold text-gray-900">Columns &amp; WIP limits</h2>
           <button onClick={onClose} aria-label="Close" className="text-gray-400 hover:text-gray-600"><X className="h-5 w-5" /></button>
         </div>
+      )}>
         <form onSubmit={submit} className="p-5 space-y-3">
           {error && <div role="alert" className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</div>}
           <p className="text-xs text-gray-500">A WIP limit stops cards being moved into a column once it is full. Leave empty for no limit.</p>
@@ -70,8 +68,7 @@ const BoardSettingsModal = ({ columns, onSave, onClose }) => {
             <Button type="submit" disabled={saving}>{saving ? 'Saving…' : 'Save'}</Button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   );
 };
 

@@ -9,11 +9,9 @@ import { Users, Plus, X, Pencil } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import { reportApiError } from '../../utils/apiError';
 import { validateGroup, hasErrors } from '../../utils/validation';
-import useModalA11y from '../Common/useModalA11y';
-import { Button, Input } from '../ui';
+import { Button, Input, Modal } from '../ui';
 
 const NewGroupModal = ({ onSave, onClose }) => {
-  const modalRef = useModalA11y(onClose);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [saving, setSaving] = useState(false);
@@ -37,14 +35,23 @@ const NewGroupModal = ({ onSave, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-      <div ref={modalRef} role="dialog" aria-modal="true" aria-labelledby="new-group-modal-title" tabIndex={-1} className="bg-white rounded-2xl shadow-xl overflow-hidden w-full max-w-md outline-hidden">
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-          <h3 id="new-group-modal-title" className="text-base font-semibold text-gray-900">New Group</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600" aria-label="Close">
-            <X className="h-4 w-4" />
-          </button>
-        </div>
+    <Modal
+      onClose={onClose}
+      closeOnBackdrop={false}
+      titleId="new-group-modal-title"
+      size="md"
+      padded={false}
+      scroll={false}
+      className="overflow-hidden"
+      header={(
+          <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+            <h3 id="new-group-modal-title" className="text-base font-semibold text-gray-900">New Group</h3>
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-600" aria-label="Close">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+      )}
+    >
         <div className="px-6 py-5 space-y-4">
           {error && <div className="text-red-600 text-sm">{error}</div>}
           <Input
@@ -71,8 +78,7 @@ const NewGroupModal = ({ onSave, onClose }) => {
             {saving ? 'Creating...' : 'Create'}
           </Button>
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 };
 

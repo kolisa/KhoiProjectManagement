@@ -1,26 +1,21 @@
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
-import { Button } from '../ui';
-import useModalA11y from '../Common/useModalA11y';
+import { Button, Modal } from '../ui';
 
 const fieldClass = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500';
 const labelClass = 'block text-sm font-medium text-gray-700 mb-1';
 
-const Shell = ({ title, titleId, onClose, children }) => {
-  const ref = useModalA11y(onClose);
-  return (
-    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-      <div ref={ref} role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1}
-        className="bg-white rounded-xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
-          <h2 id={titleId} className="text-lg font-semibold text-gray-900">{title}</h2>
-          <button onClick={onClose} aria-label="Close" className="text-gray-400 hover:text-gray-600"><X className="h-5 w-5" /></button>
-        </div>
-        {children}
+const Shell = ({ title, titleId, onClose, children }) => (
+  <Modal onClose={onClose} size="md" closeOnBackdrop={false} padded={false} titleId={titleId}
+    header={(
+      <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
+        <h2 id={titleId} className="text-lg font-semibold text-gray-900">{title}</h2>
+        <button onClick={onClose} aria-label="Close" className="text-gray-400 hover:text-gray-600"><X className="h-5 w-5" /></button>
       </div>
-    </div>
-  );
-};
+    )}>
+    {children}
+  </Modal>
+);
 
 const toDateInput = (d) => (d ? new Date(d).toISOString().slice(0, 10) : '');
 

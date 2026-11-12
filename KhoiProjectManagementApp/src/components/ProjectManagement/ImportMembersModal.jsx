@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { X, Download, Upload } from 'lucide-react';
-import { Button } from '../ui';
-import useModalA11y from '../Common/useModalA11y';
+import { Button, Modal } from '../ui';
 import { useToast } from '../../contexts/ToastContext';
 import { reportApiError } from '../../utils/apiError';
 import { PROJECT_ROLES, roleLabel } from './pmConstants';
@@ -12,7 +11,6 @@ const fieldClass = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm f
 // Bulk add / re-role people on a project from a pasted or uploaded list. Nothing changes until the person
 // has seen a preview: the first step is always a dry run that says, row by row, what would happen.
 const ImportMembersModal = ({ apiService, project, otherProjects = [], canGrantAccess, onImported, onClose }) => {
-  const ref = useModalA11y(onClose);
   const toast = useToast();
   const [text, setText] = useState('');
   const [defaultRole, setDefaultRole] = useState('Developer');
@@ -70,13 +68,13 @@ const ImportMembersModal = ({ apiService, project, otherProjects = [], canGrantA
   const changes = preview ? preview.added + preview.updated : 0;
 
   return (
-    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-      <div ref={ref} role="dialog" aria-modal="true" aria-labelledby="import-members-title" tabIndex={-1}
-        className="bg-white rounded-xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+    <Modal onClose={onClose} size={null} className="max-w-3xl" closeOnBackdrop={false} padded={false} titleId="import-members-title"
+      header={(
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
           <h2 id="import-members-title" className="text-lg font-semibold text-gray-900">Import members into {project.name}</h2>
           <button onClick={onClose} aria-label="Close" className="text-gray-400 hover:text-gray-600"><X className="h-5 w-5" /></button>
         </div>
+      )}>
 
         <div className="p-5 space-y-4">
           {error && <div role="alert" className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</div>}
@@ -180,8 +178,7 @@ const ImportMembersModal = ({ apiService, project, otherProjects = [], canGrantA
             </Button>
           </div>
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 };
 

@@ -8,7 +8,7 @@ import RoleBadge from './components/Common/RoleBadge';
 import TagsList from './components/Common/TagsList';
 import LoadingSpinner from './components/Common/LoadingSpinner';
 import ErrorMessage from './components/Common/ErrorMessage';
-import useModalA11y from './components/Common/useModalA11y';
+import { Modal } from './components/ui/Overlay';
 import ApiService, { NetworkError, API_BASE_URL } from './services/ApiService';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ToastProvider, useToast } from './contexts/ToastContext';
@@ -577,10 +577,6 @@ const ProjectManagementSystem = () => {
     // Hooks must be called unconditionally regardless of which (if any) modal is currently open -
     // each hook's own effect no-ops when its ref never gets attached to anything (the modal it
     // belongs to isn't rendered this pass).
-    const projectModalRef = useModalA11y(closeProjectModal);
-    const taskModalRef = useModalA11y(closeTaskModal);
-    const addMemberModalRef = useModalA11y(() => setShowAddMember(false));
-    const editMemberModalRef = useModalA11y(() => setEditingMemberId(null));
 
     const handleAddProject = async (e) => {
         e.preventDefault();
@@ -2184,14 +2180,16 @@ const ProjectManagementSystem = () => {
             {/* Modals */}
             {/* Add Project Modal */}
             {showAddProject && (
-                <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-                    <div ref={projectModalRef} role="dialog" aria-modal="true" aria-labelledby="project-modal-title" tabIndex={-1} className="bg-white rounded-2xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto outline-hidden">
-                        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between shrink-0">
-                            <h3 id="project-modal-title" className="text-base font-semibold text-gray-900">{editingProjectId !== null ? 'Edit Project' : 'Add New Project'}</h3>
-                            <button type="button" onClick={closeProjectModal} className="text-gray-400 hover:text-gray-600 rounded-lg p-1">
-                                <X className="h-5 w-5" />
-                            </button>
-                        </div>
+                <Modal onClose={closeProjectModal} titleId="project-modal-title" closeOnBackdrop={false} padded={false}
+                    header={(
+                            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between shrink-0">
+                                <h3 id="project-modal-title" className="text-base font-semibold text-gray-900">{editingProjectId !== null ? 'Edit Project' : 'Add New Project'}</h3>
+                                <button type="button" onClick={closeProjectModal} className="text-gray-400 hover:text-gray-600 rounded-lg p-1">
+                                    <X className="h-5 w-5" />
+                                </button>
+                            </div>
+                    )}
+                >
                         <form onSubmit={handleAddProject}>
                             <div className="px-6 py-5 space-y-4">
                                 <input
@@ -2298,20 +2296,21 @@ const ProjectManagementSystem = () => {
                                 </button>
                             </div>
                         </form>
-                    </div>
-                </div>
+                </Modal>
             )}
 
             {/* Add Task Modal */}
             {showAddTask && (
-                <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-                    <div ref={taskModalRef} role="dialog" aria-modal="true" aria-labelledby="task-modal-title" tabIndex={-1} className="bg-white rounded-2xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto outline-hidden">
-                        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between shrink-0">
-                            <h3 id="task-modal-title" className="text-base font-semibold text-gray-900">{editingTaskId !== null ? 'Edit Task' : 'Add New Task'}</h3>
-                            <button type="button" onClick={closeTaskModal} className="text-gray-400 hover:text-gray-600 rounded-lg p-1">
-                                <X className="h-5 w-5" />
-                            </button>
-                        </div>
+                <Modal onClose={closeTaskModal} titleId="task-modal-title" closeOnBackdrop={false} padded={false}
+                    header={(
+                            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between shrink-0">
+                                <h3 id="task-modal-title" className="text-base font-semibold text-gray-900">{editingTaskId !== null ? 'Edit Task' : 'Add New Task'}</h3>
+                                <button type="button" onClick={closeTaskModal} className="text-gray-400 hover:text-gray-600 rounded-lg p-1">
+                                    <X className="h-5 w-5" />
+                                </button>
+                            </div>
+                    )}
+                >
                         <form onSubmit={handleAddTask}>
                             <div className="px-6 py-5 space-y-4">
                                 <select
@@ -2447,20 +2446,21 @@ const ProjectManagementSystem = () => {
                                 </button>
                             </div>
                         </form>
-                    </div>
-                </div>
+                </Modal>
             )}
 
             {/* Add Member Modal */}
             {showAddMember && (
-                <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-                    <div ref={addMemberModalRef} role="dialog" aria-modal="true" aria-labelledby="add-member-modal-title" tabIndex={-1} className="bg-white rounded-2xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto outline-hidden">
-                        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between shrink-0">
-                            <h3 id="add-member-modal-title" className="text-base font-semibold text-gray-900">Add Team Member</h3>
-                            <button type="button" onClick={() => setShowAddMember(false)} className="text-gray-400 hover:text-gray-600 rounded-lg p-1">
-                                <X className="h-5 w-5" />
-                            </button>
-                        </div>
+                <Modal onClose={() => setShowAddMember(false)} titleId="add-member-modal-title" closeOnBackdrop={false} padded={false}
+                    header={(
+                            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between shrink-0">
+                                <h3 id="add-member-modal-title" className="text-base font-semibold text-gray-900">Add Team Member</h3>
+                                <button type="button" onClick={() => setShowAddMember(false)} className="text-gray-400 hover:text-gray-600 rounded-lg p-1">
+                                    <X className="h-5 w-5" />
+                                </button>
+                            </div>
+                    )}
+                >
                         <form onSubmit={handleAddMember}>
                             <div className="px-6 py-5 space-y-4">
                                 <input
@@ -2542,19 +2542,20 @@ const ProjectManagementSystem = () => {
                                 </button>
                             </div>
                         </form>
-                    </div>
-                </div>
+                </Modal>
             )}
 
             {editingMemberId && (
-                <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-                    <div ref={editMemberModalRef} role="dialog" aria-modal="true" aria-labelledby="edit-member-modal-title" tabIndex={-1} className="bg-white rounded-2xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto outline-hidden">
-                        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between shrink-0">
-                            <h3 id="edit-member-modal-title" className="text-base font-semibold text-gray-900">Edit Team Member</h3>
-                            <button type="button" onClick={() => setEditingMemberId(null)} className="text-gray-400 hover:text-gray-600 rounded-lg p-1">
-                                <X className="h-5 w-5" />
-                            </button>
-                        </div>
+                <Modal onClose={() => setEditingMemberId(null)} titleId="edit-member-modal-title" closeOnBackdrop={false} padded={false}
+                    header={(
+                            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between shrink-0">
+                                <h3 id="edit-member-modal-title" className="text-base font-semibold text-gray-900">Edit Team Member</h3>
+                                <button type="button" onClick={() => setEditingMemberId(null)} className="text-gray-400 hover:text-gray-600 rounded-lg p-1">
+                                    <X className="h-5 w-5" />
+                                </button>
+                            </div>
+                    )}
+                >
                         <form onSubmit={handleSaveMemberEdit}>
                             <div className="px-6 py-5 space-y-4">
                                 <input
@@ -2621,8 +2622,7 @@ const ProjectManagementSystem = () => {
                                 </button>
                             </div>
                         </form>
-                    </div>
-                </div>
+                </Modal>
             )}
         </div>
     );

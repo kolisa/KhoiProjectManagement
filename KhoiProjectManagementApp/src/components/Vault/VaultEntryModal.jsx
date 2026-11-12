@@ -4,11 +4,9 @@
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
 import { validateVaultEntry, hasErrors } from '../../utils/validation';
-import { Button, Input, Textarea } from '../ui';
-import useModalA11y from '../Common/useModalA11y';
+import { Button, Input, Textarea, Modal } from '../ui';
 
 const VaultEntryModal = ({ spaceId, entry, onSave, onClose }) => {
-  const modalRef = useModalA11y(onClose);
   const [form, setForm] = useState({
     name: entry?.name || '',
     systemOrUrl: entry?.systemOrUrl || '',
@@ -57,8 +55,15 @@ const VaultEntryModal = ({ spaceId, entry, onSave, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-      <div ref={modalRef} role="dialog" aria-modal="true" aria-labelledby="vault-entry-modal-title" tabIndex={-1} className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden max-h-screen flex flex-col outline-hidden">
+    <Modal
+      onClose={onClose}
+      closeOnBackdrop={false}
+      titleId="vault-entry-modal-title"
+      size="md"
+      padded={false}
+      scroll={false}
+      className="flex flex-col overflow-hidden max-h-screen"
+      header={(
         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
           <h3 id="vault-entry-modal-title" className="text-base font-semibold text-gray-900">{entry ? 'Edit Vault Entry' : 'New Vault Entry'}</h3>
           <button
@@ -70,6 +75,8 @@ const VaultEntryModal = ({ spaceId, entry, onSave, onClose }) => {
             <X className="h-5 w-5" />
           </button>
         </div>
+      )}
+    >
         <form onSubmit={handleSubmit} className="flex flex-col overflow-y-auto">
           <div className="px-6 py-5 space-y-4">
             {error && <div className="text-sm text-red-600">{error}</div>}
@@ -123,8 +130,7 @@ const VaultEntryModal = ({ spaceId, entry, onSave, onClose }) => {
             </Button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   );
 };
 

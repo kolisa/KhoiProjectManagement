@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
-import { Button } from '../ui';
-import useModalA11y from '../Common/useModalA11y';
+import { Button, Modal } from '../ui';
 import { WORK_ITEM_TYPES, STATUSES, TYPE_STYLES, allowedParentTypes, can, denyReason } from './pmConstants';
 import WorkItemCollab from './WorkItemCollab';
 import RichTextEditor from './RichTextEditor';
@@ -18,7 +17,6 @@ const labelClass = 'block text-xs font-medium text-gray-600 mb-1';
 // Layout: the work itself (title, rich-text description, subtasks, effort) on the left, the item's details on the right,
 // the discussion below.
 const WorkItemModal = ({ item, items, members, canEdit, onSave, onClose, apiService, role, project, onChanged }) => {
-  const modalRef = useModalA11y(onClose);
   const [form, setForm] = useState({
     title: item?.title || '',
     description: item?.description || '',
@@ -85,15 +83,9 @@ const WorkItemModal = ({ item, items, members, canEdit, onSave, onClose, apiServ
   const typeStyle = TYPE_STYLES[form.type] || 'bg-gray-100 text-gray-700';
 
   return (
-    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-      <div
-        ref={modalRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="work-item-modal-title"
-        tabIndex={-1}
-        className="bg-white rounded-xl shadow-xl w-full max-w-5xl max-h-[92vh] flex flex-col outline-hidden"
-      >
+    <Modal onClose={onClose} size={null} scroll={false} padded={false} closeOnBackdrop={false} titleId="work-item-modal-title"
+      className="max-w-5xl max-h-[92vh] flex flex-col"
+      header={(
         <div className="flex items-center gap-3 px-6 py-4 border-b border-gray-200">
           <span className={`px-2 py-0.5 rounded-sm text-[11px] font-semibold ${typeStyle}`}>{form.type}</span>
           <h2 id="work-item-modal-title" className="text-lg font-semibold text-gray-900">
@@ -103,6 +95,7 @@ const WorkItemModal = ({ item, items, members, canEdit, onSave, onClose, apiServ
             <X className="h-5 w-5" />
           </button>
         </div>
+      )}>
 
         <div className="flex-1 overflow-y-auto">
         <form id="work-item-form" onSubmit={submit} noValidate>
@@ -200,8 +193,7 @@ const WorkItemModal = ({ item, items, members, canEdit, onSave, onClose, apiServ
             </Button>
           )}
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 };
 

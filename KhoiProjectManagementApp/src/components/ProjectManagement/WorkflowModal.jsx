@@ -1,13 +1,11 @@
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
-import { Button } from '../ui';
-import useModalA11y from '../Common/useModalA11y';
+import { Button, Modal } from '../ui';
 import { statusLabel } from './pmConstants';
 
 // Editor for a project's workflow rules: a from -> to grid where each ticked cell is a permitted move.
 // The statuses are fixed; only which moves between them are allowed is configurable.
 const WorkflowModal = ({ workflow, onSave, onClose }) => {
-  const ref = useModalA11y(onClose);
   const [allowed, setAllowed] = useState(() => {
     const map = {};
     workflow.transitions.forEach((t) => { map[`${t.from}>${t.to}`] = t.allowed; });
@@ -32,13 +30,13 @@ const WorkflowModal = ({ workflow, onSave, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-      <div ref={ref} role="dialog" aria-modal="true" aria-labelledby="workflow-title" tabIndex={-1}
-        className="bg-white rounded-xl shadow-xl w-full max-w-xl max-h-[90vh] overflow-y-auto">
+    <Modal onClose={onClose} size={null} className="max-w-xl" closeOnBackdrop={false} padded={false} titleId="workflow-title"
+      header={(
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
           <h2 id="workflow-title" className="text-lg font-semibold text-gray-900">Workflow rules</h2>
           <button onClick={onClose} aria-label="Close" className="text-gray-400 hover:text-gray-600"><X className="h-5 w-5" /></button>
         </div>
+      )}>
         <form onSubmit={submit} className="p-5 space-y-4">
           {error && <div role="alert" className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</div>}
           <p className="text-sm text-gray-600">Tick the moves this project allows. For example, untick To do → Done to force work through In progress first. Everything must still be able to reach Done.</p>
@@ -74,8 +72,7 @@ const WorkflowModal = ({ workflow, onSave, onClose }) => {
             </div>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   );
 };
 

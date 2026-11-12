@@ -11,8 +11,7 @@ import { hasPermission } from '../../utils/permissions';
 import { useToast } from '../../contexts/ToastContext';
 import { useConfirm } from '../../contexts/ConfirmContext';
 import { reportApiError } from '../../utils/apiError';
-import { Button } from '../ui';
-import useModalA11y from '../Common/useModalA11y';
+import { Button, Modal } from '../ui';
 
 // Extracted so useModalA11y's mount-time focus-trap setup runs exactly when this modal actually
 // appears - VaultPage itself never unmounts while the Vault tab is open, so a hook call placed
@@ -20,10 +19,8 @@ import useModalA11y from '../Common/useModalA11y';
 // flips true. Same JSX/classNames/handlers as before, just wrapped in a component that
 // mounts/unmounts with the modal itself (the same shape VaultEntryModal/VaultImportModal use).
 const NewVaultCategoryModal = ({ parentId, parentSpaceName, name, onNameChange, creating, error, onCreate, onClose }) => {
-  const modalRef = useModalA11y(onClose);
   return (
-    <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-      <div ref={modalRef} role="dialog" aria-modal="true" aria-labelledby="vault-new-category-modal-title" tabIndex={-1} className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden outline-hidden">
+    <Modal onClose={onClose} closeOnBackdrop={false} titleId="vault-new-category-modal-title" size="sm" padded={false} scroll={false} className="overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
           <h3 id="vault-new-category-modal-title" className="text-base font-semibold text-gray-900">
             {parentId ? `New subcategory under "${parentSpaceName}"` : 'New category'}
@@ -68,8 +65,7 @@ const NewVaultCategoryModal = ({ parentId, parentSpaceName, name, onNameChange, 
             {creating ? 'Creating...' : 'Create'}
           </Button>
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 };
 

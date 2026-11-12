@@ -10,8 +10,7 @@ import { formatFileSize } from '../../utils/formatFileSize';
 import ShareButton from '../Common/ShareButton';
 import LoadingSpinner from '../Common/LoadingSpinner';
 import ErrorMessage from '../Common/ErrorMessage';
-import { Button } from '../ui';
-import useModalA11y from '../Common/useModalA11y';
+import { Button, Modal } from '../ui';
 import { useToast } from '../../contexts/ToastContext';
 import { useConfirm } from '../../contexts/ConfirmContext';
 import { reportApiError } from '../../utils/apiError';
@@ -41,7 +40,6 @@ const LibraryPage = ({ apiService, user, teamMembers = [], deepLink }) => {
   const uploadInputRef = useRef(null);
   const versionInputRef = useRef(null);
   const versionTargetIdRef = useRef(null);
-  const newFolderModalRef = useModalA11y(() => { setShowNewFolder(false); setNewFolderName(''); });
 
   const loadFiles = async (spaceId) => {
     setLoadingFiles(true);
@@ -383,8 +381,7 @@ const LibraryPage = ({ apiService, user, teamMembers = [], deepLink }) => {
       )}
 
       {showNewFolder && (
-        <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div ref={newFolderModalRef} role="dialog" aria-modal="true" aria-labelledby="library-new-folder-modal-title" tabIndex={-1} className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden outline-hidden">
+        <Modal onClose={() => { setShowNewFolder(false); setNewFolderName(''); }} closeOnBackdrop={false} titleId="library-new-folder-modal-title" size="sm" padded={false} scroll={false} className="overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
               <h3 id="library-new-folder-modal-title" className="text-base font-semibold text-gray-900">
                 {newFolderParentId ? `New subfolder under "${selectedSpace?.name}"` : 'New root folder'}
@@ -429,8 +426,7 @@ const LibraryPage = ({ apiService, user, teamMembers = [], deepLink }) => {
                 {creatingFolder ? 'Creating...' : 'Create'}
               </Button>
             </div>
-          </div>
-        </div>
+        </Modal>
       )}
     </div>
   );

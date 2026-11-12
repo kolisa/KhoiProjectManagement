@@ -10,7 +10,7 @@ import { hasPermission } from '../../utils/permissions';
 import { useToast } from '../../contexts/ToastContext';
 import { useConfirm } from '../../contexts/ConfirmContext';
 import { reportApiError } from '../../utils/apiError';
-import useModalA11y from '../Common/useModalA11y';
+import { Modal } from '../ui';
 
 const SEARCH_DEBOUNCE_MS = 350;
 
@@ -20,10 +20,8 @@ const SEARCH_DEBOUNCE_MS = 350;
 // true. Same JSX/classNames/handlers as before, just wrapped in a component that mounts/unmounts
 // with the modal itself (the same shape VaultEntryModal/VaultImportModal already use).
 const NewWikiSpaceModal = ({ parentId, parentSpaceName, name, onNameChange, creating, error, onCreate, onClose }) => {
-  const modalRef = useModalA11y(onClose);
   return (
-    <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-      <div ref={modalRef} role="dialog" aria-modal="true" aria-labelledby="wiki-new-space-modal-title" tabIndex={-1} className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden outline-hidden">
+    <Modal onClose={onClose} closeOnBackdrop={false} titleId="wiki-new-space-modal-title" size="sm" padded={false} scroll={false} className="overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
           <h3 id="wiki-new-space-modal-title" className="text-base font-semibold text-gray-900">
             {parentId ? `New space under "${parentSpaceName}"` : 'New wiki space'}
@@ -68,8 +66,7 @@ const NewWikiSpaceModal = ({ parentId, parentSpaceName, name, onNameChange, crea
             {creating ? 'Creating...' : 'Create'}
           </button>
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 };
 

@@ -8,14 +8,12 @@ import { X, Trash2, Plus } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import { reportApiError } from '../../utils/apiError';
 import { hasPermission } from '../../utils/permissions';
-import { Button } from '../ui';
-import useModalA11y from '../Common/useModalA11y';
+import { Button, Modal } from '../ui';
 
 const LEVELS = ['Read', 'Write', 'Manage'];
 
 const ManageAccessModal = ({ apiService, space, teamMembers, currentUser, onClose }) => {
   const toast = useToast();
-  const modalRef = useModalA11y(onClose);
   const [grants, setGrants] = useState(null);
   const [roles, setRoles] = useState(null);
   const [groups, setGroups] = useState(null);
@@ -114,17 +112,26 @@ const ManageAccessModal = ({ apiService, space, teamMembers, currentUser, onClos
   };
 
   return (
-    <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-      <div ref={modalRef} role="dialog" aria-modal="true" aria-labelledby="manage-access-modal-title" tabIndex={-1} className="bg-white rounded-2xl shadow-xl overflow-hidden w-full max-w-lg max-h-[85vh] flex flex-col outline-hidden">
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between shrink-0">
-          <div>
-            <h3 id="manage-access-modal-title" className="text-base font-semibold text-gray-900">Manage access</h3>
-            <p className="text-xs text-gray-500">{space.name}</p>
+    <Modal
+      onClose={onClose}
+      closeOnBackdrop={false}
+      titleId="manage-access-modal-title"
+      size="lg"
+      padded={false}
+      scroll={false}
+      className="flex flex-col overflow-hidden max-h-[85vh]"
+      header={(
+          <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between shrink-0">
+            <div>
+              <h3 id="manage-access-modal-title" className="text-base font-semibold text-gray-900">Manage access</h3>
+              <p className="text-xs text-gray-500">{space.name}</p>
+            </div>
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-600" aria-label="Close">
+              <X className="h-4 w-4" />
+            </button>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600" aria-label="Close">
-            <X className="h-4 w-4" />
-          </button>
-        </div>
+      )}
+    >
 
         <div className="px-6 py-5 space-y-4 overflow-y-auto">
           {grants === null ? (
@@ -206,8 +213,7 @@ const ManageAccessModal = ({ apiService, space, teamMembers, currentUser, onClos
             {saving ? 'Saving...' : 'Save'}
           </Button>
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 };
 
