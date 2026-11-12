@@ -202,8 +202,8 @@ const TimesheetsPage = ({ apiService, user }) => {
       </Card>
 
       {showNew && (
-        <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div ref={newModalRef} role="dialog" aria-modal="true" aria-labelledby="new-timesheet-title" tabIndex={-1} className="bg-white rounded-2xl shadow-xl max-w-sm w-full outline-none">
+        <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+          <div ref={newModalRef} role="dialog" aria-modal="true" aria-labelledby="new-timesheet-title" tabIndex={-1} className="bg-white rounded-2xl shadow-xl max-w-sm w-full outline-hidden">
             <div className="px-6 py-4 border-b border-gray-100">
               <h3 id="new-timesheet-title" className="text-base font-semibold text-gray-900">New Timesheet</h3>
             </div>

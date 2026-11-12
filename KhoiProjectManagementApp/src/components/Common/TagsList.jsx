@@ -8,7 +8,7 @@ const TagsList = ({ tags }) => {
   return (
     <div className="flex flex-wrap gap-1">
       {tags.map((tag, index) => (
-        <span key={index} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+        <span key={index} className="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-gray-100 text-gray-800">
           <Tag className="w-3 h-3 mr-1" />
           {tag}
         </span>

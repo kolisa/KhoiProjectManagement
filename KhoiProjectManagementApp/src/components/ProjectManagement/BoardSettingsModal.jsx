@@ -59,10 +59,10 @@ const BoardSettingsModal = ({ columns, onSave, onClose }) => {
               </div>
               <input aria-label={`Name for the ${statusLabel(row.status)} column`} value={row.name} maxLength={40}
                 onChange={(e) => update(i, { name: e.target.value })}
-                className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500" />
               <input aria-label={`WIP limit for ${row.name}`} type="number" min="1" max="100" placeholder="No limit" value={row.wipLimit}
                 onChange={(e) => update(i, { wipLimit: e.target.value })}
-                className="w-24 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                className="w-24 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500" />
             </div>
           ))}
           <div className="flex justify-end gap-2 pt-2">

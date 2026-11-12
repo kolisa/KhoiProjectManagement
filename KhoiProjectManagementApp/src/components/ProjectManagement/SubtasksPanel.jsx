@@ -6,7 +6,7 @@ import { statusLabel } from './pmConstants';
 import { suggestSubtasks } from './richText';
 import Combobox, { peopleOptions } from './Combobox';
 
-const fieldClass = 'border border-gray-300 rounded-lg px-2.5 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:cursor-not-allowed';
+const fieldClass = 'border border-gray-300 rounded-lg px-2.5 py-1.5 text-sm bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:cursor-not-allowed';
 
 // The subtasks of a work item: a quick list with progress, an inline "add", and suggestions drawn from the description.
 // Subtasks are ordinary work items (type Subtask, parent = this item) so the board, backlog and sprint effort all see them.
@@ -99,7 +99,7 @@ const SubtasksPanel = ({ apiService, project, item, items, members, description,
             {children.map((c) => (
               <li key={c.id} className="flex items-center gap-3 px-4 py-2">
                 <input type="checkbox" aria-label={`Mark ${c.title} ${c.status === 'completed' ? 'not done' : 'done'}`} checked={c.status === 'completed'}
-                  disabled={blocked} title={blocked ? blockedReason : undefined} onChange={() => toggle(c)} className="h-4 w-4 rounded border-gray-300 disabled:cursor-not-allowed" />
+                  disabled={blocked} title={blocked ? blockedReason : undefined} onChange={() => toggle(c)} className="h-4 w-4 rounded-sm border-gray-300 disabled:cursor-not-allowed" />
                 <span className={`flex-1 min-w-0 truncate text-sm ${c.status === 'completed' ? 'text-gray-400 line-through' : 'text-gray-900'}`}>{c.title}</span>
                 {memberName(c.assignedToId) && <span className="text-xs text-gray-500">{memberName(c.assignedToId)}</span>}
                 <span className="text-xs text-gray-500">{statusLabel(c.status)}</span>
@@ -121,7 +121,7 @@ const SubtasksPanel = ({ apiService, project, item, items, members, description,
                   <li key={s}>
                     <label className="flex items-center gap-2 text-sm text-gray-900">
                       <input type="checkbox" checked={picked.has(s)} onChange={() => setPicked((p) => { const n = new Set(p); if (n.has(s)) n.delete(s); else n.add(s); return n; })}
-                        className="h-4 w-4 rounded border-gray-300" /> {s}
+                        className="h-4 w-4 rounded-sm border-gray-300" /> {s}
                     </label>
                   </li>
                 ))}
@@ -142,7 +142,7 @@ const SubtasksPanel = ({ apiService, project, item, items, members, description,
 
       <div className="flex flex-wrap items-center gap-2 border-t border-gray-100 px-4 py-3" title={blocked ? blockedReason : undefined}>
         <label htmlFor="subtask-title" className="sr-only">New subtask</label>
-        <input id="subtask-title" value={title} maxLength={200} disabled={blocked} placeholder="Add a subtask…" className={`${fieldClass} flex-1 min-w-[10rem]`}
+        <input id="subtask-title" value={title} maxLength={200} disabled={blocked} placeholder="Add a subtask…" className={`${fieldClass} flex-1 min-w-40`}
           onChange={(e) => setTitle(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); add(); } }} />
         <label htmlFor="subtask-assignee" className="sr-only">Subtask assignee</label>

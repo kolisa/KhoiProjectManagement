@@ -24,7 +24,7 @@ const WikiPresence = ({ viewers, editLock, currentUserId }) => {
             <div
               key={v.userId}
               title={v.userId === currentUserId ? `${v.userName} (you)` : v.userName}
-              className="h-6 w-6 rounded-full bg-blue-50 text-blue-700 text-[10px] font-semibold flex items-center justify-center border-2 border-white shadow-sm"
+              className="h-6 w-6 rounded-full bg-blue-50 text-blue-700 text-[10px] font-semibold flex items-center justify-center border-2 border-white shadow-xs"
             >
               {initials(v.userName)}
             </div>

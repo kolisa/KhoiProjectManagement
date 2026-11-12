@@ -56,11 +56,11 @@ const NotificationPreferences = ({ apiService }) => {
         <p className="text-gray-600">Choose which events email you. In-app notifications always happen either way.</p>
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm divide-y divide-gray-100 max-w-2xl">
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-xs divide-y divide-gray-100 max-w-2xl">
         {preferences.map((pref) => (
           <div key={pref.notificationType} className="p-4 flex items-center justify-between">
             <div className="flex items-start">
-              <Mail className="h-5 w-5 mr-3 mt-0.5 text-gray-400 flex-shrink-0" />
+              <Mail className="h-5 w-5 mr-3 mt-0.5 text-gray-400 shrink-0" />
               <div>
                 <div className="font-medium text-gray-900">{pref.displayName}</div>
                 <div className="text-sm text-gray-500">{pref.description}</div>

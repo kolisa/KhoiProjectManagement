@@ -22,8 +22,8 @@ const SEARCH_DEBOUNCE_MS = 350;
 const NewWikiSpaceModal = ({ parentId, parentSpaceName, name, onNameChange, creating, error, onCreate, onClose }) => {
   const modalRef = useModalA11y(onClose);
   return (
-    <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div ref={modalRef} role="dialog" aria-modal="true" aria-labelledby="wiki-new-space-modal-title" tabIndex={-1} className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden outline-none">
+    <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+      <div ref={modalRef} role="dialog" aria-modal="true" aria-labelledby="wiki-new-space-modal-title" tabIndex={-1} className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden outline-hidden">
         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
           <h3 id="wiki-new-space-modal-title" className="text-base font-semibold text-gray-900">
             {parentId ? `New space under "${parentSpaceName}"` : 'New wiki space'}
@@ -49,7 +49,7 @@ const NewWikiSpaceModal = ({ parentId, parentSpaceName, name, onNameChange, crea
             onChange={(e) => onNameChange(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') onCreate(); }}
             placeholder="Space name"
-            className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+            className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
           />
           {error && <div className="text-red-600 text-sm">{error}</div>}
         </div>
@@ -63,7 +63,7 @@ const NewWikiSpaceModal = ({ parentId, parentSpaceName, name, onNameChange, crea
           <button
             onClick={onCreate}
             disabled={creating || !name.trim()}
-            className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors disabled:opacity-50"
+            className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-xs transition-colors disabled:opacity-50"
           >
             {creating ? 'Creating...' : 'Create'}
           </button>
@@ -318,7 +318,7 @@ const WikiPage = ({ apiService, user, teamMembers = [], deepLink }) => {
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Search wiki pages..."
-          className="w-full border border-gray-300 rounded-lg pl-9 pr-9 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+          className="w-full border border-gray-300 rounded-lg pl-9 pr-9 py-2.5 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
         />
         {searchQuery && (
           <button
@@ -352,7 +352,7 @@ const WikiPage = ({ apiService, user, teamMembers = [], deepLink }) => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="md:col-span-1 bg-white rounded-2xl border border-gray-100 shadow-sm p-3">
+        <div className="md:col-span-1 bg-white rounded-2xl border border-gray-100 shadow-xs p-3">
           <div className="flex justify-between items-center mb-2 px-1">
             <span className="text-xs font-semibold text-gray-500 uppercase">Spaces</span>
             {canCreateRootSpace && (
@@ -371,7 +371,7 @@ const WikiPage = ({ apiService, user, teamMembers = [], deepLink }) => {
 
         <div className="md:col-span-3 space-y-4">
           {!selectedSpace && (
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center text-gray-400">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-xs p-8 text-center text-gray-400">
               Select a wiki space on the left to browse its pages.
             </div>
           )}
@@ -437,7 +437,7 @@ const WikiPage = ({ apiService, user, teamMembers = [], deepLink }) => {
                   {canWrite && (
                     <button
                       onClick={() => setCreatingUnderParentId(currentParentPageId)}
-                      className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors"
+                      className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-xs transition-colors"
                     >
                       <Plus className="h-4 w-4" />
                       New Page
@@ -450,7 +450,7 @@ const WikiPage = ({ apiService, user, teamMembers = [], deepLink }) => {
               {loadingPages && <div className="text-gray-400">Loading pages...</div>}
 
               {!loadingPages && (
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm divide-y divide-gray-100">
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-xs divide-y divide-gray-100">
                   {pages.length === 0 && (
                     <div className="p-6 text-center text-gray-400">No pages here yet.</div>
                   )}
@@ -463,30 +463,30 @@ const WikiPage = ({ apiService, user, teamMembers = [], deepLink }) => {
                       onDrop={() => handleDrop(index)}
                       className={`p-4 hover:bg-gray-50/60 transition-colors flex justify-between items-center ${canWrite ? 'cursor-move' : ''} ${dragIndex === index ? 'opacity-40' : ''}`}
                     >
-                      {canWrite && <GripVertical className="h-4 w-4 mr-1 text-gray-300 flex-shrink-0" />}
+                      {canWrite && <GripVertical className="h-4 w-4 mr-1 text-gray-300 shrink-0" />}
                       <button
                         onClick={() => setSelectedPageId(page.id)}
                         className="flex items-center text-left flex-1 min-w-0"
                       >
-                        <FileText className="h-4 w-4 mr-2 text-gray-400 flex-shrink-0" />
+                        <FileText className="h-4 w-4 mr-2 text-gray-400 shrink-0" />
                         <span className="font-medium text-gray-900 truncate">{page.title}</span>
                         {page.wordCount > 0 && (
-                          <span className="ml-2 text-xs text-gray-400 flex-shrink-0">{Math.max(1, Math.ceil(page.wordCount / 200))} min read</span>
+                          <span className="ml-2 text-xs text-gray-400 shrink-0">{Math.max(1, Math.ceil(page.wordCount / 200))} min read</span>
                         )}
                         {page.labels?.length > 0 && (
-                          <span className="ml-2 flex space-x-1 flex-shrink-0">
+                          <span className="ml-2 flex space-x-1 shrink-0">
                             {page.labels.map((l) => (
                               <span key={l} className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-gray-100 text-gray-700">{l}</span>
                             ))}
                           </span>
                         )}
                       </button>
-                      <div className="flex items-center space-x-3 flex-shrink-0 ml-2">
+                      <div className="flex items-center space-x-3 shrink-0 ml-2">
                         {canWrite && moveTargets.length > 0 && (
                           <select
                             value=""
                             onChange={(e) => handleMove(page, e.target.value === 'null' ? null : Number(e.target.value))}
-                            className="text-xs border border-gray-300 rounded-md px-1.5 py-1 text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                            className="text-xs border border-gray-300 rounded-md px-1.5 py-1 text-gray-600 focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
                           >
                             <option value="" disabled>Move to...</option>
                             {moveTargets.map((t) => (

@@ -190,7 +190,7 @@ const TimesheetDetail = ({ apiService, user, timesheet, initialPeriod, initialEn
           </div>
         </div>
         {!isNew && (
-          <Button variant="outline" onClick={() => downloadTimesheetCsv(timesheet)} className="flex-shrink-0">
+          <Button variant="outline" onClick={() => downloadTimesheetCsv(timesheet)} className="shrink-0">
             <Download className="h-4 w-4" /> Download
           </Button>
         )}
@@ -227,28 +227,28 @@ const TimesheetDetail = ({ apiService, user, timesheet, initialPeriod, initialEn
                 const taskSelectValue = isPreset ? entry.description : (entry.description ? 'Other' : '');
                 return (
                   <tr key={i}>
-                    <td className="px-3 py-2 min-w-[9.5rem]">
+                    <td className="px-3 py-2 min-w-38">
                       {canEdit ? (
                         <input type="date" value={entry.entryDate} onChange={(e) => updateEntry(i, 'entryDate', e.target.value)}
-                          className="w-full border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+                          className="w-full border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
                       ) : new Date(entry.entryDate).toLocaleDateString()}
                     </td>
-                    <td className="px-3 py-2 min-w-[9rem]">
+                    <td className="px-3 py-2 min-w-36">
                       {canEdit ? (
                         <select value={entry.projectId} onChange={(e) => updateEntry(i, 'projectId', e.target.value)}
-                          className="w-full border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                          className="w-full border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                           <option value="">Non-billable</option>
                           {projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
                         </select>
                       ) : (entry.projectId ? (entry.projectName || '—') : 'Non-billable')}
                     </td>
-                    <td className="px-3 py-2 min-w-[10rem]">
+                    <td className="px-3 py-2 min-w-40">
                       {canEdit ? (
                         <div className="space-y-1">
                           <select
                             value={taskSelectValue}
                             onChange={(e) => updateEntry(i, 'description', e.target.value === 'Other' ? '' : e.target.value)}
-                            className="w-full border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            className="w-full border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                           >
                             <option value="">Select a task...</option>
                             {TASK_PRESETS.map((p) => <option key={p} value={p}>{p}</option>)}
@@ -257,21 +257,21 @@ const TimesheetDetail = ({ apiService, user, timesheet, initialPeriod, initialEn
                           {taskSelectValue === 'Other' && (
                             <input type="text" value={entry.description} onChange={(e) => updateEntry(i, 'description', e.target.value)}
                               placeholder="What did you work on?" autoFocus
-                              className="w-full border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+                              className="w-full border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
                           )}
                         </div>
                       ) : (entry.description || '—')}
                     </td>
-                    <td className="px-3 py-2 min-w-[7rem]">
+                    <td className="px-3 py-2 min-w-28">
                       {canEdit ? (
                         <input type="time" value={entry.entryTime} onChange={(e) => updateEntry(i, 'entryTime', e.target.value)}
-                          className="w-full border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+                          className="w-full border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
                       ) : (entry.entryTime || (() => {
                         const d = new Date(entry.entryDate);
                         return hasTimeComponent(d) ? formatTime(d) : '—';
                       })())}
                     </td>
-                    <td className="px-3 py-2 min-w-[8.5rem]">
+                    <td className="px-3 py-2 min-w-34">
                       {canEdit ? (() => {
                         const { wholeHours, minutes } = splitHours(entry.hours);
                         return (
@@ -279,12 +279,12 @@ const TimesheetDetail = ({ apiService, user, timesheet, initialPeriod, initialEn
                             <input type="number" min="0" max="24" step="1" value={entry.hours ? wholeHours : ''}
                               onChange={(e) => updateEntry(i, 'hours', String(combineHours(e.target.value, minutes)))}
                               placeholder="0" aria-label="Hours"
-                              className="w-14 border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+                              className="w-14 border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
                             <span className="text-gray-400 text-xs">h</span>
                             <input type="number" min="0" max="59" step="5" value={entry.hours ? minutes : ''}
                               onChange={(e) => updateEntry(i, 'hours', String(combineHours(wholeHours, e.target.value)))}
                               placeholder="0" aria-label="Minutes"
-                              className="w-14 border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+                              className="w-14 border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
                             <span className="text-gray-400 text-xs">m</span>
                           </div>
                         );

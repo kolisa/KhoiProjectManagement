@@ -68,7 +68,7 @@ const WikiPageLabels = ({ apiService, pageId, labels, canWrite, onChanged }) => 
           onKeyDown={(e) => { if (e.key === 'Enter') handleAdd(); if (e.key === 'Escape') { setAdding(false); setNewLabel(''); } }}
           onBlur={handleAdd}
           placeholder="label name"
-          className="text-xs border border-gray-300 rounded-md px-2 py-1 w-24 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+          className="text-xs border border-gray-300 rounded-md px-2 py-1 w-24 focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
         />
       )}
     </div>

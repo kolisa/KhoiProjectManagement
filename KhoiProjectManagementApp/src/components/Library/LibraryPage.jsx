@@ -206,7 +206,7 @@ const LibraryPage = ({ apiService, user, teamMembers = [], deepLink }) => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="md:col-span-1 bg-white rounded-2xl border border-gray-100 shadow-sm p-3">
+        <div className="md:col-span-1 bg-white rounded-2xl border border-gray-100 shadow-xs p-3">
           <div className="flex justify-between items-center mb-2 px-1">
             <span className="text-xs font-semibold text-gray-500 uppercase">Folders</span>
             {canCreateRootFolder && (
@@ -225,7 +225,7 @@ const LibraryPage = ({ apiService, user, teamMembers = [], deepLink }) => {
 
         <div className="md:col-span-3 space-y-4">
           {!selectedSpace && (
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-10 text-center text-gray-400">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-xs p-10 text-center text-gray-400">
               <FolderOpen className="h-9 w-9 mx-auto mb-2 text-gray-300" />
               Select a folder on the left to view its files.
             </div>
@@ -272,7 +272,7 @@ const LibraryPage = ({ apiService, user, teamMembers = [], deepLink }) => {
                     <button
                       onClick={() => uploadInputRef.current?.click()}
                       disabled={uploading}
-                      className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors disabled:opacity-50"
+                      className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-xs transition-colors disabled:opacity-50"
                     >
                       <Upload className="h-5 w-5" />
                       {uploading ? 'Uploading...' : 'Upload File'}
@@ -291,7 +291,7 @@ const LibraryPage = ({ apiService, user, teamMembers = [], deepLink }) => {
               {loadingFiles && <LoadingSpinner text="Loading files..." />}
 
               {!loadingFiles && (
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm divide-y divide-gray-100">
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-xs divide-y divide-gray-100">
                   {files.length === 0 && (
                     <div className="p-8 text-center text-gray-400">
                       <Upload className="h-8 w-8 mx-auto mb-2 text-gray-300" />
@@ -307,7 +307,7 @@ const LibraryPage = ({ apiService, user, teamMembers = [], deepLink }) => {
                             v{file.currentVersionNumber} · {formatFileSize(file.fileSize)} · {file.creatorName}
                           </div>
                         </div>
-                        <div className="flex flex-wrap items-center gap-2 sm:gap-3 sm:flex-shrink-0">
+                        <div className="flex flex-wrap items-center gap-2 sm:gap-3 sm:shrink-0">
                           <button
                             onClick={() => handleView(file)}
                             className="text-gray-400 hover:bg-gray-100 rounded-md p-1.5 transition-colors"
@@ -383,8 +383,8 @@ const LibraryPage = ({ apiService, user, teamMembers = [], deepLink }) => {
       )}
 
       {showNewFolder && (
-        <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div ref={newFolderModalRef} role="dialog" aria-modal="true" aria-labelledby="library-new-folder-modal-title" tabIndex={-1} className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden outline-none">
+        <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+          <div ref={newFolderModalRef} role="dialog" aria-modal="true" aria-labelledby="library-new-folder-modal-title" tabIndex={-1} className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden outline-hidden">
             <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
               <h3 id="library-new-folder-modal-title" className="text-base font-semibold text-gray-900">
                 {newFolderParentId ? `New subfolder under "${selectedSpace?.name}"` : 'New root folder'}
@@ -410,7 +410,7 @@ const LibraryPage = ({ apiService, user, teamMembers = [], deepLink }) => {
                 onChange={(e) => setNewFolderName(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') handleCreateFolder(); }}
                 placeholder="Folder name"
-                className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
               />
               {error && <div className="text-red-600 text-sm">{error}</div>}
             </div>

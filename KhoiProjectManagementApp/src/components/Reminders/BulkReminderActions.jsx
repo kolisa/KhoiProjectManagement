@@ -30,11 +30,11 @@ const BulkReminderActions = ({ count, onComplete, onDelete, onReschedule, onPrio
               type="datetime-local"
               value={rescheduleValue}
               onChange={(e) => setRescheduleValue(e.target.value)}
-              className="border rounded px-1 py-0.5 text-xs"
+              className="border rounded-sm px-1 py-0.5 text-xs"
             />
             <button
               onClick={() => { if (rescheduleValue) { onReschedule(new Date(rescheduleValue).toISOString()); setShowReschedule(false); } }}
-              className="text-xs bg-blue-600 text-white px-2 rounded"
+              className="text-xs bg-blue-600 text-white px-2 rounded-sm"
             >
               Set
             </button>

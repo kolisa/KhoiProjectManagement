@@ -65,7 +65,7 @@ const ReminderForm = ({ reminder, users, projects, canAssignOthers, onSave, onCl
   };
 
   return (
-    <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-xs flex items-center justify-center z-50 p-4">
       <form
         ref={modalRef}
         role="dialog"
@@ -73,9 +73,9 @@ const ReminderForm = ({ reminder, users, projects, canAssignOthers, onSave, onCl
         aria-labelledby="reminder-form-modal-title"
         tabIndex={-1}
         onSubmit={handleSubmit}
-        className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col outline-none"
+        className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col outline-hidden"
       >
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
+        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between shrink-0">
           <h3 id="reminder-form-modal-title" className="text-lg font-semibold text-gray-900">{isEdit ? 'Edit Reminder' : 'New Reminder'}</h3>
           <Button variant="ghost" size="sm" icon onClick={onClose} className="text-gray-400 hover:text-gray-600" aria-label="Close">
             <X className="h-4 w-4" />
@@ -224,7 +224,7 @@ const ReminderForm = ({ reminder, users, projects, canAssignOthers, onSave, onCl
                     id="reminder-recurrence-type"
                     value={recurrenceType}
                     onChange={(e) => setRecurrenceType(e.target.value)}
-                    className="w-full border rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                    className="w-full border rounded-lg px-2 py-1.5 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
                   >
                     <option value="Daily">Daily</option>
                     <option value="Weekly">Weekly</option>
@@ -238,7 +238,7 @@ const ReminderForm = ({ reminder, users, projects, canAssignOthers, onSave, onCl
                     type="date"
                     value={recurrenceEndDate}
                     onChange={(e) => setRecurrenceEndDate(e.target.value)}
-                    className="w-full border rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                    className="w-full border rounded-lg px-2 py-1.5 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
                   />
                 </div>
                 <div className="col-span-2">
@@ -249,7 +249,7 @@ const ReminderForm = ({ reminder, users, projects, canAssignOthers, onSave, onCl
                     min="1"
                     value={recurrenceMaxOccurrences}
                     onChange={(e) => setRecurrenceMaxOccurrences(e.target.value)}
-                    className="w-full border rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                    className="w-full border rounded-lg px-2 py-1.5 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
                   />
                 </div>
                 {errors.recurrenceEndDate && (
@@ -260,7 +260,7 @@ const ReminderForm = ({ reminder, users, projects, canAssignOthers, onSave, onCl
           </div>
         </div>
 
-        <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3 flex-shrink-0">
+        <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3 shrink-0">
           <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>

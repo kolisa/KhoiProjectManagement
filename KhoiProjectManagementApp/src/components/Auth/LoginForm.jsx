@@ -42,12 +42,12 @@ const LoginForm = ({ onForgotPassword, onMustChangePassword }) => {
     };
 
     const inputWrapClass = 'relative flex items-center rounded-[10px] border border-gray-200 bg-gray-50 transition-all focus-within:bg-white focus-within:border-blue-500 focus-within:ring-4 focus-within:ring-blue-500/10';
-    const inputIconClass = 'h-[18px] w-[18px] ml-3.5 flex-shrink-0 text-gray-400 transition-colors peer-focus:text-blue-600';
+    const inputIconClass = 'h-[18px] w-[18px] ml-3.5 shrink-0 text-gray-400 transition-colors peer-focus:text-blue-600';
 
     return (
         <div className="min-h-screen flex bg-gray-50">
             {/* Brand panel */}
-            <div className="hidden lg:flex lg:w-[44%] relative overflow-hidden flex-col justify-between bg-gradient-to-br from-blue-900 via-blue-700 to-blue-600 px-14 py-14">
+            <div className="hidden lg:flex lg:w-[44%] relative overflow-hidden flex-col justify-between bg-linear-to-br from-blue-900 via-blue-700 to-blue-600 px-14 py-14">
                 <div
                     className="absolute inset-0 opacity-[0.07]"
                     style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.6) 1px, transparent 1px)', backgroundSize: '42px 42px' }}
@@ -56,7 +56,7 @@ const LoginForm = ({ onForgotPassword, onMustChangePassword }) => {
                 <div className="absolute -bottom-40 -left-24 h-[480px] w-[480px] rounded-full bg-blue-400/20 blur-3xl" />
 
                 <div className="relative flex items-center gap-3">
-                    <div className="h-9 w-9 rounded-lg bg-white flex items-center justify-center text-blue-700 font-bold text-base flex-shrink-0">K</div>
+                    <div className="h-9 w-9 rounded-lg bg-white flex items-center justify-center text-blue-700 font-bold text-base shrink-0">K</div>
                     <span className="text-white text-lg font-bold tracking-tight">KhoiHub</span>
                 </div>
 
@@ -75,7 +75,7 @@ const LoginForm = ({ onForgotPassword, onMustChangePassword }) => {
                             'Timesheets, invoicing and reminders built in',
                         ].map((feature) => (
                             <div key={feature} className="flex items-center gap-3">
-                                <div className="h-6 w-6 rounded-md bg-white/15 ring-1 ring-white/10 flex items-center justify-center flex-shrink-0">
+                                <div className="h-6 w-6 rounded-md bg-white/15 ring-1 ring-white/10 flex items-center justify-center shrink-0">
                                     <CheckCircle className="h-3.5 w-3.5 text-white" />
                                 </div>
                                 <span className="text-blue-50/90 text-sm">{feature}</span>
@@ -92,13 +92,13 @@ const LoginForm = ({ onForgotPassword, onMustChangePassword }) => {
                 <div className="max-w-sm w-full">
                     <div className="lg:hidden flex flex-col items-center mb-8">
                         <div className="flex items-center gap-2.5">
-                            <div className="h-10 w-10 rounded-xl bg-blue-600 flex items-center justify-center text-white font-bold text-lg flex-shrink-0">K</div>
+                            <div className="h-10 w-10 rounded-xl bg-blue-600 flex items-center justify-center text-white font-bold text-lg shrink-0">K</div>
                             <span className="text-gray-900 text-xl font-bold tracking-tight">KhoiHub</span>
                         </div>
                     </div>
 
                     <div className="relative bg-white rounded-[20px] border border-gray-100 shadow-[0_2px_4px_rgba(16,24,40,0.04),0_20px_48px_-12px_rgba(16,24,40,0.14)] p-8 sm:p-10">
-                        <div className="absolute inset-x-0 top-0 h-1 rounded-t-[20px] bg-gradient-to-r from-blue-600 via-blue-500 to-blue-400" />
+                        <div className="absolute inset-x-0 top-0 h-1 rounded-t-[20px] bg-linear-to-r from-blue-600 via-blue-500 to-blue-400" />
                         <div className="hidden lg:flex h-11 w-11 rounded-xl bg-blue-50 items-center justify-center mb-5">
                             <Lock className="h-5 w-5 text-blue-600" />
                         </div>
@@ -117,7 +117,7 @@ const LoginForm = ({ onForgotPassword, onMustChangePassword }) => {
                                     required
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
-                                    className="peer w-full pl-2.5 pr-4 py-3 bg-transparent rounded-[10px] text-[15px] text-gray-900 placeholder-gray-400 focus:outline-none"
+                                    className="peer w-full pl-2.5 pr-4 py-3 bg-transparent rounded-[10px] text-[15px] text-gray-900 placeholder-gray-400 focus:outline-hidden"
                                     placeholder="Email address"
                                 />
                             </div>
@@ -128,13 +128,13 @@ const LoginForm = ({ onForgotPassword, onMustChangePassword }) => {
                                     required
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
-                                    className="peer w-full pl-2.5 pr-2 py-3 bg-transparent rounded-[10px] text-[15px] text-gray-900 placeholder-gray-400 focus:outline-none"
+                                    className="peer w-full pl-2.5 pr-2 py-3 bg-transparent rounded-[10px] text-[15px] text-gray-900 placeholder-gray-400 focus:outline-hidden"
                                     placeholder="Password"
                                 />
                                 <button
                                     type="button"
                                     onClick={() => setShowPassword((v) => !v)}
-                                    className="mr-2.5 flex-shrink-0 text-gray-400 hover:text-gray-600 transition-colors p-1 -m-1"
+                                    className="mr-2.5 shrink-0 text-gray-400 hover:text-gray-600 transition-colors p-1 -m-1"
                                     aria-label={showPassword ? 'Hide password' : 'Show password'}
                                     tabIndex={-1}
                                 >
@@ -148,7 +148,7 @@ const LoginForm = ({ onForgotPassword, onMustChangePassword }) => {
                                         type="checkbox"
                                         checked={rememberMe}
                                         onChange={(e) => setRememberMe(e.target.checked)}
-                                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                        className="rounded-sm border-gray-300 text-blue-600 focus:ring-blue-500"
                                     />
                                     Remember me for 30 minutes
                                 </label>
@@ -170,7 +170,7 @@ const LoginForm = ({ onForgotPassword, onMustChangePassword }) => {
                             <button
                                 type="submit"
                                 disabled={loading}
-                                className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-[10px] text-[15px] font-semibold text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 focus:outline-none focus:ring-4 focus:ring-blue-500/25 disabled:opacity-60 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md"
+                                className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-[10px] text-[15px] font-semibold text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 focus:outline-hidden focus:ring-4 focus:ring-blue-500/25 disabled:opacity-60 disabled:cursor-not-allowed transition-all shadow-xs hover:shadow-md"
                             >
                                 {loading && (
                                     <span className="h-4 w-4 rounded-full border-2 border-white/40 border-t-white animate-spin" />

@@ -34,7 +34,7 @@ class ErrorBoundary extends React.Component {
 
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center">
+        <div className="max-w-md w-full bg-white rounded-2xl border border-gray-100 shadow-xs p-8 text-center">
           <div className="mx-auto h-14 w-14 rounded-2xl bg-red-50 flex items-center justify-center mb-5">
             <AlertTriangle className="h-7 w-7 text-red-500" />
           </div>
@@ -53,7 +53,7 @@ class ErrorBoundary extends React.Component {
             </button>
             <button
               onClick={this.handleReload}
-              className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors"
+              className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-xs transition-colors"
             >
               <RefreshCw className="h-4 w-4" />
               Reload

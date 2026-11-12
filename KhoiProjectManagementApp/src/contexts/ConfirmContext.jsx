@@ -42,7 +42,7 @@ export const ConfirmProvider = ({ children }) => {
     <ConfirmContext.Provider value={confirm}>
       {children}
       {request && (
-        <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-[110]">
+        <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-xs flex items-center justify-center p-4 z-110">
           <div
             ref={modalRef}
             role="dialog"
@@ -50,11 +50,11 @@ export const ConfirmProvider = ({ children }) => {
             aria-labelledby="confirm-dialog-title"
             aria-describedby="confirm-dialog-message"
             tabIndex={-1}
-            className="bg-white rounded-2xl shadow-xl max-w-sm w-full outline-none"
+            className="bg-white rounded-2xl shadow-xl max-w-sm w-full outline-hidden"
           >
             <div className="px-6 pt-6 pb-2 flex items-start gap-3">
               {request.danger && (
-                <div className="bg-red-50 rounded-lg p-2 flex-shrink-0">
+                <div className="bg-red-50 rounded-lg p-2 shrink-0">
                   <AlertTriangle className="h-5 w-5 text-red-600" />
                 </div>
               )}
@@ -77,7 +77,7 @@ export const ConfirmProvider = ({ children }) => {
               <button
                 type="button"
                 onClick={() => settle(true)}
-                className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-[10px] text-sm font-semibold shadow-sm transition-colors text-white ${
+                className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-[10px] text-sm font-semibold shadow-xs transition-colors text-white ${
                   request.danger ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'
                 }`}
               >

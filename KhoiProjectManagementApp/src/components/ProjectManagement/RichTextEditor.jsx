@@ -8,7 +8,7 @@ const ToolButton = ({ label, onClick, disabled, children }) => (
   <button type="button" aria-label={label} title={label} disabled={disabled}
     onMouseDown={(e) => e.preventDefault()}   // keep the text selection while a toolbar button is clicked
     onClick={onClick}
-    className="p-1.5 rounded text-gray-600 hover:bg-gray-100 disabled:text-gray-300 disabled:hover:bg-transparent disabled:cursor-not-allowed">
+    className="p-1.5 rounded-sm text-gray-600 hover:bg-gray-100 disabled:text-gray-300 disabled:hover:bg-transparent disabled:cursor-not-allowed">
     {children}
   </button>
 );
@@ -111,9 +111,9 @@ const RichTextEditor = ({ id, label, value, onChange, disabled = false, reason }
             <label htmlFor={`${id}-url`} className="sr-only">Link address</label>
             <input id={`${id}-url`} autoFocus value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} placeholder="https://…"
               onKeyDown={(e) => { if (e.key === 'Enter') applyLink(e); }}
-              className="flex-1 border border-gray-300 rounded px-2 py-1 text-sm" />
+              className="flex-1 border border-gray-300 rounded-sm px-2 py-1 text-sm" />
             <button type="button" onClick={applyLink} disabled={!/^(https?:\/\/|mailto:)/i.test(linkUrl.trim())}
-              className="px-2 py-1 text-xs rounded bg-blue-600 text-white disabled:opacity-50">Add link</button>
+              className="px-2 py-1 text-xs rounded-sm bg-blue-600 text-white disabled:opacity-50">Add link</button>
           </div>
         )}
         <div
@@ -129,7 +129,7 @@ const RichTextEditor = ({ id, label, value, onChange, disabled = false, reason }
           lang="en"
           onInput={() => { setTidyReport(null); emit(); }}
           onPaste={onPaste}
-          className={`pm-richtext min-h-[8rem] max-h-72 overflow-y-auto px-3 py-2 text-sm text-gray-900 outline-none ${disabled ? 'text-gray-600 cursor-not-allowed' : ''}`}
+          className={`pm-richtext min-h-32 max-h-72 overflow-y-auto px-3 py-2 text-sm text-gray-900 outline-hidden ${disabled ? 'text-gray-600 cursor-not-allowed' : ''}`}
         />
       </div>
 

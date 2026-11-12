@@ -59,8 +59,8 @@ const InvoiceFormModal = ({ title, templates, onSave, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div ref={modalRef} role="dialog" aria-modal="true" aria-labelledby="invoice-modal-title" tabIndex={-1} className="bg-white rounded-2xl shadow-xl overflow-hidden w-full max-w-lg max-h-[90vh] flex flex-col outline-none">
+    <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+      <div ref={modalRef} role="dialog" aria-modal="true" aria-labelledby="invoice-modal-title" tabIndex={-1} className="bg-white rounded-2xl shadow-xl overflow-hidden w-full max-w-lg max-h-[90vh] flex flex-col outline-hidden">
         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
           <h3 id="invoice-modal-title" className="text-base font-semibold text-gray-900">{title}</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600" aria-label="Close">
@@ -101,21 +101,21 @@ const InvoiceFormModal = ({ title, templates, onSave, onClose }) => {
                   placeholder="Description"
                   value={li.description}
                   onChange={(e) => updateLineItem(i, 'description', e.target.value)}
-                  className="flex-1 border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                  className="flex-1 border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
                 />
                 <input
                   type="number"
                   placeholder="Qty"
                   value={li.quantity}
                   onChange={(e) => updateLineItem(i, 'quantity', e.target.value)}
-                  className="w-16 border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                  className="w-16 border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
                 />
                 <input
                   type="number"
                   placeholder="Unit price"
                   value={li.unitPrice}
                   onChange={(e) => updateLineItem(i, 'unitPrice', e.target.value)}
-                  className="w-24 border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                  className="w-24 border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
                 />
               </div>
             ))}
@@ -267,9 +267,9 @@ const InvoicesPage = ({ apiService, user }) => {
 
         return (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+            <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-xs">
               <div className="flex items-center">
-                <div className="bg-green-50 rounded-lg p-3 mr-3 flex-shrink-0">
+                <div className="bg-green-50 rounded-lg p-3 mr-3 shrink-0">
                   <CheckCircle className="h-6 w-6 text-green-600" />
                 </div>
                 <div>
@@ -278,9 +278,9 @@ const InvoicesPage = ({ apiService, user }) => {
                 </div>
               </div>
             </div>
-            <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+            <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-xs">
               <div className="flex items-center">
-                <div className="bg-amber-50 rounded-lg p-3 mr-3 flex-shrink-0">
+                <div className="bg-amber-50 rounded-lg p-3 mr-3 shrink-0">
                   <Clock className="h-6 w-6 text-amber-600" />
                 </div>
                 <div>
@@ -289,9 +289,9 @@ const InvoicesPage = ({ apiService, user }) => {
                 </div>
               </div>
             </div>
-            <div className={`bg-white p-5 rounded-2xl border shadow-sm ${overdueCount > 0 ? 'border-[#DB4241]/30' : 'border-gray-100'}`}>
+            <div className={`bg-white p-5 rounded-2xl border shadow-xs ${overdueCount > 0 ? 'border-[#DB4241]/30' : 'border-gray-100'}`}>
               <div className="flex items-center">
-                <div className="bg-red-50 rounded-lg p-3 mr-3 flex-shrink-0">
+                <div className="bg-red-50 rounded-lg p-3 mr-3 shrink-0">
                   <AlertCircle className="h-6 w-6 text-red-600" />
                 </div>
                 <div>
@@ -301,9 +301,9 @@ const InvoicesPage = ({ apiService, user }) => {
                 </div>
               </div>
             </div>
-            <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+            <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-xs">
               <div className="flex items-center">
-                <div className="bg-blue-50 rounded-lg p-3 mr-3 flex-shrink-0">
+                <div className="bg-blue-50 rounded-lg p-3 mr-3 shrink-0">
                   <TrendingUp className="h-6 w-6 text-blue-600" />
                 </div>
                 <div>
@@ -317,7 +317,7 @@ const InvoicesPage = ({ apiService, user }) => {
       })()}
 
       {templates.length > 0 && (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-xs">
           <button
             onClick={() => setShowTemplates((v) => !v)}
             className="w-full text-sm text-gray-500 flex items-center px-4 py-3 hover:bg-gray-50/60 transition-colors"
@@ -343,7 +343,7 @@ const InvoicesPage = ({ apiService, user }) => {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm divide-y divide-gray-100">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-xs divide-y divide-gray-100">
           {invoices === null && <div className="p-6 text-gray-400">Loading...</div>}
           {invoices?.length === 0 && <div className="p-6 text-center text-gray-400">No invoices yet.</div>}
           {invoices?.map((inv) => (

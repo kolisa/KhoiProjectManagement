@@ -114,9 +114,9 @@ const ManageAccessModal = ({ apiService, space, teamMembers, currentUser, onClos
   };
 
   return (
-    <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div ref={modalRef} role="dialog" aria-modal="true" aria-labelledby="manage-access-modal-title" tabIndex={-1} className="bg-white rounded-2xl shadow-xl overflow-hidden w-full max-w-lg max-h-[85vh] flex flex-col outline-none">
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
+    <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+      <div ref={modalRef} role="dialog" aria-modal="true" aria-labelledby="manage-access-modal-title" tabIndex={-1} className="bg-white rounded-2xl shadow-xl overflow-hidden w-full max-w-lg max-h-[85vh] flex flex-col outline-hidden">
+        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between shrink-0">
           <div>
             <h3 id="manage-access-modal-title" className="text-base font-semibold text-gray-900">Manage access</h3>
             <p className="text-xs text-gray-500">{space.name}</p>
@@ -143,7 +143,7 @@ const ManageAccessModal = ({ apiService, space, teamMembers, currentUser, onClos
                     <select
                       value={g.level}
                       onChange={(e) => handleLevelChange(g.key, e.target.value)}
-                      className="text-xs border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="text-xs border border-gray-300 rounded-md px-2 py-1.5 focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     >
                       {LEVELS.map((l) => <option key={l} value={l}>{l}</option>)}
                     </select>
@@ -159,7 +159,7 @@ const ManageAccessModal = ({ apiService, space, teamMembers, currentUser, onClos
                   <select
                     value={granteeType}
                     onChange={(e) => { setGranteeType(e.target.value); setGranteeId(''); }}
-                    className="text-sm border border-gray-300 rounded-[10px] px-2 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="text-sm border border-gray-300 rounded-[10px] px-2 py-2 focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   >
                     <option value="user">Person</option>
                     {canSeeRoles && <option value="role">Role</option>}
@@ -169,7 +169,7 @@ const ManageAccessModal = ({ apiService, space, teamMembers, currentUser, onClos
                 <select
                   value={granteeId}
                   onChange={(e) => setGranteeId(e.target.value)}
-                  className="flex-1 text-sm border border-gray-300 rounded-[10px] px-2.5 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="flex-1 text-sm border border-gray-300 rounded-[10px] px-2.5 py-2 focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option value="">
                     {granteeType === 'user' ? 'Add a person...' : granteeType === 'role' ? 'Add a role...' : 'Add a group...'}
@@ -181,7 +181,7 @@ const ManageAccessModal = ({ apiService, space, teamMembers, currentUser, onClos
                 <select
                   value={newLevel}
                   onChange={(e) => setNewLevel(e.target.value)}
-                  className="text-sm border border-gray-300 rounded-[10px] px-2 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="text-sm border border-gray-300 rounded-[10px] px-2 py-2 focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
                   {LEVELS.map((l) => <option key={l} value={l}>{l}</option>)}
                 </select>
@@ -198,7 +198,7 @@ const ManageAccessModal = ({ apiService, space, teamMembers, currentUser, onClos
           )}
         </div>
 
-        <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3 flex-shrink-0">
+        <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3 shrink-0">
           <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>

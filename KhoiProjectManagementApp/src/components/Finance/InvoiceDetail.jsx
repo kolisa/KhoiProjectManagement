@@ -110,7 +110,7 @@ const InvoiceDetail = ({ apiService, user, invoice, onClose, onChanged, onDelete
               <select
                 value=""
                 onChange={(e) => e.target.value && handleStatusChange(e.target.value)}
-                className="text-xs border border-gray-300 rounded-md px-2 py-1 text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="text-xs border border-gray-300 rounded-md px-2 py-1 text-gray-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="">Change status...</option>
                 {['Draft', 'Sent', 'Paid', 'Overdue'].filter((s) => s !== invoice.status).map((s) => (
@@ -176,7 +176,7 @@ const InvoiceDetail = ({ apiService, user, invoice, onClose, onChanged, onDelete
             type="text"
             value={templateName}
             onChange={(e) => setTemplateName(e.target.value)}
-            className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 mb-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+            className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 mb-2 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
             placeholder="Template name"
           />
           <div className="flex justify-end gap-3">

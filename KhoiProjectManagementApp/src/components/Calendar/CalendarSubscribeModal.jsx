@@ -67,7 +67,7 @@ const CalendarSubscribeModal = ({ apiService, onClose }) => {
                   onFocus={(e) => e.target.select()}
                   className="flex-1 min-w-0 text-gray-600 bg-gray-50"
                 />
-                <Button variant="outline" onClick={handleCopy} className="flex-shrink-0">
+                <Button variant="outline" onClick={handleCopy} className="shrink-0">
                   {copied ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
                   {copied ? 'Copied' : 'Copy'}
                 </Button>

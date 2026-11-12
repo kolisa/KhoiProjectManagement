@@ -35,9 +35,9 @@ const VaultImportModal = ({ apiService, spaceId, onClose, onImported }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div ref={modalRef} role="dialog" aria-modal="true" aria-labelledby="vault-import-modal-title" tabIndex={-1} className="bg-white rounded-2xl shadow-xl overflow-hidden w-full max-w-md max-h-[85vh] flex flex-col outline-none">
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
+    <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+      <div ref={modalRef} role="dialog" aria-modal="true" aria-labelledby="vault-import-modal-title" tabIndex={-1} className="bg-white rounded-2xl shadow-xl overflow-hidden w-full max-w-md max-h-[85vh] flex flex-col outline-hidden">
+        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between shrink-0">
           <h3 id="vault-import-modal-title" className="text-base font-semibold text-gray-900">Import entries</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600" aria-label="Close">
             <X className="h-4 w-4" />
@@ -48,14 +48,14 @@ const VaultImportModal = ({ apiService, spaceId, onClose, onImported }) => {
           {!result ? (
             <>
               <p className="text-sm text-gray-500">
-                Upload a <span className="font-mono text-xs bg-gray-100 rounded px-1 py-0.5">.env</span> file
+                Upload a <span className="font-mono text-xs bg-gray-100 rounded-sm px-1 py-0.5">.env</span> file
                 (<span className="font-mono text-xs">KEY=VALUE</span> per line), a plain{' '}
-                <span className="font-mono text-xs bg-gray-100 rounded px-1 py-0.5">.txt</span> note from
+                <span className="font-mono text-xs bg-gray-100 rounded-sm px-1 py-0.5">.txt</span> note from
                 Notepad or Notepad++ (<span className="font-mono text-xs">Label: value</span> per line
                 works too), a{' '}
-                <span className="font-mono text-xs bg-gray-100 rounded px-1 py-0.5">.csv</span> with a name/secret
+                <span className="font-mono text-xs bg-gray-100 rounded-sm px-1 py-0.5">.csv</span> with a name/secret
                 column (username, systemOrUrl, and notes are optional), or a{' '}
-                <span className="font-mono text-xs bg-gray-100 rounded px-1 py-0.5">.json</span> array of
+                <span className="font-mono text-xs bg-gray-100 rounded-sm px-1 py-0.5">.json</span> array of
                 {' '}{'{ name, secret, ... }'} objects. Each row becomes one entry in this category.
               </p>
               <div
@@ -80,7 +80,7 @@ const VaultImportModal = ({ apiService, spaceId, onClose, onImported }) => {
           ) : (
             <div className="space-y-3">
               <div className="flex items-center gap-2 text-sm">
-                <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
+                <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
                 <span className="text-gray-900">{result.imported} imported</span>
                 {result.skipped > 0 && (
                   <span className="text-gray-500">&middot; {result.skipped} skipped</span>
@@ -90,7 +90,7 @@ const VaultImportModal = ({ apiService, spaceId, onClose, onImported }) => {
                 <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 space-y-1 max-h-48 overflow-y-auto">
                   {result.errors.map((e, i) => (
                     <div key={i} className="flex items-start gap-1.5 text-xs text-amber-800">
-                      <AlertTriangle className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                      <AlertTriangle className="h-3 w-3 mt-0.5 shrink-0" />
                       <span>{e}</span>
                     </div>
                   ))}
@@ -100,7 +100,7 @@ const VaultImportModal = ({ apiService, spaceId, onClose, onImported }) => {
           )}
         </div>
 
-        <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3 flex-shrink-0">
+        <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3 shrink-0">
           {result ? (
             <Button onClick={onClose}>Done</Button>
           ) : (

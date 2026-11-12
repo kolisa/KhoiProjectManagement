@@ -23,12 +23,12 @@ const OrgChartNode = ({ member, childrenByManagerId, depth }) => {
       >
         <button
           onClick={() => setExpanded((e) => !e)}
-          className={`flex-shrink-0 ${reports.length === 0 ? 'invisible' : ''}`}
+          className={`shrink-0 ${reports.length === 0 ? 'invisible' : ''}`}
           aria-label="Toggle direct reports"
         >
           {expanded ? <ChevronDown className="h-4 w-4 text-gray-400" /> : <ChevronRight className="h-4 w-4 text-gray-400" />}
         </button>
-        <div className={`h-9 w-9 ${getAvatarColor(member.name)} rounded-full flex items-center justify-center text-white text-xs font-semibold flex-shrink-0`}>
+        <div className={`h-9 w-9 ${getAvatarColor(member.name)} rounded-full flex items-center justify-center text-white text-xs font-semibold shrink-0`}>
           {initials}
         </div>
         <div className="min-w-0">
@@ -73,7 +73,7 @@ const OrgChartTree = ({ teamMembers }) => {
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-3">
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-xs p-3">
       {roots.map((member) => (
         <OrgChartNode key={member.id} member={member} childrenByManagerId={childrenByManagerId} depth={0} />
       ))}

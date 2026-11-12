@@ -161,7 +161,7 @@ export const AuthProvider = ({ children }) => {
         <AuthContext.Provider value={value}>
             {children}
             {idleWarningSecondsLeft !== null && (
-                <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-[120]">
+                <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-xs flex items-center justify-center p-4 z-120">
                     <div
                         ref={idleModalRef}
                         role="dialog"
@@ -169,10 +169,10 @@ export const AuthProvider = ({ children }) => {
                         aria-labelledby="idle-timeout-title"
                         aria-describedby="idle-timeout-message"
                         tabIndex={-1}
-                        className="bg-white rounded-2xl shadow-xl max-w-sm w-full outline-none"
+                        className="bg-white rounded-2xl shadow-xl max-w-sm w-full outline-hidden"
                     >
                         <div className="px-6 pt-6 pb-2 flex items-start gap-3">
-                            <div className="bg-amber-50 rounded-lg p-2 flex-shrink-0">
+                            <div className="bg-amber-50 rounded-lg p-2 shrink-0">
                                 <Clock className="h-5 w-5 text-amber-600" />
                             </div>
                             <div className="min-w-0">
@@ -194,7 +194,7 @@ export const AuthProvider = ({ children }) => {
                             <button
                                 type="button"
                                 onClick={() => resetIdleTimer()}
-                                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-[10px] text-sm font-semibold shadow-sm transition-colors text-white bg-blue-600 hover:bg-blue-700"
+                                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-[10px] text-sm font-semibold shadow-xs transition-colors text-white bg-blue-600 hover:bg-blue-700"
                             >
                                 Stay signed in
                             </button>

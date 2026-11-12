@@ -61,7 +61,7 @@ export function Tabs({ tabs = [], value, onChange, defaultValue }) {
         {tabs.map((t) => (
           <button key={t.key} type="button" role="tab" id={`tab-${t.key}`} aria-selected={t.key === active}
             aria-controls={`panel-${t.key}`} tabIndex={t.key === active ? 0 : -1} onClick={() => select(t.key)}
-            className={cn('rounded-md px-3 py-1.5 text-sm font-medium transition-colors', t.key === active ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground')}>
+            className={cn('rounded-md px-3 py-1.5 text-sm font-medium transition-colors', t.key === active ? 'bg-card text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground')}>
             {t.label}
           </button>
         ))}

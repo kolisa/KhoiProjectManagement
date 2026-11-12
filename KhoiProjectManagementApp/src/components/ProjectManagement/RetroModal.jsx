@@ -11,7 +11,7 @@ const COLUMNS = [
   { key: 'Action', title: 'Actions', tone: 'bg-blue-50 border-blue-200', placeholder: 'A concrete follow-up…' },
 ];
 
-const fieldClass = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500';
+const fieldClass = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500';
 
 const RetroColumn = ({ column, items, canAdd, addReason, onAdd, onEdit, onDelete, onToggle }) => {
   const [draft, setDraft] = useState('');
@@ -46,9 +46,9 @@ const RetroColumn = ({ column, items, canAdd, addReason, onAdd, onEdit, onDelete
               <>
                 <div className="flex items-start gap-2">
                   {column.key === 'Action' && (
-                    <input type="checkbox" aria-label={`Mark done: ${i.text}`} checked={i.isDone} onChange={(e) => onToggle(i, e.target.checked)} className="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600" />
+                    <input type="checkbox" aria-label={`Mark done: ${i.text}`} checked={i.isDone} onChange={(e) => onToggle(i, e.target.checked)} className="mt-1 h-4 w-4 rounded-sm border-gray-300 text-blue-600" />
                   )}
-                  <p className={`flex-1 text-sm whitespace-pre-wrap break-words ${i.isDone ? 'line-through text-gray-400' : 'text-gray-800'}`}>{i.text}</p>
+                  <p className={`flex-1 text-sm whitespace-pre-wrap wrap-break-word ${i.isDone ? 'line-through text-gray-400' : 'text-gray-800'}`}>{i.text}</p>
                 </div>
                 <div className="flex items-center justify-between mt-1 text-xs text-gray-500">
                   <span>{i.authorName}</span>

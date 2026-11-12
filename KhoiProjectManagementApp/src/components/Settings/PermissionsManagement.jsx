@@ -34,8 +34,8 @@ const NewRoleModal = ({ onSave, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div ref={modalRef} role="dialog" aria-modal="true" aria-labelledby="new-role-modal-title" tabIndex={-1} className="bg-white rounded-2xl shadow-xl overflow-hidden w-full max-w-md outline-none">
+    <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+      <div ref={modalRef} role="dialog" aria-modal="true" aria-labelledby="new-role-modal-title" tabIndex={-1} className="bg-white rounded-2xl shadow-xl overflow-hidden w-full max-w-md outline-hidden">
         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
           <h3 id="new-role-modal-title" className="text-base font-semibold text-gray-900">New Role</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600" aria-label="Close">
@@ -211,7 +211,7 @@ const PermissionsManagement = ({ apiService }) => {
         </div>
         <button
           onClick={() => setShowNewRole(true)}
-          className="inline-flex items-center gap-2 bg-blue-600 text-white px-3.5 py-2 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors"
+          className="inline-flex items-center gap-2 bg-blue-600 text-white px-3.5 py-2 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-xs transition-colors"
         >
           <Plus className="h-4 w-4" />
           New Role
@@ -219,7 +219,7 @@ const PermissionsManagement = ({ apiService }) => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 max-w-4xl">
-        <div className="md:col-span-1 bg-white rounded-2xl border border-gray-100 shadow-sm divide-y divide-gray-100 overflow-hidden">
+        <div className="md:col-span-1 bg-white rounded-2xl border border-gray-100 shadow-xs divide-y divide-gray-100 overflow-hidden">
           {roles.map((role) => (
             <button
               key={role.id}
@@ -232,7 +232,7 @@ const PermissionsManagement = ({ apiService }) => {
           ))}
         </div>
 
-        <div className="md:col-span-3 bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+        <div className="md:col-span-3 bg-white rounded-2xl border border-gray-100 shadow-xs p-5">
           {!selectedRole ? (
             <div className="text-gray-400 text-sm">Select a role to edit its permissions.</div>
           ) : loadingRolePerms ? (
@@ -246,14 +246,14 @@ const PermissionsManagement = ({ apiService }) => {
                     value={editName}
                     onChange={(e) => setEditName(e.target.value)}
                     placeholder="Role name"
-                    className="w-full border border-gray-300 rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full border border-gray-300 rounded-md px-2.5 py-1.5 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                   <input
                     type="text"
                     value={editDescription}
                     onChange={(e) => setEditDescription(e.target.value)}
                     placeholder="Description (optional)"
-                    className="w-full border border-gray-300 rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full border border-gray-300 rounded-md px-2.5 py-1.5 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                   <div className="flex justify-end gap-2">
                     <button onClick={() => setEditingRole(false)} className="text-xs font-semibold text-gray-600 hover:text-gray-800 px-2.5 py-1.5">Cancel</button>
@@ -285,14 +285,14 @@ const PermissionsManagement = ({ apiService }) => {
                   <button
                     onClick={handleSave}
                     disabled={saving || !dirty}
-                    className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors disabled:opacity-50"
+                    className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-xs transition-colors disabled:opacity-50"
                   >
                     {saving ? 'Saving...' : 'Save changes'}
                   </button>
                 </div>
               )}
 
-              <div className="space-y-5 max-h-[28rem] overflow-y-auto pr-1">
+              <div className="space-y-5 max-h-112 overflow-y-auto pr-1">
                 {groupedPermissions.map(([resource, perms]) => (
                   <div key={resource}>
                     <div className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">{resource}</div>
@@ -303,7 +303,7 @@ const PermissionsManagement = ({ apiService }) => {
                             type="checkbox"
                             checked={checkedPermissions.has(perm.name)}
                             onChange={() => togglePermission(perm.name)}
-                            className="mt-0.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            className="mt-0.5 rounded-sm border-gray-300 text-blue-600 focus:ring-blue-500"
                           />
                           <span>
                             <span className="text-gray-900 capitalize">{perm.action}</span>

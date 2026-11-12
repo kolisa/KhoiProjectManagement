@@ -13,11 +13,11 @@ export function Modal({ open, onClose, title, size = 'md', children, footer }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="modal-backdrop fixed inset-0 bg-black/40" onClick={onClose} />
       <div ref={ref} role="dialog" aria-modal="true" aria-labelledby={title ? titleId : undefined} tabIndex={-1}
-        className={cn('relative w-full rounded-2xl border border-border bg-card shadow-xl focus:outline-none', MODAL_SIZES[size])}>
+        className={cn('relative w-full rounded-2xl border border-border bg-card shadow-xl focus:outline-hidden', MODAL_SIZES[size])}>
         {title && (
           <div className="flex items-center justify-between border-b border-border px-6 py-4">
             <h2 id={titleId} className="text-lg font-semibold">{title}</h2>
-            <button type="button" onClick={onClose} aria-label="Close" className="rounded p-1 text-muted-foreground hover:bg-muted">&times;</button>
+            <button type="button" onClick={onClose} aria-label="Close" className="rounded-sm p-1 text-muted-foreground hover:bg-muted">&times;</button>
           </div>
         )}
         <div className="px-6 py-4">{children}</div>
@@ -35,11 +35,11 @@ export function Drawer({ open, onClose, title, side = 'right', children }) {
     <div className="fixed inset-0 z-50 flex">
       <div className="modal-backdrop fixed inset-0 bg-black/40" onClick={onClose} />
       <div ref={ref} role="dialog" aria-modal="true" aria-labelledby={title ? titleId : undefined} tabIndex={-1}
-        className={cn('relative h-full w-80 max-w-[85%] overflow-y-auto border-border bg-card shadow-xl focus:outline-none', side === 'right' ? 'ml-auto border-l' : 'mr-auto border-r')}>
+        className={cn('relative h-full w-80 max-w-[85%] overflow-y-auto border-border bg-card shadow-xl focus:outline-hidden', side === 'right' ? 'ml-auto border-l' : 'mr-auto border-r')}>
         {title && (
           <div className="flex items-center justify-between border-b border-border px-5 py-4">
             <h2 id={titleId} className="text-base font-semibold">{title}</h2>
-            <button type="button" onClick={onClose} aria-label="Close" className="rounded p-1 text-muted-foreground hover:bg-muted">&times;</button>
+            <button type="button" onClick={onClose} aria-label="Close" className="rounded-sm p-1 text-muted-foreground hover:bg-muted">&times;</button>
           </div>
         )}
         <div className="p-5">{children}</div>
@@ -64,7 +64,7 @@ export function Dropdown({ trigger, items = [], align = 'right' }) {
     <div ref={rootRef} className="relative inline-block">
       <span onClick={() => setOpen(!open)} aria-haspopup="menu" aria-expanded={open}>{trigger}</span>
       {open && (
-        <div role="menu" className={cn('absolute z-50 mt-2 min-w-[10rem] overflow-hidden rounded-xl border border-border bg-card py-1 shadow-lg', align === 'right' ? 'right-0' : 'left-0')}>
+        <div role="menu" className={cn('absolute z-50 mt-2 min-w-40 overflow-hidden rounded-xl border border-border bg-card py-1 shadow-lg', align === 'right' ? 'right-0' : 'left-0')}>
           {items.map((item) => (
             <button key={item.key} type="button" role="menuitem" disabled={item.disabled}
               onClick={() => { setOpen(false); item.onSelect?.(); }}

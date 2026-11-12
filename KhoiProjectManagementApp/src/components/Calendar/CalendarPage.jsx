@@ -165,7 +165,7 @@ const CalendarPage = ({ apiService, user }) => {
             <button
               key={type}
               onClick={() => setActiveFilter(isActive ? null : type)}
-              className={`bg-white rounded-2xl border shadow-sm p-4 text-left hover:shadow-md transition-shadow ${
+              className={`bg-white rounded-2xl border shadow-xs p-4 text-left hover:shadow-md transition-shadow ${
                 isActive ? 'border-blue-500 ring-1 ring-blue-100' : 'border-gray-100'
               }`}
             >
@@ -210,7 +210,7 @@ const CalendarPage = ({ apiService, user }) => {
               className={`p-4 flex items-start justify-between gap-4 border-l-4 ${meta.border} hover:bg-gray-50/60 transition-colors`}
             >
               <div className="flex items-start gap-3">
-                <div className={`text-center w-12 flex-shrink-0 rounded-xl py-1.5 ${meta.iconBg}`}>
+                <div className={`text-center w-12 shrink-0 rounded-xl py-1.5 ${meta.iconBg}`}>
                   <div className={`text-[11px] uppercase font-semibold ${meta.iconColor}`}>{entry.date.toLocaleDateString(undefined, { month: 'short' })}</div>
                   <div className="text-lg font-bold text-gray-900">{entry.date.getDate()}</div>
                 </div>
@@ -224,7 +224,7 @@ const CalendarPage = ({ apiService, user }) => {
                 </div>
               </div>
               {canManage && entry.kind === 'event' && (
-                <div className="flex items-center gap-1 flex-shrink-0">
+                <div className="flex items-center gap-1 shrink-0">
                   <Button
                     variant="ghost"
                     size="sm"

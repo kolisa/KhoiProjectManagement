@@ -80,7 +80,7 @@ const BroadcastEmail = ({ apiService }) => {
                 type="checkbox"
                 checked={selectedRoleIds.includes(role.id)}
                 onChange={() => toggleRole(role.id)}
-                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                className="rounded-sm border-gray-300 text-blue-600 focus:ring-blue-500"
               />
               {role.name}
             </label>

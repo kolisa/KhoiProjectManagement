@@ -231,7 +231,7 @@ const PmWorkspace = ({ apiService, user }) => {
 
             {project.readOnly && (
               <div role="note" className="mb-4 flex items-start gap-2 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700">
-                <Eye className="mt-0.5 h-4 w-4 flex-shrink-0 text-gray-500" aria-hidden="true" />
+                <Eye className="mt-0.5 h-4 w-4 shrink-0 text-gray-500" aria-hidden="true" />
                 <span><strong>Read-only access.</strong> You can see everything in this project but not change it. Ask an administrator if you need read and write access.</span>
               </div>
             )}

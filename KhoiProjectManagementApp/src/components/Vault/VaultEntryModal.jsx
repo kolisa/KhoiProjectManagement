@@ -57,8 +57,8 @@ const VaultEntryModal = ({ spaceId, entry, onSave, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div ref={modalRef} role="dialog" aria-modal="true" aria-labelledby="vault-entry-modal-title" tabIndex={-1} className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden max-h-screen flex flex-col outline-none">
+    <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+      <div ref={modalRef} role="dialog" aria-modal="true" aria-labelledby="vault-entry-modal-title" tabIndex={-1} className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden max-h-screen flex flex-col outline-hidden">
         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
           <h3 id="vault-entry-modal-title" className="text-base font-semibold text-gray-900">{entry ? 'Edit Vault Entry' : 'New Vault Entry'}</h3>
           <button

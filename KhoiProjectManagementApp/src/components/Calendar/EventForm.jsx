@@ -49,7 +49,7 @@ const EventForm = ({ event, users, onSave, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-xs flex items-center justify-center z-50 p-4">
       <form
         ref={modalRef}
         role="dialog"
@@ -57,9 +57,9 @@ const EventForm = ({ event, users, onSave, onClose }) => {
         aria-labelledby="event-form-modal-title"
         tabIndex={-1}
         onSubmit={handleSubmit}
-        className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col outline-none"
+        className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col outline-hidden"
       >
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
+        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between shrink-0">
           <h3 id="event-form-modal-title" className="text-lg font-semibold text-gray-900">{isEdit ? 'Edit Event' : 'New Event'}</h3>
           <Button variant="ghost" size="sm" icon onClick={onClose} className="text-gray-400 hover:text-gray-600" aria-label="Close">
             <X className="h-4 w-4" />
@@ -137,7 +137,7 @@ const EventForm = ({ event, users, onSave, onClose }) => {
           )}
         </div>
 
-        <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3 flex-shrink-0">
+        <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3 shrink-0">
           <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>

@@ -31,12 +31,12 @@ const ForgotPasswordForm = ({ onBackToLogin }) => {
     return (
         <div className="min-h-screen flex">
             {/* Brand panel */}
-            <div className="hidden lg:flex lg:w-[44%] relative overflow-hidden flex-col justify-between bg-gradient-to-br from-blue-900 via-blue-700 to-blue-600 px-14 py-14">
+            <div className="hidden lg:flex lg:w-[44%] relative overflow-hidden flex-col justify-between bg-linear-to-br from-blue-900 via-blue-700 to-blue-600 px-14 py-14">
                 <div className="absolute -top-32 -right-32 h-[420px] w-[420px] rounded-full bg-blue-300/20 blur-3xl" />
                 <div className="absolute -bottom-40 -left-24 h-[480px] w-[480px] rounded-full bg-blue-400/20 blur-3xl" />
 
                 <div className="relative flex items-center gap-3">
-                    <div className="h-9 w-9 rounded-lg bg-white flex items-center justify-center text-blue-700 font-bold text-base flex-shrink-0">K</div>
+                    <div className="h-9 w-9 rounded-lg bg-white flex items-center justify-center text-blue-700 font-bold text-base shrink-0">K</div>
                     <span className="text-white text-lg font-bold tracking-tight">KhoiHub</span>
                 </div>
 
@@ -57,7 +57,7 @@ const ForgotPasswordForm = ({ onBackToLogin }) => {
                 <div className="max-w-sm w-full">
                     <div className="lg:hidden flex flex-col items-center mb-8">
                         <div className="flex items-center gap-2.5">
-                            <div className="h-10 w-10 rounded-xl bg-blue-600 flex items-center justify-center text-white font-bold text-lg flex-shrink-0">K</div>
+                            <div className="h-10 w-10 rounded-xl bg-blue-600 flex items-center justify-center text-white font-bold text-lg shrink-0">K</div>
                             <span className="text-gray-900 text-xl font-bold tracking-tight">KhoiHub</span>
                         </div>
                     </div>
@@ -92,7 +92,7 @@ const ForgotPasswordForm = ({ onBackToLogin }) => {
                                     required
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
-                                    className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                                    className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
                                     placeholder="Email address"
                                 />
                             </div>
@@ -106,7 +106,7 @@ const ForgotPasswordForm = ({ onBackToLogin }) => {
                             <button
                                 type="submit"
                                 disabled={loading}
-                                className="w-full flex justify-center py-2.5 px-4 rounded-lg text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 transition-colors shadow-sm"
+                                className="w-full flex justify-center py-2.5 px-4 rounded-lg text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 transition-colors shadow-xs"
                             >
                                 {loading ? 'Sending...' : 'Send reset link'}
                             </button>

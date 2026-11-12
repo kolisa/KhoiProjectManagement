@@ -39,7 +39,7 @@ const ReminderFilters = ({ filters, onChange, onReset, users, canViewAll }) => {
             onChange={(e) => setSearchInput(e.target.value)}
             placeholder="Search reminders by title or description..."
             aria-label="Search reminders"
-            className="w-full border border-gray-300 rounded-lg pl-9 pr-9 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+            className="w-full border border-gray-300 rounded-lg pl-9 pr-9 py-2 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
           />
           {searchInput && (
             <button
@@ -75,7 +75,7 @@ const ReminderFilters = ({ filters, onChange, onReset, users, canViewAll }) => {
               id="reminder-filter-status"
               value={filters.status || ''}
               onChange={(e) => onChange({ status: e.target.value || undefined })}
-              className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+              className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
             >
               <option value="">All</option>
               <option value="Pending">Pending</option>
@@ -89,7 +89,7 @@ const ReminderFilters = ({ filters, onChange, onReset, users, canViewAll }) => {
               id="reminder-filter-priority"
               value={filters.priority || ''}
               onChange={(e) => onChange({ priority: e.target.value || undefined })}
-              className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+              className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
             >
               <option value="">All</option>
               <option value="low">Low</option>
@@ -105,7 +105,7 @@ const ReminderFilters = ({ filters, onChange, onReset, users, canViewAll }) => {
               value={filters.category || ''}
               onChange={(e) => onChange({ category: e.target.value || undefined })}
               placeholder="Any"
-              className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+              className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
             />
           </div>
           {canViewAll && (
@@ -115,7 +115,7 @@ const ReminderFilters = ({ filters, onChange, onReset, users, canViewAll }) => {
                 id="reminder-filter-assigned"
                 value={filters.assignedToId || ''}
                 onChange={(e) => onChange({ assignedToId: e.target.value || undefined })}
-                className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
               >
                 <option value="">Anyone</option>
                 {users?.map((u) => (
@@ -131,7 +131,7 @@ const ReminderFilters = ({ filters, onChange, onReset, users, canViewAll }) => {
               type="date"
               value={filters.dueFrom ? filters.dueFrom.slice(0, 10) : ''}
               onChange={(e) => onChange({ dueFrom: e.target.value ? new Date(e.target.value).toISOString() : undefined })}
-              className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+              className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
             />
           </div>
           <div>
@@ -141,7 +141,7 @@ const ReminderFilters = ({ filters, onChange, onReset, users, canViewAll }) => {
               type="date"
               value={filters.dueTo ? filters.dueTo.slice(0, 10) : ''}
               onChange={(e) => onChange({ dueTo: e.target.value ? new Date(e.target.value).toISOString() : undefined })}
-              className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+              className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
             />
           </div>
         </div>

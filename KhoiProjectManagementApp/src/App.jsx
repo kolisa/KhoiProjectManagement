@@ -967,7 +967,7 @@ const ProjectManagementSystem = () => {
                             const count = navCounts[key];
                             return (
                                 <button key={key} onClick={() => onNavigate(key)} className={navButtonClass(key)}>
-                                    <Icon className="h-[18px] w-[18px] flex-shrink-0" />
+                                    <Icon className="h-[18px] w-[18px] shrink-0" />
                                     {label}
                                     {!!count && (
                                         <span className={`ml-auto text-xs font-medium ${isTabActive(key) ? 'text-blue-600' : 'text-sidebar-muted'}`}>{count}</span>
@@ -984,9 +984,9 @@ const ProjectManagementSystem = () => {
     return (
         <div className="min-h-screen flex bg-background text-foreground">
             {/* Desktop sidebar */}
-            <aside className="hidden md:flex w-64 flex-shrink-0 flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border h-screen sticky top-0 overflow-y-auto">
-                <div className="flex items-center gap-2.5 h-16 px-5 border-b border-sidebar-border flex-shrink-0">
-                    <div className="h-9 w-9 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-base flex-shrink-0">K</div>
+            <aside className="hidden md:flex w-64 shrink-0 flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border h-screen sticky top-0 overflow-y-auto">
+                <div className="flex items-center gap-2.5 h-16 px-5 border-b border-sidebar-border shrink-0">
+                    <div className="h-9 w-9 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-base shrink-0">K</div>
                     <span className="text-base font-bold text-sidebar-foreground tracking-tight">KhoiHub</span>
                 </div>
 
@@ -994,15 +994,15 @@ const ProjectManagementSystem = () => {
                     {renderNavGroups(setActiveTab)}
                 </nav>
 
-                <div className="border-t border-sidebar-border py-3 flex-shrink-0">
+                <div className="border-t border-sidebar-border py-3 shrink-0">
                     <div className="px-3">
                         <button onClick={() => setActiveTab(SETTINGS_ITEM.key)} className={navButtonClass(SETTINGS_ITEM.key)}>
-                            <SettingsIcon className="h-[18px] w-[18px] flex-shrink-0" />
+                            <SettingsIcon className="h-[18px] w-[18px] shrink-0" />
                             {SETTINGS_ITEM.label}
                         </button>
                     </div>
                     <div className="flex items-center gap-2.5 px-5 pt-3">
-                        <div className={`h-8 w-8 ${getAvatarColor(user?.name)} rounded-full flex items-center justify-center text-white text-xs font-semibold flex-shrink-0`}>
+                        <div className={`h-8 w-8 ${getAvatarColor(user?.name)} rounded-full flex items-center justify-center text-white text-xs font-semibold shrink-0`}>
                             {(user?.name || '?').split(' ').filter(Boolean).map(n => n[0]).slice(0, 2).join('').toUpperCase()}
                         </div>
                         <div className="min-w-0">
@@ -1016,10 +1016,10 @@ const ProjectManagementSystem = () => {
             {/* Main column */}
             <div className="flex-1 flex flex-col min-w-0">
                 {/* Top bar */}
-                <header className="bg-card border-b border-border sticky top-0 z-40 flex-shrink-0">
+                <header className="bg-card border-b border-border sticky top-0 z-40 shrink-0">
                     <div className="flex justify-between items-center h-16 px-4 sm:px-6">
                         <div className="flex items-center md:hidden">
-                            <div className="h-8 w-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0 mr-2">K</div>
+                            <div className="h-8 w-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-sm shrink-0 mr-2">K</div>
                             <span className="text-lg font-bold text-gray-900 tracking-tight">KhoiHub</span>
                         </div>
 
@@ -1061,7 +1061,7 @@ const ProjectManagementSystem = () => {
                                                             className="w-full text-left px-3 py-2 hover:bg-gray-50/80 transition-colors flex items-center justify-between"
                                                         >
                                                             <span className="text-sm text-gray-900 truncate">{item.title}</span>
-                                                            {item.subtitle && <span className="text-xs text-gray-400 ml-2 flex-shrink-0 capitalize">{item.subtitle}</span>}
+                                                            {item.subtitle && <span className="text-xs text-gray-400 ml-2 shrink-0 capitalize">{item.subtitle}</span>}
                                                         </button>
                                                     ))}
                                                 </div>
@@ -1075,7 +1075,7 @@ const ProjectManagementSystem = () => {
                         <div className="hidden md:flex items-center gap-3">
                             <button
                                 onClick={() => setShowAddTask(true)}
-                                className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors"
+                                className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-xs transition-colors"
                             >
                                 <Plus className="h-4 w-4" />
                                 New task
@@ -1180,7 +1180,7 @@ const ProjectManagementSystem = () => {
                         />
                         <div className="relative w-72 max-w-[80%] h-full bg-sidebar text-sidebar-foreground shadow-xl overflow-y-auto animate-slide-up">
                             <div className="flex items-center gap-2.5 h-16 px-5 border-b border-sidebar-border">
-                                <div className="h-9 w-9 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-base flex-shrink-0">K</div>
+                                <div className="h-9 w-9 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-base shrink-0">K</div>
                                 <span className="text-base font-bold text-sidebar-foreground tracking-tight">KhoiHub</span>
                             </div>
                             <nav className="py-3">
@@ -1190,14 +1190,14 @@ const ProjectManagementSystem = () => {
                                         onClick={() => { setActiveTab(SETTINGS_ITEM.key); setMobileMenuOpen(false); }}
                                         className={navButtonClass(SETTINGS_ITEM.key)}
                                     >
-                                        <SettingsIcon className="h-[18px] w-[18px] flex-shrink-0" />
+                                        <SettingsIcon className="h-[18px] w-[18px] shrink-0" />
                                         {SETTINGS_ITEM.label}
                                     </button>
                                     <button
                                         onClick={logout}
                                         className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
                                     >
-                                        <LogOut className="h-[18px] w-[18px] flex-shrink-0" />
+                                        <LogOut className="h-[18px] w-[18px] shrink-0" />
                                         Logout
                                     </button>
                                 </div>
@@ -1211,7 +1211,7 @@ const ProjectManagementSystem = () => {
                 {/* Dashboard Tab */}
                 {activeTab === 'dashboard' && (
                     <div className="space-y-6">
-                        <div className="bg-gradient-to-r from-blue-600 to-blue-800 rounded-2xl shadow-sm p-6 sm:p-7">
+                        <div className="bg-linear-to-r from-blue-600 to-blue-800 rounded-2xl shadow-xs p-6 sm:p-7">
                             <h2 className="text-[27px] font-bold text-white tracking-tight">
                                 {(() => {
                                     const hour = new Date().getHours();
@@ -1250,9 +1250,9 @@ const ProjectManagementSystem = () => {
 
                             const STAT_CARDS = {
                                 total_projects: (
-                                    <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+                                    <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-xs hover:shadow-md transition-shadow">
                                         <div className="flex items-center">
-                                            <div className="bg-blue-50 rounded-lg p-3 mr-3 flex-shrink-0">
+                                            <div className="bg-blue-50 rounded-lg p-3 mr-3 shrink-0">
                                                 <CheckCircle className="h-6 w-6 text-blue-600" />
                                             </div>
                                             <div>
@@ -1263,9 +1263,9 @@ const ProjectManagementSystem = () => {
                                     </div>
                                 ),
                                 active_projects: (
-                                    <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+                                    <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-xs hover:shadow-md transition-shadow">
                                         <div className="flex items-center">
-                                            <div className="bg-green-50 rounded-lg p-3 mr-3 flex-shrink-0">
+                                            <div className="bg-green-50 rounded-lg p-3 mr-3 shrink-0">
                                                 <Clock className="h-6 w-6 text-green-600" />
                                             </div>
                                             <div>
@@ -1279,9 +1279,9 @@ const ProjectManagementSystem = () => {
                                     </div>
                                 ),
                                 total_tasks: (
-                                    <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+                                    <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-xs hover:shadow-md transition-shadow">
                                         <div className="flex items-center">
-                                            <div className="bg-amber-50 rounded-lg p-3 mr-3 flex-shrink-0">
+                                            <div className="bg-amber-50 rounded-lg p-3 mr-3 shrink-0">
                                                 <AlertCircle className="h-6 w-6 text-amber-600" />
                                             </div>
                                             <div>
@@ -1295,10 +1295,10 @@ const ProjectManagementSystem = () => {
                                     </div>
                                 ),
                                 overdue_tasks: (
-                                    <div className={`bg-white p-5 rounded-2xl border shadow-sm hover:shadow-md transition-shadow ${dashboardStats.overdueTasks > 0 ? 'border-[#DB4241]/30' : 'border-gray-100'}`}>
+                                    <div className={`bg-white p-5 rounded-2xl border shadow-xs hover:shadow-md transition-shadow ${dashboardStats.overdueTasks > 0 ? 'border-[#DB4241]/30' : 'border-gray-100'}`}>
                                         <div className="flex items-center justify-between">
                                             <div className="flex items-center">
-                                                <div className="bg-red-50 rounded-lg p-3 mr-3 flex-shrink-0">
+                                                <div className="bg-red-50 rounded-lg p-3 mr-3 shrink-0">
                                                     <Flag className="h-6 w-6 text-red-600" />
                                                 </div>
                                                 <div>
@@ -1321,9 +1321,9 @@ const ProjectManagementSystem = () => {
                                     </div>
                                 ),
                                 completion_rate: (
-                                    <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+                                    <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-xs hover:shadow-md transition-shadow">
                                         <div className="flex items-center">
-                                            <div className="bg-purple-50 rounded-lg p-3 mr-3 flex-shrink-0">
+                                            <div className="bg-purple-50 rounded-lg p-3 mr-3 shrink-0">
                                                 <Users className="h-6 w-6 text-purple-600" />
                                             </div>
                                             <div>
@@ -1395,7 +1395,7 @@ const ProjectManagementSystem = () => {
 
                                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
                                     {sectionOrder.filter((k) => k === 'recent_tasks' && isVisible(k)).map(() => (
-                                        <div key="recent_tasks" className="bg-white rounded-2xl border border-gray-100 shadow-sm">
+                                        <div key="recent_tasks" className="bg-white rounded-2xl border border-gray-100 shadow-xs">
                                             <div className="px-6 py-4 border-b border-gray-100">
                                                 <h3 className="text-base font-semibold text-gray-900">Recent Tasks</h3>
                                             </div>
@@ -1432,7 +1432,7 @@ const ProjectManagementSystem = () => {
                                     ))}
 
                                     {sectionOrder.filter((k) => k === 'recent_mentions' && isVisible(k)).map(() => (
-                                        <div key="recent_mentions" className="bg-white rounded-2xl border border-gray-100 shadow-sm">
+                                        <div key="recent_mentions" className="bg-white rounded-2xl border border-gray-100 shadow-xs">
                                             <div className="px-6 py-4 border-b border-gray-100">
                                                 <h3 className="text-base font-semibold text-gray-900">Recent Mentions</h3>
                                             </div>
@@ -1451,7 +1451,7 @@ const ProjectManagementSystem = () => {
                                     ))}
 
                                     {sectionOrder.filter((k) => k === 'pending_timesheets' && isVisible(k)).map(() => (
-                                        <div key="pending_timesheets" className="bg-white rounded-2xl border border-gray-100 shadow-sm">
+                                        <div key="pending_timesheets" className="bg-white rounded-2xl border border-gray-100 shadow-xs">
                                             <div className="px-6 py-4 border-b border-gray-100">
                                                 <h3 className="text-base font-semibold text-gray-900">Pending Timesheets</h3>
                                             </div>
@@ -1471,7 +1471,7 @@ const ProjectManagementSystem = () => {
                                     ))}
 
                                     {sectionOrder.filter((k) => k === 'my_tasks' && isVisible(k)).map(() => (
-                                        <div key="my_tasks" className="bg-white rounded-2xl border border-gray-100 shadow-sm">
+                                        <div key="my_tasks" className="bg-white rounded-2xl border border-gray-100 shadow-xs">
                                             <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-4">
                                                 <h3 className="text-base font-semibold text-gray-900">My Tasks</h3>
                                                 <div className="flex gap-4 ml-2">
@@ -1509,7 +1509,7 @@ const ProjectManagementSystem = () => {
                                         const maxCount = Math.max(1, ...weeklyCompletion);
                                         const todayIndex = (new Date().getDay() + 6) % 7;
                                         return (
-                                            <div key="weekly_completion_chart" className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                                            <div key="weekly_completion_chart" className="bg-white rounded-2xl border border-gray-100 shadow-xs p-6">
                                                 <h3 className="text-base font-semibold text-gray-900 mb-4">This Week</h3>
                                                 <div className="flex items-end gap-2 h-24">
                                                     {weeklyCompletion.map((count, i) => (
@@ -1532,7 +1532,7 @@ const ProjectManagementSystem = () => {
                                     })}
 
                                     {sectionOrder.filter((k) => k === 'activity_feed' && isVisible(k)).map(() => (
-                                        <div key="activity_feed" className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                                        <div key="activity_feed" className="bg-white rounded-2xl border border-gray-100 shadow-xs p-6">
                                             <h3 className="text-base font-semibold text-gray-900 mb-4">Activity</h3>
                                             {activityFeed.length === 0 ? (
                                                 <div className="py-4 text-center text-gray-500 text-sm">No activity yet</div>
@@ -1540,7 +1540,7 @@ const ProjectManagementSystem = () => {
                                                 <div className="space-y-3">
                                                     {activityFeed.map((a) => (
                                                         <div key={a.id} className="flex items-start gap-3">
-                                                            <span className={`h-1.5 w-1.5 rounded-full mt-1.5 flex-shrink-0 ${a.action === 'Completed' ? 'bg-green-500' : a.action === 'MarkedPaid' ? 'bg-green-500' : a.action === 'Created' ? 'bg-blue-500' : 'bg-gray-400'}`} />
+                                                            <span className={`h-1.5 w-1.5 rounded-full mt-1.5 shrink-0 ${a.action === 'Completed' ? 'bg-green-500' : a.action === 'MarkedPaid' ? 'bg-green-500' : a.action === 'Created' ? 'bg-blue-500' : 'bg-gray-400'}`} />
                                                             <div>
                                                                 <p className="text-sm text-gray-700">
                                                                     <span className="font-medium text-gray-900">{a.actorNameSnapshot}</span>{' '}
@@ -1580,7 +1580,7 @@ const ProjectManagementSystem = () => {
                                         setNewProject(emptyProjectForm);
                                         setShowAddProject(true);
                                     }}
-                                    className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors"
+                                    className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-xs transition-colors"
                                 >
                                     <Plus className="h-5 w-5" />
                                     New Project
@@ -1602,7 +1602,7 @@ const ProjectManagementSystem = () => {
                                     </div>
                                 ) : (
                                     projects.map((project) => (
-                                        <div key={project.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                                        <div key={project.id} className="bg-white rounded-2xl border border-gray-100 shadow-xs p-6">
                                             <div className="flex justify-between items-start mb-4">
                                                 <h3 className="text-lg font-semibold text-gray-900">{project.name}</h3>
                                                 <div className="flex space-x-2">
@@ -1679,7 +1679,7 @@ const ProjectManagementSystem = () => {
                             </div>
                             <button
                                 onClick={() => setShowAddTask(true)}
-                                className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors"
+                                className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-xs transition-colors"
                             >
                                 <Plus className="h-5 w-5" />
                                 New Task
@@ -1719,7 +1719,7 @@ const ProjectManagementSystem = () => {
                         )}
 
                         {!loading.tasks && !errors.tasks && (
-                            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                            <div className="bg-white rounded-2xl border border-gray-100 shadow-xs overflow-hidden">
                                 <div className="overflow-x-auto">
                                     <table className="min-w-full divide-y divide-gray-100">
                                         <thead className="bg-gray-50/80">
@@ -1770,7 +1770,7 @@ const ProjectManagementSystem = () => {
                                                             <select
                                                                 value={task.status}
                                                                 onChange={(e) => updateTaskStatus(task.id, e.target.value)}
-                                                                className="text-sm border border-gray-300 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                                className="text-sm border border-gray-300 rounded-md px-2 py-1 focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                                             >
                                                                 <option value="todo">To Do</option>
                                                                 <option value="in-progress">In Progress</option>
@@ -1828,13 +1828,13 @@ const ProjectManagementSystem = () => {
                                 <div className="flex items-center bg-gray-100 rounded-[10px] p-1 text-sm font-medium">
                                     <button
                                         onClick={() => setTeamView('list')}
-                                        className={`px-3 py-1.5 rounded-lg transition-colors ${teamView === 'list' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                        className={`px-3 py-1.5 rounded-lg transition-colors ${teamView === 'list' ? 'bg-white text-gray-900 shadow-xs' : 'text-gray-500 hover:text-gray-700'}`}
                                     >
                                         List
                                     </button>
                                     <button
                                         onClick={() => setTeamView('orgchart')}
-                                        className={`px-3 py-1.5 rounded-lg transition-colors ${teamView === 'orgchart' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                        className={`px-3 py-1.5 rounded-lg transition-colors ${teamView === 'orgchart' ? 'bg-white text-gray-900 shadow-xs' : 'text-gray-500 hover:text-gray-700'}`}
                                     >
                                         Org Chart
                                     </button>
@@ -1845,7 +1845,7 @@ const ProjectManagementSystem = () => {
                                             type="checkbox"
                                             checked={showInactiveMembers}
                                             onChange={(e) => setShowInactiveMembers(e.target.checked)}
-                                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                            className="rounded-sm border-gray-300 text-blue-600 focus:ring-blue-500"
                                         />
                                         Show locked-out members
                                     </label>
@@ -1853,7 +1853,7 @@ const ProjectManagementSystem = () => {
                                 {hasPermission(user?.permissions, 'users.create') && (
                                     <button
                                         onClick={() => setShowAddMember(true)}
-                                        className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors"
+                                        className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-xs transition-colors"
                                     >
                                         <Plus className="h-5 w-5" />
                                         Add Member
@@ -1880,9 +1880,9 @@ const ProjectManagementSystem = () => {
                                     </div>
                                 ) : (
                                     teamMembers.map((member) => (
-                                        <div key={member.id} className={`bg-white rounded-2xl border shadow-sm p-6 ${member.isActive ? 'border-gray-100' : 'border-gray-100 opacity-60'}`}>
+                                        <div key={member.id} className={`bg-white rounded-2xl border shadow-xs p-6 ${member.isActive ? 'border-gray-100' : 'border-gray-100 opacity-60'}`}>
                                             <div className="flex items-center mb-4">
-                                                <div className={`h-12 w-12 ${getAvatarColor(member.name)} rounded-full flex items-center justify-center text-white text-sm font-semibold flex-shrink-0`}>
+                                                <div className={`h-12 w-12 ${getAvatarColor(member.name)} rounded-full flex items-center justify-center text-white text-sm font-semibold shrink-0`}>
                                                     {(member.name || '?').split(' ').filter(Boolean).map(n => n[0]).slice(0, 2).join('').toUpperCase()}
                                                 </div>
                                                 <div className="ml-4">
@@ -2086,9 +2086,9 @@ const ProjectManagementSystem = () => {
                                     ].map(({ type, icon: Icon, color, title, desc }) => {
                                         const schedule = reportSchedules.find((s) => s.reportType === type);
                                         return (
-                                            <div key={type} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col">
+                                            <div key={type} className="bg-white rounded-2xl border border-gray-100 shadow-xs p-6 flex flex-col">
                                                 <div className="flex items-center mb-4">
-                                                    <div className={`bg-${color}-50 rounded-lg p-3 mr-3 flex-shrink-0`}>
+                                                    <div className={`bg-${color}-50 rounded-lg p-3 mr-3 shrink-0`}>
                                                         <Icon className={`h-6 w-6 text-${color}-600`} />
                                                     </div>
                                                     <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
@@ -2111,7 +2111,7 @@ const ProjectManagementSystem = () => {
                                                     <button
                                                         onClick={() => generateReport(type)}
                                                         disabled={generatingReportType === type}
-                                                        className="flex-1 inline-flex items-center justify-center gap-2 bg-blue-600 text-white py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors disabled:opacity-50"
+                                                        className="flex-1 inline-flex items-center justify-center gap-2 bg-blue-600 text-white py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-xs transition-colors disabled:opacity-50"
                                                     >
                                                         {generatingReportType === type ? (
                                                             <span className="h-4 w-4 rounded-full border-2 border-white/40 border-t-white animate-spin" />
@@ -2144,7 +2144,7 @@ const ProjectManagementSystem = () => {
                                     })}
                                 </div>
 
-                                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm">
+                                <div className="bg-white rounded-2xl border border-gray-100 shadow-xs">
                                     <div className="px-6 py-4 border-b border-gray-100">
                                         <h3 className="text-base font-semibold text-gray-900">Recent Exports</h3>
                                     </div>
@@ -2184,9 +2184,9 @@ const ProjectManagementSystem = () => {
             {/* Modals */}
             {/* Add Project Modal */}
             {showAddProject && (
-                <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-                    <div ref={projectModalRef} role="dialog" aria-modal="true" aria-labelledby="project-modal-title" tabIndex={-1} className="bg-white rounded-2xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto outline-none">
-                        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
+                <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+                    <div ref={projectModalRef} role="dialog" aria-modal="true" aria-labelledby="project-modal-title" tabIndex={-1} className="bg-white rounded-2xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto outline-hidden">
+                        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between shrink-0">
                             <h3 id="project-modal-title" className="text-base font-semibold text-gray-900">{editingProjectId !== null ? 'Edit Project' : 'Add New Project'}</h3>
                             <button type="button" onClick={closeProjectModal} className="text-gray-400 hover:text-gray-600 rounded-lg p-1">
                                 <X className="h-5 w-5" />
@@ -2199,20 +2199,20 @@ const ProjectManagementSystem = () => {
                                     placeholder="Project Name"
                                     value={newProject.name}
                                     onChange={(e) => setNewProject({ ...newProject, name: e.target.value })}
-                                    className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                                    className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
                                     required
                                 />
                                 <textarea
                                     placeholder="Description"
                                     value={newProject.description}
                                     onChange={(e) => setNewProject({ ...newProject, description: e.target.value })}
-                                    className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                                    className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
                                     rows="3"
                                 />
                                 <select
                                     value={newProject.priority}
                                     onChange={(e) => setNewProject({ ...newProject, priority: e.target.value })}
-                                    className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                                    className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
                                 >
                                     <option value="low">Low Priority</option>
                                     <option value="medium">Medium Priority</option>
@@ -2222,7 +2222,7 @@ const ProjectManagementSystem = () => {
                                     <select
                                         value={newProject.status}
                                         onChange={(e) => setNewProject({ ...newProject, status: e.target.value })}
-                                        className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                                        className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
                                     >
                                         <option value="active">Active</option>
                                         <option value="inactive">Inactive</option>
@@ -2233,14 +2233,14 @@ const ProjectManagementSystem = () => {
                                     type="date"
                                     value={newProject.startDate}
                                     onChange={(e) => setNewProject({ ...newProject, startDate: e.target.value })}
-                                    className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                                    className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
                                     required
                                 />
                                 <input
                                     type="date"
                                     value={newProject.endDate}
                                     onChange={(e) => setNewProject({ ...newProject, endDate: e.target.value })}
-                                    className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                                    className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
                                     required
                                 />
                                 <input
@@ -2248,7 +2248,7 @@ const ProjectManagementSystem = () => {
                                     placeholder="Tags (comma separated)"
                                     value={newProject.tags}
                                     onChange={(e) => setNewProject({ ...newProject, tags: e.target.value })}
-                                    className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                                    className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
                                 />
                                 <div>
                                     <label className="block text-sm text-gray-600 mb-1.5">Team members</label>
@@ -2267,7 +2267,7 @@ const ProjectManagementSystem = () => {
                                                                 ? [...prev.teamMemberIds, member.id]
                                                                 : prev.teamMemberIds.filter((id) => id !== member.id),
                                                         }))}
-                                                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                                        className="rounded-sm border-gray-300 text-blue-600 focus:ring-blue-500"
                                                     />
                                                     <span className="text-gray-900">{member.name}</span>
                                                     <span className="text-gray-400 text-xs">{member.position}</span>
@@ -2289,7 +2289,7 @@ const ProjectManagementSystem = () => {
                                 <button
                                     type="submit"
                                     disabled={savingProject}
-                                    className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors disabled:opacity-50"
+                                    className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-xs transition-colors disabled:opacity-50"
                                 >
                                     {savingProject && (
                                         <span className="h-4 w-4 rounded-full border-2 border-white/40 border-t-white animate-spin" />
@@ -2304,9 +2304,9 @@ const ProjectManagementSystem = () => {
 
             {/* Add Task Modal */}
             {showAddTask && (
-                <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-                    <div ref={taskModalRef} role="dialog" aria-modal="true" aria-labelledby="task-modal-title" tabIndex={-1} className="bg-white rounded-2xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto outline-none">
-                        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
+                <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+                    <div ref={taskModalRef} role="dialog" aria-modal="true" aria-labelledby="task-modal-title" tabIndex={-1} className="bg-white rounded-2xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto outline-hidden">
+                        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between shrink-0">
                             <h3 id="task-modal-title" className="text-base font-semibold text-gray-900">{editingTaskId !== null ? 'Edit Task' : 'Add New Task'}</h3>
                             <button type="button" onClick={closeTaskModal} className="text-gray-400 hover:text-gray-600 rounded-lg p-1">
                                 <X className="h-5 w-5" />
@@ -2319,7 +2319,7 @@ const ProjectManagementSystem = () => {
                                     title={editingTaskId !== null ? "A task's project can't be changed here" : undefined}
                                     value={newTask.projectId}
                                     onChange={(e) => setNewTask({ ...newTask, projectId: e.target.value })}
-                                    className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed"
+                                    className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed"
                                     required
                                 >
                                     <option value="">Select Project</option>
@@ -2339,20 +2339,20 @@ const ProjectManagementSystem = () => {
                                     placeholder="Task Title"
                                     value={newTask.title}
                                     onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
-                                    className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                                    className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
                                     required
                                 />
                                 <textarea
                                     placeholder="Description"
                                     value={newTask.description}
                                     onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
-                                    className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                                    className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
                                     rows="3"
                                 />
                                 <select
                                     value={newTask.priority}
                                     onChange={(e) => setNewTask({ ...newTask, priority: e.target.value })}
-                                    className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                                    className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
                                 >
                                     <option value="low">Low Priority</option>
                                     <option value="medium">Medium Priority</option>
@@ -2374,7 +2374,7 @@ const ProjectManagementSystem = () => {
                                                 : prev.dueDate.slice(0, 10)
                                         }));
                                     }}
-                                    className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                                    className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
                                 >
                                     <option value="Task">Task</option>
                                     <option value="Meeting">Meeting</option>
@@ -2385,7 +2385,7 @@ const ProjectManagementSystem = () => {
                                     <select
                                         value={newTask.status}
                                         onChange={(e) => setNewTask({ ...newTask, status: e.target.value })}
-                                        className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                                        className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
                                     >
                                         <option value="todo">To Do</option>
                                         <option value="in-progress">In Progress</option>
@@ -2399,7 +2399,7 @@ const ProjectManagementSystem = () => {
                                     disabled={!newTask.projectId}
                                     title={!newTask.projectId ? 'Select a project first - you can assign people on its team' : undefined}
                                     onChange={(e) => setNewTask({ ...newTask, assignedToId: e.target.value })}
-                                    className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed"
+                                    className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed"
                                 >
                                     <option value="">Assign To</option>
                                     {(() => {
@@ -2415,7 +2415,7 @@ const ProjectManagementSystem = () => {
                                     type={newTask.type === 'Meeting' ? 'datetime-local' : 'date'}
                                     value={newTask.dueDate}
                                     onChange={(e) => setNewTask({ ...newTask, dueDate: e.target.value })}
-                                    className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                                    className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
                                     required
                                 />
                                 <input
@@ -2423,7 +2423,7 @@ const ProjectManagementSystem = () => {
                                     placeholder="Tags (comma separated)"
                                     value={newTask.tags}
                                     onChange={(e) => setNewTask({ ...newTask, tags: e.target.value })}
-                                    className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                                    className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
                                 />
                             </div>
                             <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3">
@@ -2438,7 +2438,7 @@ const ProjectManagementSystem = () => {
                                 <button
                                     type="submit"
                                     disabled={savingTask}
-                                    className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors disabled:opacity-50"
+                                    className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-xs transition-colors disabled:opacity-50"
                                 >
                                     {savingTask && (
                                         <span className="h-4 w-4 rounded-full border-2 border-white/40 border-t-white animate-spin" />
@@ -2453,9 +2453,9 @@ const ProjectManagementSystem = () => {
 
             {/* Add Member Modal */}
             {showAddMember && (
-                <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-                    <div ref={addMemberModalRef} role="dialog" aria-modal="true" aria-labelledby="add-member-modal-title" tabIndex={-1} className="bg-white rounded-2xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto outline-none">
-                        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
+                <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+                    <div ref={addMemberModalRef} role="dialog" aria-modal="true" aria-labelledby="add-member-modal-title" tabIndex={-1} className="bg-white rounded-2xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto outline-hidden">
+                        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between shrink-0">
                             <h3 id="add-member-modal-title" className="text-base font-semibold text-gray-900">Add Team Member</h3>
                             <button type="button" onClick={() => setShowAddMember(false)} className="text-gray-400 hover:text-gray-600 rounded-lg p-1">
                                 <X className="h-5 w-5" />
@@ -2468,13 +2468,13 @@ const ProjectManagementSystem = () => {
                                     placeholder="Full Name"
                                     value={newMember.name}
                                     onChange={(e) => setNewMember({ ...newMember, name: e.target.value })}
-                                    className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                                    className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
                                     required
                                 />
                                 <select
                                     value={newMember.role}
                                     onChange={(e) => setNewMember({ ...newMember, role: e.target.value })}
-                                    className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                                    className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
                                 >
                                     <option value="member">Member</option>
                                     <option value="manager">Manager</option>
@@ -2485,7 +2485,7 @@ const ProjectManagementSystem = () => {
                                     placeholder="Position"
                                     value={newMember.position}
                                     onChange={(e) => setNewMember({ ...newMember, position: e.target.value })}
-                                    className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                                    className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
                                     required
                                 />
                                 <input
@@ -2493,13 +2493,13 @@ const ProjectManagementSystem = () => {
                                     placeholder="Email"
                                     value={newMember.email}
                                     onChange={(e) => setNewMember({ ...newMember, email: e.target.value })}
-                                    className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                                    className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
                                     required
                                 />
                                 <select
                                     value={newMember.managerId}
                                     onChange={(e) => setNewMember({ ...newMember, managerId: e.target.value })}
-                                    className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                                    className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
                                 >
                                     <option value="">Reports to (no manager)</option>
                                     {teamMembers.map((m) => (
@@ -2513,7 +2513,7 @@ const ProjectManagementSystem = () => {
                                         type="date"
                                         value={newMember.dateOfBirth}
                                         onChange={(e) => setNewMember({ ...newMember, dateOfBirth: e.target.value })}
-                                        className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                                        className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
                                     />
                                     <p className="text-xs text-gray-400 mt-1">Shows their birthday on the company Calendar.</p>
                                 </div>
@@ -2533,7 +2533,7 @@ const ProjectManagementSystem = () => {
                                 <button
                                     type="submit"
                                     disabled={savingMember}
-                                    className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors disabled:opacity-50"
+                                    className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-xs transition-colors disabled:opacity-50"
                                 >
                                     {savingMember && (
                                         <span className="h-4 w-4 rounded-full border-2 border-white/40 border-t-white animate-spin" />
@@ -2547,9 +2547,9 @@ const ProjectManagementSystem = () => {
             )}
 
             {editingMemberId && (
-                <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-                    <div ref={editMemberModalRef} role="dialog" aria-modal="true" aria-labelledby="edit-member-modal-title" tabIndex={-1} className="bg-white rounded-2xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto outline-none">
-                        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
+                <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+                    <div ref={editMemberModalRef} role="dialog" aria-modal="true" aria-labelledby="edit-member-modal-title" tabIndex={-1} className="bg-white rounded-2xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto outline-hidden">
+                        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between shrink-0">
                             <h3 id="edit-member-modal-title" className="text-base font-semibold text-gray-900">Edit Team Member</h3>
                             <button type="button" onClick={() => setEditingMemberId(null)} className="text-gray-400 hover:text-gray-600 rounded-lg p-1">
                                 <X className="h-5 w-5" />
@@ -2562,7 +2562,7 @@ const ProjectManagementSystem = () => {
                                     placeholder="Full Name"
                                     value={editMemberForm.name}
                                     onChange={(e) => setEditMemberForm({ ...editMemberForm, name: e.target.value })}
-                                    className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                                    className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
                                     required
                                 />
                                 <input
@@ -2570,7 +2570,7 @@ const ProjectManagementSystem = () => {
                                     placeholder="Position"
                                     value={editMemberForm.position}
                                     onChange={(e) => setEditMemberForm({ ...editMemberForm, position: e.target.value })}
-                                    className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                                    className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
                                     required
                                 />
                                 <input
@@ -2578,13 +2578,13 @@ const ProjectManagementSystem = () => {
                                     placeholder="Email"
                                     value={editMemberForm.email}
                                     onChange={(e) => setEditMemberForm({ ...editMemberForm, email: e.target.value })}
-                                    className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                                    className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
                                     required
                                 />
                                 <select
                                     value={editMemberForm.managerId}
                                     onChange={(e) => setEditMemberForm({ ...editMemberForm, managerId: e.target.value })}
-                                    className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                                    className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
                                 >
                                     <option value="">Reports to (no manager)</option>
                                     {teamMembers.filter((m) => m.id !== editingMemberId).map((m) => (
@@ -2598,7 +2598,7 @@ const ProjectManagementSystem = () => {
                                         type="date"
                                         value={editMemberForm.dateOfBirth}
                                         onChange={(e) => setEditMemberForm({ ...editMemberForm, dateOfBirth: e.target.value })}
-                                        className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                                        className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
                                     />
                                     <p className="text-xs text-gray-400 mt-1">Leave blank to keep it unchanged.</p>
                                 </div>
@@ -2615,7 +2615,7 @@ const ProjectManagementSystem = () => {
                                 <button
                                     type="submit"
                                     disabled={savingMemberEdit}
-                                    className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors disabled:opacity-50"
+                                    className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-xs transition-colors disabled:opacity-50"
                                 >
                                     {savingMemberEdit ? 'Saving...' : 'Save changes'}
                                 </button>

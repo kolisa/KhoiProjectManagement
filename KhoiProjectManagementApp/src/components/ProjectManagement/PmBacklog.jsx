@@ -13,7 +13,7 @@ import { useConfirm } from '../../contexts/ConfirmContext';
 import { reportApiError } from '../../utils/apiError';
 import { WORK_ITEM_TYPES, TYPE_STYLES, STATUSES, STATUS_STYLES, statusLabel, can, denyReason } from './pmConstants';
 
-const selectClass = 'border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500';
+const selectClass = 'border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500';
 
 // Ranked backlog: the project's work items in priority order, with filters, create/edit, and
 // reordering by drag-and-drop (native HTML5 - no extra dependency) or the keyboard-accessible
@@ -191,7 +191,7 @@ const PmBacklog = ({ apiService, project, members }) => {
                 </div>
               )}
 
-              <span className={`px-2 py-0.5 rounded text-[11px] font-semibold ${TYPE_STYLES[item.type] || 'bg-gray-100 text-gray-700'}`}>{item.type}</span>
+              <span className={`px-2 py-0.5 rounded-sm text-[11px] font-semibold ${TYPE_STYLES[item.type] || 'bg-gray-100 text-gray-700'}`}>{item.type}</span>
 
               <button onClick={() => setEditing(item)} className="flex-1 min-w-0 text-left">
                 <span className="block text-sm font-medium text-gray-900 truncate">{item.title}</span>

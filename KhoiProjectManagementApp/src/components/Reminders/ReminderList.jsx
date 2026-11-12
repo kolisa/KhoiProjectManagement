@@ -44,11 +44,11 @@ const SnoozeMenu = ({ onSnooze, onClose }) => {
             type="datetime-local"
             value={customValue}
             onChange={(e) => setCustomValue(e.target.value)}
-            className="flex-1 border rounded px-1 py-0.5 text-xs"
+            className="flex-1 border rounded-sm px-1 py-0.5 text-xs"
           />
           <button
             onClick={() => { if (customValue) { onSnooze(new Date(customValue).toISOString()); onClose(); } }}
-            className="text-xs bg-blue-600 text-white px-2 rounded"
+            className="text-xs bg-blue-600 text-white px-2 rounded-sm"
           >
             Set
           </button>

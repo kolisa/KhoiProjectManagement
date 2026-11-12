@@ -7,7 +7,7 @@ const initials = (name) => (name || '?').split(' ').filter(Boolean).map((n) => n
 export function Avatar({ name, src, size = 'md', className }) {
   const [failed, setFailed] = useState(false);
   return (
-    <span className={cn('relative inline-flex flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-blue-100 font-semibold text-blue-700', SIZES[size], className)} title={name}>
+    <span className={cn('relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-blue-100 font-semibold text-blue-700', SIZES[size], className)} title={name}>
       {src && !failed ? <img src={src} alt={name || ''} className="h-full w-full object-cover" onError={() => setFailed(true)} /> : initials(name)}
     </span>
   );

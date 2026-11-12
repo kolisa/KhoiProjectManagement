@@ -90,8 +90,8 @@ export const VelocityChart = ({ velocity }) => {
         })}
       </svg>
       <figcaption className="flex flex-wrap gap-4 text-xs text-gray-600 mt-1">
-        <span className="inline-flex items-center gap-1.5"><span className="inline-block w-3 h-3 rounded-sm bg-slate-300" /> Committed</span>
-        <span className="inline-flex items-center gap-1.5"><span className="inline-block w-3 h-3 rounded-sm bg-blue-600" /> Completed</span>
+        <span className="inline-flex items-center gap-1.5"><span className="inline-block w-3 h-3 rounded-xs bg-slate-300" /> Committed</span>
+        <span className="inline-flex items-center gap-1.5"><span className="inline-block w-3 h-3 rounded-xs bg-blue-600" /> Completed</span>
         <span className="ml-auto font-medium text-gray-700">Average velocity: {averageCompleted} pts</span>
       </figcaption>
       <table className="sr-only">
@@ -139,7 +139,7 @@ export const CumulativeFlowChart = ({ flow }) => {
       </svg>
       <figcaption className="flex flex-wrap gap-4 text-xs text-gray-600 mt-1">
         {[...statuses].reverse().map((s) => (
-          <span key={s} className="inline-flex items-center gap-1.5"><span className="inline-block w-3 h-3 rounded-sm" style={{ background: FLOW_COLORS[s] }} /> {FLOW_LABELS[s]}</span>
+          <span key={s} className="inline-flex items-center gap-1.5"><span className="inline-block w-3 h-3 rounded-xs" style={{ background: FLOW_COLORS[s] }} /> {FLOW_LABELS[s]}</span>
         ))}
       </figcaption>
       <table className="sr-only">

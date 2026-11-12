@@ -17,7 +17,7 @@ export default function Alert({ variant = 'default', title, children, onDismiss,
         {children && <div className={cn(title && 'mt-1 opacity-90')}>{children}</div>}
       </div>
       {onDismiss && (
-        <button type="button" onClick={onDismiss} aria-label="Dismiss" className="self-start rounded p-0.5 opacity-60 hover:opacity-100">&times;</button>
+        <button type="button" onClick={onDismiss} aria-label="Dismiss" className="self-start rounded-sm p-0.5 opacity-60 hover:opacity-100">&times;</button>
       )}
     </div>
   );

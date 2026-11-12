@@ -58,7 +58,7 @@ const WorkflowModal = ({ workflow, onSave, onClose }) => {
                     <td key={to} className="text-center py-2">
                       {from === to ? <span className="text-gray-300" aria-hidden="true">–</span> : (
                         <input type="checkbox" checked={!!allowed[`${from}>${to}`]} onChange={() => toggle(from, to)}
-                          aria-label={`Allow ${statusLabel(from)} to ${statusLabel(to)}`} className="h-4 w-4 rounded border-gray-300 text-blue-600" />
+                          aria-label={`Allow ${statusLabel(from)} to ${statusLabel(to)}`} className="h-4 w-4 rounded-sm border-gray-300 text-blue-600" />
                       )}
                     </td>
                   ))}

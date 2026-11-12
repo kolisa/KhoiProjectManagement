@@ -2,7 +2,7 @@
 import React from 'react';
 import { cn } from './cn';
 
-const FIELD = 'w-full rounded-lg border border-gray-300 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40 disabled:cursor-not-allowed disabled:opacity-50';
+const FIELD = 'w-full rounded-lg border border-gray-300 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-blue-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500/40 disabled:cursor-not-allowed disabled:opacity-50';
 const INVALID = 'border-red-500 focus:border-red-500 focus:ring-red-500/40';
 
 export function Label({ className, ...props }) {
@@ -42,9 +42,9 @@ export function Switch({ checked, onChange, label, disabled = false }) {
       <button
         type="button" role="switch" aria-checked={!!checked} disabled={disabled}
         onClick={() => onChange?.(!checked)}
-        className={cn('relative h-[22px] w-10 flex-shrink-0 rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1', checked ? 'bg-blue-600' : 'bg-gray-300')}
+        className={cn('relative h-[22px] w-10 shrink-0 rounded-full transition-colors focus:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1', checked ? 'bg-blue-600' : 'bg-gray-300')}
       >
-        <span className={cn('absolute left-[2px] top-[2px] h-[18px] w-[18px] rounded-full bg-white shadow-sm transition-transform', checked && 'translate-x-[18px]')} />
+        <span className={cn('absolute left-[2px] top-[2px] h-[18px] w-[18px] rounded-full bg-white shadow-xs transition-transform', checked && 'translate-x-[18px]')} />
       </button>
       {label && <span>{label}</span>}
     </label>

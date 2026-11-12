@@ -19,7 +19,7 @@ export function Progress({ value = 0, max = 100, variant = 'default', label, cla
 
 export function Separator({ orientation = 'horizontal', className }) {
   return <div role="separator" aria-orientation={orientation}
-    className={cn('flex-shrink-0 bg-border', orientation === 'vertical' ? 'h-full w-px' : 'h-px w-full', className)} />;
+    className={cn('shrink-0 bg-border', orientation === 'vertical' ? 'h-full w-px' : 'h-px w-full', className)} />;
 }
 
 export function Kbd({ className, ...props }) {
