@@ -4,6 +4,7 @@
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
 import { validateVaultEntry, hasErrors } from '../../utils/validation';
+import { Button, Input, Textarea } from '../ui';
 import useModalA11y from '../Common/useModalA11y';
 
 const VaultEntryModal = ({ spaceId, entry, onSave, onClose }) => {
@@ -73,66 +74,53 @@ const VaultEntryModal = ({ spaceId, entry, onSave, onClose }) => {
           <div className="px-6 py-5 space-y-4">
             {error && <div className="text-sm text-red-600">{error}</div>}
             <div>
-              <input
+              <Input
                 type="text"
                 placeholder="Name"
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
-                className={`w-full border rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow ${fieldErrors.name ? 'border-red-400' : 'border-gray-300'}`}
-                aria-invalid={!!fieldErrors.name}
+                invalid={!!fieldErrors.name}
                 required
               />
               {fieldErrors.name && <p className="text-xs text-red-600 mt-1">{fieldErrors.name}</p>}
             </div>
-            <input
+            <Input
               type="text"
               placeholder="System / URL"
               value={form.systemOrUrl}
               onChange={(e) => setForm({ ...form, systemOrUrl: e.target.value })}
-              className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
             />
-            <input
+            <Input
               type="text"
               placeholder="Username"
               value={form.username}
               onChange={(e) => setForm({ ...form, username: e.target.value })}
-              className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
             />
             <div>
-              <input
+              <Input
                 type="password"
                 placeholder={entry ? 'New secret (leave blank to keep current)' : 'Secret'}
                 value={form.secretValue}
                 onChange={(e) => setForm({ ...form, secretValue: e.target.value })}
-                className={`w-full border rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow ${fieldErrors.secretValue ? 'border-red-400' : 'border-gray-300'}`}
-                aria-invalid={!!fieldErrors.secretValue}
+                invalid={!!fieldErrors.secretValue}
                 required={!entry}
               />
               {fieldErrors.secretValue && <p className="text-xs text-red-600 mt-1">{fieldErrors.secretValue}</p>}
             </div>
-            <textarea
+            <Textarea
               placeholder="Notes"
               value={form.notes}
               onChange={(e) => setForm({ ...form, notes: e.target.value })}
-              className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
               rows="3"
             />
           </div>
           <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3">
-            <button
-              type="submit"
-              disabled={saving}
-              className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors disabled:opacity-50"
-            >
+            <Button type="submit" disabled={saving}>
               {saving ? 'Saving...' : entry ? 'Save Changes' : 'Create Entry'}
-            </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className="inline-flex items-center gap-2 bg-white text-gray-700 border border-gray-300 px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-gray-50 transition-colors"
-            >
+            </Button>
+            <Button type="button" variant="outline" onClick={onClose}>
               Cancel
-            </button>
+            </Button>
           </div>
         </form>
       </div>

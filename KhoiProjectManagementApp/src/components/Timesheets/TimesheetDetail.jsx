@@ -8,6 +8,7 @@ import { reportApiError } from '../../utils/apiError';
 import StatusBadge from '../Common/StatusBadge';
 import { downloadTimesheetCsv } from './timesheetExport';
 import { splitHours, combineHours, formatDuration } from './duration';
+import { Alert, Button, Card, Input, Label, Textarea } from '../ui';
 
 const STATUS_COLORS = {
   Submitted: 'bg-[#EEEEFF] text-[#4131B0]',
@@ -189,22 +190,22 @@ const TimesheetDetail = ({ apiService, user, timesheet, initialPeriod, initialEn
           </div>
         </div>
         {!isNew && (
-          <button type="button" onClick={() => downloadTimesheetCsv(timesheet)} className="inline-flex items-center gap-2 bg-white text-gray-700 border border-gray-300 px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-gray-50 transition-colors flex-shrink-0">
+          <Button variant="outline" onClick={() => downloadTimesheetCsv(timesheet)} className="flex-shrink-0">
             <Download className="h-4 w-4" /> Download
-          </button>
+          </Button>
         )}
       </div>
 
       {!isNew && timesheet.status === 'Rejected' && timesheet.rejectionReason && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
+        <Alert variant="destructive" className="p-3">
           <span className="font-semibold">Rejection reason: </span>{timesheet.rejectionReason}
-        </div>
+        </Alert>
       )}
       {!isNew && timesheet.status === 'Approved' && (
         <p className="text-sm text-gray-500">Approved by {timesheet.approverName} on {new Date(timesheet.approvedAt).toLocaleDateString()}.</p>
       )}
 
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+      <Card className="overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-gray-50/60 text-xs uppercase tracking-wide text-gray-500">
@@ -307,7 +308,7 @@ const TimesheetDetail = ({ apiService, user, timesheet, initialPeriod, initialEn
             <Plus className="h-4 w-4" /> Add entry
           </button>
         )}
-      </div>
+      </Card>
 
       <div className="flex justify-end items-baseline gap-2 text-sm text-gray-600 bg-gray-50 rounded-lg px-4 py-2.5">
         Total: <span className="text-lg font-semibold text-gray-900">{formatDuration(totalHours)}</span>
@@ -315,66 +316,64 @@ const TimesheetDetail = ({ apiService, user, timesheet, initialPeriod, initialEn
 
       {showSubmitPrompt && (
         <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 space-y-2">
-          <label className="block text-sm text-gray-600" htmlFor="ts-cc-emails">CC anyone else (optional, e.g. your manager)</label>
-          <input
+          <Label className="mb-0" htmlFor="ts-cc-emails">CC anyone else (optional, e.g. your manager)</Label>
+          <Input
             id="ts-cc-emails"
             type="text"
             value={ccEmails}
             onChange={(e) => setCcEmails(e.target.value)}
             placeholder="manager@company.com, another@company.com"
-            className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
           />
         </div>
       )}
 
       {showRejectPrompt && (
         <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 space-y-2">
-          <label className="block text-sm text-gray-600" htmlFor="ts-reject-reason">Rejection reason</label>
-          <textarea
+          <Label className="mb-0" htmlFor="ts-reject-reason">Rejection reason</Label>
+          <Textarea
             id="ts-reject-reason"
             value={rejectReason}
             onChange={(e) => setRejectReason(e.target.value)}
             rows="2"
-            className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
           />
         </div>
       )}
 
       <div className="flex justify-end gap-3">
-        <button type="button" onClick={onClose} disabled={saving} className="inline-flex items-center gap-2 bg-white text-gray-700 border border-gray-300 px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-gray-50 transition-colors disabled:opacity-50">
+        <Button variant="outline" onClick={onClose} disabled={saving}>
           {canEdit || canApprove ? 'Cancel' : 'Back'}
-        </button>
+        </Button>
 
         {canApprove && !showRejectPrompt && (
-          <button type="button" onClick={() => setShowRejectPrompt(true)} disabled={saving} className="inline-flex items-center gap-2 bg-white text-red-600 border border-red-200 px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-red-50 transition-colors disabled:opacity-50">
+          <Button variant="outline" onClick={() => setShowRejectPrompt(true)} disabled={saving} className="text-red-600 border-red-200 hover:bg-red-50">
             <Ban className="h-4 w-4" /> Reject
-          </button>
+          </Button>
         )}
         {canApprove && showRejectPrompt && (
-          <button type="button" onClick={handleReject} disabled={saving} className="inline-flex items-center gap-2 bg-red-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-red-700 shadow-sm transition-colors disabled:opacity-50">
+          <Button variant="destructive" onClick={handleReject} disabled={saving}>
             {saving ? 'Rejecting...' : 'Confirm Reject'}
-          </button>
+          </Button>
         )}
         {canApprove && !showRejectPrompt && (
-          <button type="button" onClick={handleApprove} disabled={saving} className="inline-flex items-center gap-2 bg-green-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-green-700 shadow-sm transition-colors disabled:opacity-50">
+          <Button variant="success" onClick={handleApprove} disabled={saving}>
             <Check className="h-4 w-4" /> {saving ? 'Approving...' : 'Approve'}
-          </button>
+          </Button>
         )}
 
         {canEdit && (
-          <button type="button" onClick={handleSave} disabled={saving} className="inline-flex items-center gap-2 bg-white text-blue-600 border border-blue-200 px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-50 transition-colors disabled:opacity-50">
+          <Button variant="outline" onClick={handleSave} disabled={saving} className="text-blue-600 border-blue-200 hover:bg-blue-50">
             {saving ? 'Saving...' : isNew ? 'Create Draft' : 'Save Draft'}
-          </button>
+          </Button>
         )}
         {canEdit && !isNew && !showSubmitPrompt && (
-          <button type="button" onClick={() => setShowSubmitPrompt(true)} disabled={saving} className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors disabled:opacity-50">
+          <Button onClick={() => setShowSubmitPrompt(true)} disabled={saving}>
             <Send className="h-4 w-4" /> Submit
-          </button>
+          </Button>
         )}
         {canEdit && !isNew && showSubmitPrompt && (
-          <button type="button" onClick={handleSubmit} disabled={saving} className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors disabled:opacity-50">
+          <Button onClick={handleSubmit} disabled={saving}>
             {saving ? 'Submitting...' : 'Confirm Submit'}
-          </button>
+          </Button>
         )}
       </div>
     </div>

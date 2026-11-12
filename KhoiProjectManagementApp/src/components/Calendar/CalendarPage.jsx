@@ -7,6 +7,7 @@ import { reportApiError } from '../../utils/apiError';
 import StatusBadge from '../Common/StatusBadge';
 import EventForm from './EventForm';
 import CalendarSubscribeModal from './CalendarSubscribeModal';
+import { Button, Card, Skeleton } from '../ui';
 
 // One source of truth per type: badge color (StatusBadge's colorMap), the left-border accent each
 // row gets so a scan down the list reads by type at a glance, and the stat-card icon/color above.
@@ -120,42 +121,40 @@ const CalendarPage = ({ apiService, user }) => {
           <p className="text-gray-600">Company events, promotions, birthdays, and Marketing/Activations campaigns</p>
         </div>
         <div className="flex items-center gap-3">
-          <button
-            onClick={() => setShowSubscribe(true)}
-            className="inline-flex items-center gap-2 bg-white text-gray-700 border border-gray-300 px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-gray-50 shadow-sm transition-colors"
-          >
+          <Button variant="outline" onClick={() => setShowSubscribe(true)}>
             <Rss className="h-4 w-4" />
             Subscribe
-          </button>
+          </Button>
           {canManage && (
-            <button
-              onClick={() => setShowForm(true)}
-              className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors"
-            >
+            <Button onClick={() => setShowForm(true)}>
               <Plus className="h-4 w-4" />
               New Event
-            </button>
+            </Button>
           )}
         </div>
       </div>
 
-      <div className="flex items-center justify-between bg-white rounded-2xl border border-gray-100 shadow-sm p-3">
-        <button
+      <Card className="flex items-center justify-between p-3">
+        <Button
+          variant="ghost"
+          icon
           onClick={() => setMonthAnchor((d) => new Date(d.getFullYear(), d.getMonth() - 1, 1))}
-          className="p-2 rounded-lg hover:bg-gray-100 text-gray-600 transition-colors"
+          className="text-gray-600"
           aria-label="Previous month"
         >
           <ChevronLeft className="h-5 w-5" />
-        </button>
+        </Button>
         <span className="font-semibold text-gray-900">{monthLabel(monthAnchor)}</span>
-        <button
+        <Button
+          variant="ghost"
+          icon
           onClick={() => setMonthAnchor((d) => new Date(d.getFullYear(), d.getMonth() + 1, 1))}
-          className="p-2 rounded-lg hover:bg-gray-100 text-gray-600 transition-colors"
+          className="text-gray-600"
           aria-label="Next month"
         >
           <ChevronRight className="h-5 w-5" />
-        </button>
-      </div>
+        </Button>
+      </Card>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         {TYPE_ORDER.map((type) => {
@@ -182,11 +181,11 @@ const CalendarPage = ({ apiService, user }) => {
 
       {error && <div className="text-red-600 text-sm bg-red-50 border border-red-200 rounded-lg p-3">Error: {error}</div>}
 
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm divide-y divide-gray-100 overflow-hidden">
+      <Card className="divide-y divide-gray-100 overflow-hidden">
         {entries === null && (
           <div className="p-6 space-y-3" aria-busy="true" aria-label="Loading calendar">
             {[...Array(4)].map((_, i) => (
-              <div key={i} className="h-12 bg-gray-100 rounded-lg animate-pulse" />
+              <Skeleton key={i} className="h-12" />
             ))}
           </div>
         )}
@@ -196,9 +195,9 @@ const CalendarPage = ({ apiService, user }) => {
             <CalendarIcon className="h-10 w-10 mx-auto mb-3 text-gray-300" />
             <p>No events this month{activeFilter ? ' matching your filter' : ''}.</p>
             {activeFilter && (
-              <button onClick={() => setActiveFilter(null)} className="text-blue-600 hover:text-blue-800 text-sm mt-2">
+              <Button variant="link" size="sm" onClick={() => setActiveFilter(null)} className="mt-2 h-auto">
                 Clear filter
-              </button>
+              </Button>
             )}
           </div>
         )}
@@ -226,26 +225,32 @@ const CalendarPage = ({ apiService, user }) => {
               </div>
               {canManage && entry.kind === 'event' && (
                 <div className="flex items-center gap-1 flex-shrink-0">
-                  <button
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    icon
                     onClick={() => setEditingEvent(entry.raw)}
-                    className="p-1.5 rounded-md text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+                    className="text-gray-400 hover:text-gray-700"
                     aria-label={`Edit ${entry.title}`}
                   >
                     <Pencil className="h-4 w-4" />
-                  </button>
-                  <button
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    icon
                     onClick={() => handleDelete(entry.raw)}
-                    className="p-1.5 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                    className="text-gray-400 hover:text-red-600 hover:bg-red-50"
                     aria-label={`Delete ${entry.title}`}
                   >
                     <Trash2 className="h-4 w-4" />
-                  </button>
+                  </Button>
                 </div>
               )}
             </div>
           );
         })}
-      </div>
+      </Card>
 
       {showForm && (
         <EventForm users={users} onSave={handleCreate} onClose={() => setShowForm(false)} />

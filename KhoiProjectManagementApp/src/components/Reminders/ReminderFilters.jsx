@@ -1,6 +1,7 @@
 // src/components/Reminders/ReminderFilters.js
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, X, SlidersHorizontal } from 'lucide-react';
+import { Button, Card } from '../ui';
 
 const SEARCH_DEBOUNCE_MS = 350;
 
@@ -28,7 +29,7 @@ const ReminderFilters = ({ filters, onChange, onReset, users, canViewAll }) => {
   const activeCount = Object.values(filters).filter((v) => v !== undefined && v !== null && v !== '').length;
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 space-y-3">
+    <Card className="p-4 space-y-3">
       <div className="flex items-center space-x-3">
         <div className="relative flex-1">
           <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -50,18 +51,19 @@ const ReminderFilters = ({ filters, onChange, onReset, users, canViewAll }) => {
             </button>
           )}
         </div>
-        <button
+        <Button
+          variant="outline"
           onClick={() => setExpanded(!expanded)}
-          className="flex items-center text-sm text-gray-600 hover:text-gray-900 border border-gray-300 rounded-lg px-3 py-2 hover:bg-gray-50 transition-colors"
+          className="text-gray-600"
           aria-expanded={expanded}
         >
-          <SlidersHorizontal className="h-4 w-4 mr-1.5" />
+          <SlidersHorizontal className="h-4 w-4" />
           Filters{activeCount > 0 && ` (${activeCount})`}
-        </button>
+        </Button>
         {activeCount > 0 && (
-          <button onClick={onReset} className="text-sm text-blue-600 hover:text-blue-800">
+          <Button variant="link" onClick={onReset}>
             Reset filters
-          </button>
+          </Button>
         )}
       </div>
 
@@ -144,7 +146,7 @@ const ReminderFilters = ({ filters, onChange, onReset, users, canViewAll }) => {
           </div>
         </div>
       )}
-    </div>
+    </Card>
   );
 };
 

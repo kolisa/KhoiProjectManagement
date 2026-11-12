@@ -6,6 +6,7 @@ import React, { useState, useRef } from 'react';
 import { X, Upload, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { reportApiError } from '../../utils/apiError';
 import { useToast } from '../../contexts/ToastContext';
+import { Button } from '../ui';
 import useModalA11y from '../Common/useModalA11y';
 
 const VaultImportModal = ({ apiService, spaceId, onClose, onImported }) => {
@@ -101,25 +102,16 @@ const VaultImportModal = ({ apiService, spaceId, onClose, onImported }) => {
 
         <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3 flex-shrink-0">
           {result ? (
-            <button
-              onClick={onClose}
-              className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors"
-            >
-              Done
-            </button>
+            <Button onClick={onClose}>Done</Button>
           ) : (
             <>
-              <button onClick={onClose} className="inline-flex items-center gap-2 bg-white text-gray-700 border border-gray-300 px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-gray-50 transition-colors">
+              <Button variant="outline" onClick={onClose}>
                 Cancel
-              </button>
-              <button
-                onClick={handleImport}
-                disabled={!file || importing}
-                className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors disabled:opacity-50"
-              >
+              </Button>
+              <Button onClick={handleImport} disabled={!file || importing}>
                 {importing && <span className="h-4 w-4 rounded-full border-2 border-white/40 border-t-white animate-spin" />}
                 {importing ? 'Importing...' : 'Import'}
-              </button>
+              </Button>
             </>
           )}
         </div>

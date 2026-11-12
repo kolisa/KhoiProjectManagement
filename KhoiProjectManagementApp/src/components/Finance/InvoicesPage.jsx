@@ -12,6 +12,7 @@ import { formatCurrency } from '../../utils/currency';
 import { validateInvoice, hasErrors } from '../../utils/validation';
 import StatusBadge from '../Common/StatusBadge';
 import { INVOICE_STATUS_COLORS } from './invoiceStatusColors';
+import { Button, Card, Input, Select, Label } from '../ui';
 
 const emptyLineItem = () => ({ description: '', quantity: 1, unitPrice: 0 });
 
@@ -72,29 +73,28 @@ const InvoiceFormModal = ({ title, templates, onSave, onClose }) => {
 
           {templates && templates.length > 0 && (
             <div>
-              <label className="block text-sm text-gray-600 mb-1">Start from a template (optional)</label>
-              <select
+              <Label>Start from a template (optional)</Label>
+              <Select
                 value={templateId}
                 onChange={(e) => setTemplateId(e.target.value)}
-                className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
               >
                 <option value="">None - blank invoice</option>
                 {templates.map((t) => (
                   <option key={t.id} value={t.id}>{t.name} ({t.originalFileName})</option>
                 ))}
-              </select>
+              </Select>
             </div>
           )}
 
           <div className="grid grid-cols-2 gap-3">
-            <input placeholder="Invoice number" value={invoiceNumber} onChange={(e) => setInvoiceNumber(e.target.value)} className="border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow" />
-            <input placeholder="Client name" value={clientName} onChange={(e) => setClientName(e.target.value)} className="border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow" />
-            <input type="date" value={issueDate} onChange={(e) => setIssueDate(e.target.value)} className="border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow" />
-            <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} className="border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow" />
+            <Input placeholder="Invoice number" value={invoiceNumber} onChange={(e) => setInvoiceNumber(e.target.value)} />
+            <Input placeholder="Client name" value={clientName} onChange={(e) => setClientName(e.target.value)} />
+            <Input type="date" value={issueDate} onChange={(e) => setIssueDate(e.target.value)} />
+            <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
           </div>
 
           <div>
-            <label className="block text-sm text-gray-600 mb-1">Line items</label>
+            <Label>Line items</Label>
             {lineItems.map((li, i) => (
               <div key={i} className="flex space-x-2 mb-2">
                 <input
@@ -119,24 +119,25 @@ const InvoiceFormModal = ({ title, templates, onSave, onClose }) => {
                 />
               </div>
             ))}
-            <button
+            <Button
+              variant="link"
+              size="sm"
               onClick={() => setLineItems((prev) => [...prev, emptyLineItem()])}
-              className="text-sm text-blue-600 hover:text-blue-800"
+              className="h-auto px-0"
             >
               + Add line item
-            </button>
+            </Button>
           </div>
         </div>
 
         <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3">
-          <button onClick={onClose} className="inline-flex items-center gap-2 bg-white text-gray-700 border border-gray-300 px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-gray-50 transition-colors">Cancel</button>
-          <button
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button
             onClick={handleSave}
             disabled={saving || !invoiceNumber.trim() || !clientName.trim()}
-            className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors disabled:opacity-50"
           >
             {saving ? 'Saving...' : 'Create'}
-          </button>
+          </Button>
         </div>
       </div>
     </div>
@@ -206,9 +207,9 @@ const InvoicesPage = ({ apiService, user }) => {
 
   if (!canView) {
     return (
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center text-gray-400">
+      <Card className="p-8 text-center text-gray-400">
         You don't have access to Finance.
-      </div>
+      </Card>
     );
   }
 
@@ -233,13 +234,10 @@ const InvoicesPage = ({ apiService, user }) => {
           </p>
         </div>
         {canManage && (
-          <button
-            onClick={() => setShowForm(true)}
-            className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors"
-          >
+          <Button onClick={() => setShowForm(true)}>
             <Plus className="h-5 w-5" />
             New Invoice
-          </button>
+          </Button>
         )}
       </div>
 
@@ -377,9 +375,9 @@ const InvoicesPage = ({ apiService, user }) => {
               onDeleted={() => { setSelectedId(null); load(); }}
             />
           ) : (
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center text-gray-400">
+            <Card className="p-8 text-center text-gray-400">
               Select an invoice to view details.
-            </div>
+            </Card>
           )}
         </div>
       </div>

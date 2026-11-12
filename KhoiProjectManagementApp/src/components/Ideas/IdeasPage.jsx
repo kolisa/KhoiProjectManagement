@@ -6,6 +6,7 @@ import { hasPermission } from '../../utils/permissions';
 import { useToast } from '../../contexts/ToastContext';
 import { validateIdea, hasErrors } from '../../utils/validation';
 import useModalA11y from '../Common/useModalA11y';
+import { Button, Input, Textarea } from '../ui';
 
 const COLUMNS = [
   { key: 'Submitted', label: 'Submitted' },
@@ -57,30 +58,28 @@ const NewIdeaModal = ({ onSave, onClose }) => {
         </div>
         <div className="px-6 py-5 space-y-4">
           {error && <div className="text-red-600 text-sm">{error}</div>}
-          <input
+          <Input
             type="text"
             placeholder="Title"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
           />
-          <textarea
+          <Textarea
             placeholder="Describe your idea..."
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={5}
-            className="w-full border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
           />
         </div>
         <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3">
-          <button onClick={onClose} className="inline-flex items-center gap-2 bg-white text-gray-700 border border-gray-300 px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-gray-50 transition-colors">Cancel</button>
-          <button
+          <Button variant="outline" onClick={onClose} >Cancel</Button>
+          <Button
             onClick={handleSave}
             disabled={saving || !title.trim() || !description.trim()}
-            className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors disabled:opacity-50"
+            
           >
             {saving ? 'Submitting...' : 'Submit Idea'}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

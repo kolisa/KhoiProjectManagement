@@ -8,6 +8,7 @@ import { reportApiError } from '../../utils/apiError';
 import { formatCurrency } from '../../utils/currency';
 import StatusBadge from '../Common/StatusBadge';
 import { INVOICE_STATUS_COLORS } from './invoiceStatusColors';
+import { Button, Card } from '../ui';
 
 const InvoiceDetail = ({ apiService, user, invoice, onClose, onChanged, onDeleted }) => {
   const toast = useToast();
@@ -82,7 +83,7 @@ const InvoiceDetail = ({ apiService, user, invoice, onClose, onChanged, onDelete
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+    <Card className="p-6">
       <div className="flex justify-between items-start mb-4">
         <div>
           <h3 className="font-mono text-base font-semibold text-gray-900">{invoice.invoiceNumber}</h3>
@@ -90,13 +91,13 @@ const InvoiceDetail = ({ apiService, user, invoice, onClose, onChanged, onDelete
         </div>
         <div className="flex items-center gap-1">
           {canManage && (
-            <button onClick={handleDelete} className="text-gray-400 hover:text-red-600 p-1" aria-label="Delete invoice">
+            <Button variant="ghost" size="sm" icon onClick={handleDelete} className="text-gray-400 hover:text-red-600" aria-label="Delete invoice">
               <Trash2 className="h-4 w-4" />
-            </button>
+            </Button>
           )}
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 p-1" aria-label="Close">
+          <Button variant="ghost" size="sm" icon onClick={onClose} className="text-gray-400 hover:text-gray-600" aria-label="Close">
             <X className="h-4 w-4" />
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -179,23 +180,16 @@ const InvoiceDetail = ({ apiService, user, invoice, onClose, onChanged, onDelete
             placeholder="Template name"
           />
           <div className="flex justify-end gap-3">
-            <button
-              onClick={() => setShowTemplatePrompt(false)}
-              className="inline-flex items-center gap-2 bg-white text-gray-700 border border-gray-300 px-3 py-1.5 rounded-lg text-sm font-semibold hover:bg-gray-50 transition-colors"
-            >
+            <Button variant="outline" size="sm" onClick={() => setShowTemplatePrompt(false)}>
               No thanks
-            </button>
-            <button
-              onClick={handleSaveTemplate}
-              disabled={!templateName.trim()}
-              className="inline-flex items-center gap-2 bg-blue-600 text-white px-3 py-1.5 rounded-lg text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors disabled:opacity-50"
-            >
+            </Button>
+            <Button size="sm" onClick={handleSaveTemplate} disabled={!templateName.trim()}>
               Save as template
-            </button>
+            </Button>
           </div>
         </div>
       )}
-    </div>
+    </Card>
   );
 };
 

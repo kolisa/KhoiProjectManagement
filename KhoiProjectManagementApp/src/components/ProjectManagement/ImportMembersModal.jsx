@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, Download, Upload } from 'lucide-react';
+import { Button } from '../ui';
 import useModalA11y from '../Common/useModalA11y';
 import { useToast } from '../../contexts/ToastContext';
 import { reportApiError } from '../../utils/apiError';
@@ -169,15 +170,14 @@ const ImportMembersModal = ({ apiService, project, otherProjects = [], canGrantA
           )}
 
           <div className="flex justify-end gap-2 pt-1">
-            <button type="button" onClick={onClose} className="px-4 py-2 text-sm rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50">Cancel</button>
-            <button type="button" disabled={busy || rows.length === 0} onClick={() => run(true)}
-              className="px-4 py-2 text-sm rounded-lg border border-blue-600 text-blue-700 font-medium hover:bg-blue-50 disabled:opacity-50">
+            <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+            <Button type="button" variant="outline" disabled={busy || rows.length === 0} onClick={() => run(true)}
+              className="border-blue-600 text-blue-700 hover:bg-blue-50">
               {busy && !preview ? 'Checking…' : 'Preview'}
-            </button>
-            <button type="button" disabled={busy || !preview || changes === 0} onClick={() => run(false)}
-              className="px-4 py-2 text-sm rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 disabled:opacity-50">
+            </Button>
+            <Button type="button" disabled={busy || !preview || changes === 0} onClick={() => run(false)}>
               {busy && preview ? 'Importing…' : `Import ${changes || ''}`.trim()}
-            </button>
+            </Button>
           </div>
         </div>
       </div>

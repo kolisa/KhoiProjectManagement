@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Trash2, Upload, UserPlus, ChevronRight } from 'lucide-react';
+import { Button } from '../ui';
 import LoadingSpinner from '../Common/LoadingSpinner';
 import ErrorMessage from '../Common/ErrorMessage';
 import { useToast } from '../../contexts/ToastContext';
@@ -140,7 +141,7 @@ const PmMembers = ({ apiService, project, onChanged, otherProjects = [], canGran
                 {PROJECT_ROLES.map((r) => <option key={r.key} value={r.key}>{r.label}</option>)}
               </select>
             </div>
-            <button type="submit" disabled={!canManage || !newUserId} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">Add to project</button>
+            <Button type="submit" disabled={!canManage || !newUserId}>Add to project</Button>
             <button type="button" onClick={() => setShowImport(true)} disabled={!canManage} className="ml-auto disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50">
               <Upload className="h-4 w-4" aria-hidden="true" /> Import members
             </button>

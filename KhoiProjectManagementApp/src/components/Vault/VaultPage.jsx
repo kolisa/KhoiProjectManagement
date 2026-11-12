@@ -11,6 +11,7 @@ import { hasPermission } from '../../utils/permissions';
 import { useToast } from '../../contexts/ToastContext';
 import { useConfirm } from '../../contexts/ConfirmContext';
 import { reportApiError } from '../../utils/apiError';
+import { Button } from '../ui';
 import useModalA11y from '../Common/useModalA11y';
 
 // Extracted so useModalA11y's mount-time focus-trap setup runs exactly when this modal actually
@@ -53,19 +54,19 @@ const NewVaultCategoryModal = ({ parentId, parentSpaceName, name, onNameChange, 
           {error && <div className="text-red-600 text-sm">{error}</div>}
         </div>
         <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3">
-          <button
+          <Button variant="outline"
             onClick={onClose}
-            className="inline-flex items-center gap-2 bg-white text-gray-700 border border-gray-300 px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-gray-50 transition-colors"
+            
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={onCreate}
             disabled={creating || !name.trim()}
-            className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors disabled:opacity-50"
+            
           >
             {creating ? 'Creating...' : 'Create'}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

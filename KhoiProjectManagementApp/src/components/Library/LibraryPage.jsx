@@ -10,6 +10,7 @@ import { formatFileSize } from '../../utils/formatFileSize';
 import ShareButton from '../Common/ShareButton';
 import LoadingSpinner from '../Common/LoadingSpinner';
 import ErrorMessage from '../Common/ErrorMessage';
+import { Button } from '../ui';
 import useModalA11y from '../Common/useModalA11y';
 import { useToast } from '../../contexts/ToastContext';
 import { useConfirm } from '../../contexts/ConfirmContext';
@@ -414,19 +415,19 @@ const LibraryPage = ({ apiService, user, teamMembers = [], deepLink }) => {
               {error && <div className="text-red-600 text-sm">{error}</div>}
             </div>
             <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3">
-              <button
+              <Button variant="outline"
                 onClick={() => { setShowNewFolder(false); setNewFolderName(''); }}
-                className="inline-flex items-center gap-2 bg-white text-gray-700 border border-gray-300 px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-gray-50 transition-colors"
+                
               >
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={handleCreateFolder}
                 disabled={creatingFolder || !newFolderName.trim()}
-                className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-[10px] text-sm font-semibold hover:bg-blue-700 shadow-sm transition-colors disabled:opacity-50"
+                
               >
                 {creatingFolder ? 'Creating...' : 'Create'}
-              </button>
+              </Button>
             </div>
           </div>
         </div>

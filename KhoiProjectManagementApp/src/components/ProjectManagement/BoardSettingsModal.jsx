@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, ArrowUp, ArrowDown } from 'lucide-react';
+import { Button } from '../ui';
 import useModalA11y from '../Common/useModalA11y';
 import { statusLabel } from './pmConstants';
 
@@ -65,8 +66,8 @@ const BoardSettingsModal = ({ columns, onSave, onClose }) => {
             </div>
           ))}
           <div className="flex justify-end gap-2 pt-2">
-            <button type="button" onClick={onClose} className="px-4 py-2 text-sm rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50">Cancel</button>
-            <button type="submit" disabled={saving} className="px-4 py-2 text-sm rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 disabled:opacity-60">{saving ? 'Saving…' : 'Save'}</button>
+            <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+            <Button type="submit" disabled={saving}>{saving ? 'Saving…' : 'Save'}</Button>
           </div>
         </form>
       </div>

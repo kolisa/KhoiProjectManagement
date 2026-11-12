@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
+import { Button } from '../ui';
 import useModalA11y from '../Common/useModalA11y';
 import { WORK_ITEM_TYPES, STATUSES, TYPE_STYLES, allowedParentTypes, can, denyReason } from './pmConstants';
 import WorkItemCollab from './WorkItemCollab';
@@ -190,13 +191,13 @@ const WorkItemModal = ({ item, items, members, canEdit, onSave, onClose, apiServ
 
         <div className="flex items-center justify-end gap-2 px-6 py-3 border-t border-gray-200 bg-gray-50 rounded-b-xl">
           {effortDirty && <p role="status" className="mr-auto text-xs font-medium text-amber-700">You have unsaved effort changes - use &ldquo;Save effort&rdquo; first. Saving the item does not save them.</p>}
-          <button type="button" onClick={onClose} className="px-4 py-2 text-sm rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-50">
+          <Button type="button" variant="outline" onClick={onClose} className="bg-white">
             {canEdit ? 'Cancel' : 'Close'}
-          </button>
+          </Button>
           {canEdit && (
-            <button type="submit" form="work-item-form" disabled={saving} className="px-4 py-2 text-sm rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 disabled:opacity-60">
+            <Button type="submit" form="work-item-form" disabled={saving}>
               {saving ? 'Saving…' : 'Save'}
-            </button>
+            </Button>
           )}
         </div>
       </div>

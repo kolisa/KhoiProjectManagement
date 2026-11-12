@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
+import { Button } from '../ui';
 import useModalA11y from '../Common/useModalA11y';
 import { statusLabel } from './pmConstants';
 
@@ -68,8 +69,8 @@ const WorkflowModal = ({ workflow, onSave, onClose }) => {
           <div className="flex items-center gap-2 pt-2">
             <button type="button" onClick={reset} className="text-sm text-gray-600 underline">Allow all moves</button>
             <div className="ml-auto flex gap-2">
-              <button type="button" onClick={onClose} className="px-4 py-2 text-sm rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50">Cancel</button>
-              <button type="submit" disabled={saving} className="px-4 py-2 text-sm rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 disabled:opacity-60">{saving ? 'Saving…' : 'Save'}</button>
+              <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+              <Button type="submit" disabled={saving}>{saving ? 'Saving…' : 'Save'}</Button>
             </div>
           </div>
         </form>
