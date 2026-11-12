@@ -940,8 +940,8 @@ const ProjectManagementSystem = () => {
 
     const navButtonClass = (key) =>
         `w-full flex items-center gap-3 px-3 py-2 rounded-[10px] text-sm font-medium transition-colors ${isTabActive(key)
-            ? 'bg-white text-blue-700 font-semibold shadow-sm'
-            : 'text-blue-100 hover:bg-white/10 hover:text-white'
+            ? 'bg-sidebar-accent text-blue-700 font-semibold'
+            : 'text-sidebar-muted hover:bg-sidebar-accent hover:text-sidebar-foreground'
         }`;
 
     // Project Management module: granted per user by a SuperAdmin (pmAccess), or implied by pm.admin.
@@ -958,7 +958,7 @@ const ProjectManagementSystem = () => {
             {NAV_GROUPS.map((g) => ({ ...g, items: g.items.filter((i) => !i.requiresPm || canUsePm) })).map((group) => (
                 <div key={group.label || group.items[0].key} className="mb-1">
                     {group.label && (
-                        <p className="px-5 pt-4 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-blue-300">
+                        <p className="px-5 pt-4 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-sidebar-muted">
                             {group.label}
                         </p>
                     )}
@@ -970,7 +970,7 @@ const ProjectManagementSystem = () => {
                                     <Icon className="h-[18px] w-[18px] flex-shrink-0" />
                                     {label}
                                     {!!count && (
-                                        <span className={`ml-auto text-xs font-medium ${isTabActive(key) ? 'text-blue-400' : 'text-blue-200'}`}>{count}</span>
+                                        <span className={`ml-auto text-xs font-medium ${isTabActive(key) ? 'text-blue-600' : 'text-sidebar-muted'}`}>{count}</span>
                                     )}
                                 </button>
                             );
@@ -982,19 +982,19 @@ const ProjectManagementSystem = () => {
     );
 
     return (
-        <div className="min-h-screen flex bg-gray-50">
+        <div className="min-h-screen flex bg-background text-foreground">
             {/* Desktop sidebar */}
-            <aside className="hidden md:flex w-64 flex-shrink-0 flex-col bg-blue-800 h-screen sticky top-0 overflow-y-auto">
-                <div className="flex items-center gap-2.5 h-16 px-5 border-b border-white/10 flex-shrink-0">
-                    <div className="h-9 w-9 rounded-lg bg-white flex items-center justify-center text-blue-700 font-bold text-base flex-shrink-0">K</div>
-                    <span className="text-base font-bold text-white tracking-tight">KhoiHub</span>
+            <aside className="hidden md:flex w-64 flex-shrink-0 flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border h-screen sticky top-0 overflow-y-auto">
+                <div className="flex items-center gap-2.5 h-16 px-5 border-b border-sidebar-border flex-shrink-0">
+                    <div className="h-9 w-9 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-base flex-shrink-0">K</div>
+                    <span className="text-base font-bold text-sidebar-foreground tracking-tight">KhoiHub</span>
                 </div>
 
                 <nav className="flex-1 py-3">
                     {renderNavGroups(setActiveTab)}
                 </nav>
 
-                <div className="border-t border-white/10 py-3 flex-shrink-0">
+                <div className="border-t border-sidebar-border py-3 flex-shrink-0">
                     <div className="px-3">
                         <button onClick={() => setActiveTab(SETTINGS_ITEM.key)} className={navButtonClass(SETTINGS_ITEM.key)}>
                             <SettingsIcon className="h-[18px] w-[18px] flex-shrink-0" />
@@ -1002,12 +1002,12 @@ const ProjectManagementSystem = () => {
                         </button>
                     </div>
                     <div className="flex items-center gap-2.5 px-5 pt-3">
-                        <div className={`h-8 w-8 ${getAvatarColor(user?.name)} rounded-full flex items-center justify-center text-white text-xs font-semibold flex-shrink-0 ring-2 ring-white/20`}>
+                        <div className={`h-8 w-8 ${getAvatarColor(user?.name)} rounded-full flex items-center justify-center text-white text-xs font-semibold flex-shrink-0`}>
                             {(user?.name || '?').split(' ').filter(Boolean).map(n => n[0]).slice(0, 2).join('').toUpperCase()}
                         </div>
                         <div className="min-w-0">
-                            <p className="text-sm font-medium text-white truncate leading-tight">{user?.name}</p>
-                            <p className="text-xs text-blue-200 truncate capitalize">{user?.role}</p>
+                            <p className="text-sm font-medium text-sidebar-foreground truncate leading-tight">{user?.name}</p>
+                            <p className="text-xs text-sidebar-muted truncate capitalize">{user?.role}</p>
                         </div>
                     </div>
                 </div>
@@ -1016,7 +1016,7 @@ const ProjectManagementSystem = () => {
             {/* Main column */}
             <div className="flex-1 flex flex-col min-w-0">
                 {/* Top bar */}
-                <header className="bg-white border-b border-gray-200 sticky top-0 z-40 flex-shrink-0">
+                <header className="bg-card border-b border-border sticky top-0 z-40 flex-shrink-0">
                     <div className="flex justify-between items-center h-16 px-4 sm:px-6">
                         <div className="flex items-center md:hidden">
                             <div className="h-8 w-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0 mr-2">K</div>
@@ -1178,14 +1178,14 @@ const ProjectManagementSystem = () => {
                             className="fixed inset-0 bg-black/40"
                             onClick={() => setMobileMenuOpen(false)}
                         />
-                        <div className="relative w-72 max-w-[80%] h-full bg-blue-800 shadow-xl overflow-y-auto animate-slide-up">
-                            <div className="flex items-center gap-2.5 h-16 px-5 border-b border-white/10">
-                                <div className="h-9 w-9 rounded-lg bg-white flex items-center justify-center text-blue-700 font-bold text-base flex-shrink-0">K</div>
-                                <span className="text-base font-bold text-white tracking-tight">KhoiHub</span>
+                        <div className="relative w-72 max-w-[80%] h-full bg-sidebar text-sidebar-foreground shadow-xl overflow-y-auto animate-slide-up">
+                            <div className="flex items-center gap-2.5 h-16 px-5 border-b border-sidebar-border">
+                                <div className="h-9 w-9 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-base flex-shrink-0">K</div>
+                                <span className="text-base font-bold text-sidebar-foreground tracking-tight">KhoiHub</span>
                             </div>
                             <nav className="py-3">
                                 {renderNavGroups((key) => { setActiveTab(key); setMobileMenuOpen(false); })}
-                                <div className="border-t border-white/10 mt-2 pt-3 px-3 space-y-0.5">
+                                <div className="border-t border-sidebar-border mt-2 pt-3 px-3 space-y-0.5">
                                     <button
                                         onClick={() => { setActiveTab(SETTINGS_ITEM.key); setMobileMenuOpen(false); }}
                                         className={navButtonClass(SETTINGS_ITEM.key)}
@@ -1195,7 +1195,7 @@ const ProjectManagementSystem = () => {
                                     </button>
                                     <button
                                         onClick={logout}
-                                        className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-red-200 hover:bg-white/10 hover:text-red-100 transition-colors"
+                                        className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
                                     >
                                         <LogOut className="h-[18px] w-[18px] flex-shrink-0" />
                                         Logout

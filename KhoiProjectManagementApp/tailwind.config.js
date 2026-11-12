@@ -42,12 +42,26 @@ module.exports = {
                 accent: {
                     teal: '#1FA7A0',
                 },
+                // Cleopatra semantic tokens (values live in src/index.css, :root).
+                background: 'var(--background)',
+                foreground: 'var(--foreground)',
+                card: { DEFAULT: 'var(--card)', foreground: 'var(--card-foreground)' },
+                muted: { DEFAULT: 'var(--muted)', foreground: 'var(--muted-foreground)' },
+                border: 'var(--border)',
+                sidebar: {
+                    DEFAULT: 'var(--sidebar)',
+                    foreground: 'var(--sidebar-foreground)',
+                    accent: 'var(--sidebar-accent)',
+                    'accent-foreground': 'var(--sidebar-accent-foreground)',
+                    border: 'var(--sidebar-border)',
+                    muted: 'var(--muted-foreground)',
+                },
                 success: '#22A06B',
                 warning: '#F4B740',
                 danger: '#E45D5D',
             },
             fontFamily: {
-                sans: ['"Instrument Sans"', 'Helvetica', 'Arial', 'system-ui', 'sans-serif'],
+                sans: ['Inter', 'Helvetica', 'Arial', 'system-ui', 'sans-serif'],
                 mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
             },
             animation: {
