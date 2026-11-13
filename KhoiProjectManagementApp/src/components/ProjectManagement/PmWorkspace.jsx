@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { ChevronRight, ChevronDown, Eye, Folder, LayoutDashboard, ListChecks, Zap, Kanban, BarChart3, Users } from 'lucide-react';
+import { ChevronDown, Eye, Folder, LayoutDashboard, ListChecks, Zap, Kanban, BarChart3, Users } from 'lucide-react';
 import LoadingSpinner from '../Common/LoadingSpinner';
 import ErrorMessage from '../Common/ErrorMessage';
 import PmBacklog from './PmBacklog';
@@ -14,6 +14,7 @@ import PmProjectNav from './PmProjectNav';
 import { Avatar, AccessBadge, RoleChip, EmptyState, cardClass } from './pmUi';
 import { hasPermission } from '../../utils/permissions';
 import { effectiveProject } from './pmConstants';
+import { Tabs, Breadcrumb, Card } from '../ui';
 
 const LAST_PROJECT_KEY = 'khoi_pm_project';
 const TAB_KEY_PREFIX = 'khoi_pm_tab_';
@@ -236,13 +237,9 @@ const PmWorkspace = ({ apiService, user }) => {
               </div>
             )}
 
-            <div role="tablist" aria-label={`${project.name} sections`} className="mb-5 flex gap-1 overflow-x-auto border-b border-gray-200">
-              {TABS.map(({ key, label, Icon }) => (
-                <button key={key} role="tab" aria-selected={tab === key} onClick={() => openTab(key)}
-                  className={`-mb-px inline-flex items-center gap-1.5 whitespace-nowrap border-b-2 px-3.5 py-2.5 text-sm font-medium transition-colors ${tab === key ? 'border-blue-600 text-blue-700' : 'border-transparent text-gray-500 hover:text-gray-800'}`}>
-                  <Icon className="h-4 w-4" aria-hidden="true" /> {label}
-                </button>
-              ))}
+            <div className="mb-5">
+              <Tabs variant="underline" ariaLabel={`${project.name} sections`} value={tab} onChange={openTab}
+                tabs={TABS.map(({ key, label, Icon }) => ({ key, label: <><Icon className="h-4 w-4" aria-hidden="true" /> {label}</> }))} />
             </div>
 
             {tab === 'overview' && <PmOverview key={project.id} apiService={apiService} project={effective} />}
@@ -262,17 +259,8 @@ const PmWorkspace = ({ apiService, user }) => {
 
 // Breadcrumb + title + badges. The breadcrumb is the "you are here" line: Project Management > Project > Section.
 const Header = ({ crumbs, title, subtitle, avatar, badges }) => (
-  <header className={`${cardClass} mb-4 p-5`}>
-    <nav aria-label="Breadcrumb">
-      <ol className="flex flex-wrap items-center gap-1 text-xs text-gray-500">
-        {crumbs.filter(Boolean).map((c, i, all) => (
-          <li key={`${c}-${i}`} className="flex items-center gap-1">
-            {i > 0 && <ChevronRight className="h-3 w-3 text-gray-300" aria-hidden="true" />}
-            <span aria-current={i === all.length - 1 ? 'page' : undefined} className={i === all.length - 1 ? 'font-medium text-gray-700' : ''}>{c}</span>
-          </li>
-        ))}
-      </ol>
-    </nav>
+  <Card as="header" className="mb-4 p-5">
+    <Breadcrumb items={crumbs.filter(Boolean).map((label) => ({ label }))} />
     <div className="mt-3 flex items-center gap-4">
       {avatar}
       <div className="min-w-0">
@@ -281,7 +269,7 @@ const Header = ({ crumbs, title, subtitle, avatar, badges }) => (
         {badges && <div className="mt-1.5 flex flex-wrap items-center gap-2">{badges}</div>}
       </div>
     </div>
-  </header>
+  </Card>
 );
 
 export default PmWorkspace;

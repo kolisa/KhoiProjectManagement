@@ -1,6 +1,7 @@
 import React from 'react';
 import { Eye, Pencil, ShieldCheck } from 'lucide-react';
 import { accessLevel, ACCESS_LEVEL_LABELS, roleLabel } from './pmConstants';
+import { Badge } from '../ui';
 
 // Shared look for the Project Management module: one card style, one avatar, one set of badges, so the
 // workspace shell, the members page, the access admin and the overview read as a single design.
@@ -39,7 +40,7 @@ export const Avatar = ({ name, size = 'md', square = false }) => (
 );
 
 export const RoleChip = ({ role }) => (
-  <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700">{roleLabel(role)}</span>
+  <Badge variant="secondary" className="bg-gray-100 text-gray-700">{roleLabel(role)}</Badge>
 );
 
 const ACCESS_STYLES = {
@@ -54,11 +55,11 @@ export const AccessBadge = ({ role, readOnly = false }) => {
   const level = accessLevel(role, readOnly);
   const { cls, Icon } = ACCESS_STYLES[level];
   return (
-    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${cls}`}
+    <Badge variant="secondary" className={cls}
       title={readOnly ? 'Read-only access was set for this person by an administrator' : undefined}>
       <Icon className="h-3 w-3" aria-hidden="true" />
       {ACCESS_LEVEL_LABELS[level]}
-    </span>
+    </Badge>
   );
 };
 

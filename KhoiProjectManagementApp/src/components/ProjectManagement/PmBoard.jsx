@@ -13,6 +13,7 @@ import { LabelChips } from './pmWidgets';
 import { useToast } from '../../contexts/ToastContext';
 import { reportApiError } from '../../utils/apiError';
 import { TYPE_STYLES, STATUS_DOT, can, denyReason } from './pmConstants';
+import { Button, Select, Badge } from '../ui';
 
 const DAY_MS = 86400000;
 
@@ -200,39 +201,34 @@ const PmBoard = ({ apiService, project, members }) => {
         <Combobox id="board-sprint" className="w-56" value={sprintId} searchPlaceholder="Search sprints…"
           onChange={(v) => { picked.current = true; setSprintId(String(v)); }}
           emptyLabel="All work (Kanban)" options={sprints.map((s) => ({ value: String(s.id), label: s.name, description: s.state === 'Active' ? 'Active sprint' : 'Planned' }))} />
-        <button onClick={() => setNewSprint(true)} disabled={!canPlan} title={planReason || 'Create a sprint to plan work into'}
-          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-300 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+        <Button variant="outline" onClick={() => setNewSprint(true)} disabled={!canPlan} title={planReason || 'Create a sprint to plan work into'}>
           <Plus className="h-4 w-4" aria-hidden="true" /> New sprint
-        </button>
-        <select aria-label="Group cards into swimlanes" value={laneMode} onChange={(e) => setLaneMode(e.target.value)}
-          className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500">
+        </Button>
+        <Select aria-label="Group cards into swimlanes" value={laneMode} onChange={(e) => setLaneMode(e.target.value)} className="w-auto">
           {LANE_MODES.map((m) => <option key={m.key} value={m.key}>{m.label}</option>)}
-        </select>
+        </Select>
         <span className="text-xs text-gray-500">{allCards.length} card{allCards.length === 1 ? '' : 's'} · Epics and Features stay on the backlog</span>
         {workflow && (
-          <button onClick={() => setShowWorkflow(true)} disabled={!canConfigure} title={configureReason || undefined}
-            className="ml-auto inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-300 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+          <Button variant="outline" onClick={() => setShowWorkflow(true)} disabled={!canConfigure} title={configureReason || undefined} className="ml-auto">
             <GitBranch className="h-4 w-4" aria-hidden="true" /> Workflow{workflow.isCustomised ? ' (custom)' : ''}
-          </button>
+          </Button>
         )}
-        <button onClick={() => setShowSettings(true)} disabled={!canConfigure} title={configureReason || undefined}
-          className={`${workflow ? '' : 'ml-auto '}inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-300 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed`}>
+        <Button variant="outline" onClick={() => setShowSettings(true)} disabled={!canConfigure} title={configureReason || undefined} className={workflow ? '' : 'ml-auto'}>
           <Settings2 className="h-4 w-4" aria-hidden="true" /> Columns &amp; WIP limits
-        </button>
+        </Button>
       </div>
 
       {sprint && (
         <div role="region" aria-label={`${sprint.name} summary`} className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-xl border border-blue-100 bg-blue-50/60 px-4 py-2.5">
           <span className="text-sm font-semibold text-gray-900">{sprint.name}</span>
-          <span className={`text-[11px] font-semibold rounded-sm px-2 py-0.5 ${sprint.state === 'Active' ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-600'}`}>{sprint.state}</span>
+          <Badge variant={sprint.state === 'Active' ? 'success' : 'secondary'} className="text-[11px] font-semibold">{sprint.state}</Badge>
           <span className="text-xs text-gray-600">{new Date(sprint.startDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} – {new Date(sprint.endDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}{daysLeft != null && ` · ${daysLeft > 0 ? `${daysLeft} day${daysLeft === 1 ? '' : 's'} left` : 'ends today or overdue'}`}</span>
           <span className="text-xs text-gray-600">{sprint.donePoints} / {sprint.totalPoints} pts done</span>
           {sprint.goal && <span className="flex items-center gap-1 text-xs text-gray-700"><Target className="h-3.5 w-3.5 text-blue-500" aria-hidden="true" />{sprint.goal}</span>}
           {sprint.state === 'Planned' && (
-            <button onClick={() => startSprint(sprint.id)} disabled={!canPlan || hasActive} title={planReason || (hasActive ? 'Complete the active sprint first' : 'Start this sprint')}
-              className="ml-auto inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">
+            <Button size="sm" onClick={() => startSprint(sprint.id)} disabled={!canPlan || hasActive} title={planReason || (hasActive ? 'Complete the active sprint first' : 'Start this sprint')} className="ml-auto">
               <Play className="h-3.5 w-3.5" aria-hidden="true" /> Start sprint
-            </button>
+            </Button>
           )}
         </div>
       )}
@@ -253,12 +249,12 @@ const PmBoard = ({ apiService, project, members }) => {
             })}
           </div>
           {unassignedCount > 0 && (
-            <button type="button" aria-pressed={people.has('none')} aria-label={`Unassigned, ${unassignedCount} card${unassignedCount === 1 ? '' : 's'}`} onClick={() => togglePerson('none')}
-              className={`ml-1 inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs ${people.has('none') ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-dashed border-gray-300 text-gray-600 hover:bg-gray-50'}`}>
+            <Button variant="outline" size="sm" aria-pressed={people.has('none')} aria-label={`Unassigned, ${unassignedCount} card${unassignedCount === 1 ? '' : 's'}`} onClick={() => togglePerson('none')}
+              className={`ml-1 h-auto gap-1 rounded-full px-2.5 py-1 font-normal ${people.has('none') ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-dashed border-gray-300 text-gray-600'}`}>
               <UserRound className="h-3.5 w-3.5" aria-hidden="true" /> Unassigned
-            </button>
+            </Button>
           )}
-          {people.size > 0 && <button type="button" onClick={() => setPeople(new Set())} className="ml-1 text-xs font-medium text-blue-700 hover:underline">Clear filter</button>}
+          {people.size > 0 && <Button variant="link" size="sm" onClick={() => setPeople(new Set())} className="ml-1 h-auto px-0 text-xs text-blue-700">Clear filter</Button>}
         </div>
       )}
 
@@ -291,11 +287,11 @@ const PmBoard = ({ apiService, project, members }) => {
             >
               <header className="flex items-center justify-between px-3 py-2.5">
                 <h3 className="flex items-center gap-2 text-sm font-semibold text-gray-800"><span className={`h-2.5 w-2.5 rounded-full ${STATUS_DOT[col.status] || 'bg-gray-400'}`} aria-hidden="true" />{col.name}</h3>
-                <span className={`inline-flex items-center gap-1 text-xs font-semibold rounded-full px-2 py-0.5 ${col.overWip ? 'bg-red-100 text-red-700' : atLimit ? 'bg-amber-100 text-amber-700' : 'bg-white text-gray-600'}`}
+                <Badge variant={col.overWip ? 'destructive' : atLimit ? 'warning' : 'secondary'} className="font-semibold"
                   title={`${laneMode === 'none' ? '' : `${cards.length} in this lane · `}${col.count} in the column${col.wipLimit != null ? ` · WIP limit ${col.wipLimit}` : ' · no WIP limit'}`}>
                   {(col.overWip || atLimit) && <AlertTriangle className="h-3 w-3" aria-hidden="true" />}
                   {laneMode === 'none' ? col.count : cards.length}{laneMode === 'none' && col.wipLimit != null && ` / ${col.wipLimit}`}
-                </span>
+                </Badge>
               </header>
 
               <ul className="px-2 pb-2 space-y-2 min-h-16">
@@ -315,9 +311,9 @@ const PmBoard = ({ apiService, project, members }) => {
                         <span className="block text-sm font-medium text-gray-900 wrap-break-word">{item.title}</span>
                       </button>
                       <div className="flex flex-wrap items-center gap-1.5 mt-2">
-                        <span className={`px-1.5 py-0.5 rounded-sm text-[10.5px] font-semibold ${TYPE_STYLES[item.type] || 'bg-gray-100 text-gray-700'}`}>{item.type}</span>
+                        <Badge variant="secondary" className={`rounded-sm px-1.5 text-[10.5px] font-semibold ${TYPE_STYLES[item.type] || 'bg-gray-100 text-gray-700'}`}>{item.type}</Badge>
                         <PriorityBadge priority={item.priority} />
-                        {item.storyPoints != null && <span className="text-[11px] font-semibold bg-gray-100 text-gray-700 rounded-full px-2 py-0.5" title="Story points">{item.storyPoints}</span>}
+                        {item.storyPoints != null && <Badge variant="secondary" className="bg-gray-100 text-[11px] font-semibold text-gray-700" title="Story points">{item.storyPoints}</Badge>}
                         {item.isOverdue && <span className="text-[11px] font-medium text-red-600">overdue</span>}
                       </div>
                       {item.labels?.length > 0 && <div className="mt-2"><LabelChips labels={item.labels} max={2} /></div>}
@@ -339,10 +335,10 @@ const PmBoard = ({ apiService, project, members }) => {
                       </div>
                       <label className="block mt-2">
                         <span className="sr-only">Move {item.title} to</span>
-                        <select value={item.status} onChange={(e) => move(item.id, e.target.value, null)} disabled={!canEdit} title={editReason || undefined}
-                          className="w-full border border-gray-200 rounded-sm px-2 py-1 text-xs bg-white text-gray-600 disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed">
+                        <Select value={item.status} onChange={(e) => move(item.id, e.target.value, null)} disabled={!canEdit} title={editReason || undefined}
+                          className="h-auto rounded-sm border-gray-200 px-2 py-1 text-xs text-gray-600">
                           {board.columns.map((c) => <option key={c.status} value={c.status} disabled={!moveAllowed(item.status, c.status)}>{c.name}</option>)}
-                        </select>
+                        </Select>
                       </label>
                     </li>
                   );
