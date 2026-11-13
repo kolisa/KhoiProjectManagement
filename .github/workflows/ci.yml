@@ -174,6 +174,44 @@ jobs:
           path: KhoiProjectManagementApp/playwright-report
           retention-days: 14
 
+  # Decides whether the API needs deploying: true if any file the published API is built from changed in
+  # this push. Fails SAFE - a manual dispatch, a new/force-pushed ref, an unreachable "before" commit or
+  # any git error all resolve to "true" (deploy), never to a silent skip. The frontend ships separately
+  # via Vercel, so KhoiProjectManagementApp/, tests/, docs/ and other non-API paths do not count.
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      api: ${{ steps.detect.outputs.api }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Detect API changes
+        id: detect
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.sha }}
+        run: |
+          if [ "$EVENT_NAME" != "push" ]; then
+            echo "Event is $EVENT_NAME - deploying."; echo "api=true" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          if [ -z "$BEFORE" ] || [ "$BEFORE" = "0000000000000000000000000000000000000000" ] || ! git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+            echo "No usable previous commit - deploying."; echo "api=true" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          if ! CHANGED=$(git diff --name-only "$BEFORE" "$AFTER"); then
+            echo "git diff failed - deploying."; echo "api=true" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          echo "Changed files:"; echo "$CHANGED"
+          # Everything the API publish depends on: the five backend projects, central package/build props,
+          # the solution, any SDK pin, and this workflow itself (so a deploy-step change is exercised).
+          if echo "$CHANGED" | grep -qE '^(KhoiProjectManagement\.(Domain|Application|Infrastructure|Quartz)/|KhoiProjectManagementApi/|Directory\.(Packages|Build)\.props$|KhoiProjectManagement\.sln$|global\.json$|\.github/workflows/ci\.yml$)'; then
+            echo "API-affecting changes found - deploying."; echo "api=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "No API changes - skipping deploy."; echo "api=false" >> "$GITHUB_OUTPUT"
+          fi
+
   # Deploys the backend to the Linux production server once every prior job on this push to master
   # has passed. Mirrors the (now-retired) manual process exactly: stop the service, wipe the old
   # binaries in /var/www/khoi-api (never touching /etc/khoi-api/khoi-api.env - that file holds every
@@ -183,9 +221,12 @@ jobs:
   # deliberately `true` in that env file (unlike this repo's documented default recommendation of
   # `false` for a production database) - a considered choice, not an oversight, so EF Core migrations
   # apply automatically on every restart this job triggers.
+  #
+  # Skipped when nothing the API is built from changed (a frontend-only or docs-only push): restarting
+  # the service for an identical binary is pointless downtime. See the `changes` job below.
   deploy:
-    needs: [backend, frontend, e2e]
-    if: github.ref == 'refs/heads/master' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    needs: [backend, frontend, e2e, changes]
+    if: github.ref == 'refs/heads/master' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && needs.changes.outputs.api == 'true'
     runs-on: ubuntu-latest
     environment: production
     steps:
