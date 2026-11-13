@@ -8,7 +8,10 @@ on:
   workflow_dispatch:
 
 jobs:
+  # Skipped (reported as skipped, not failed) when neither the API nor its tests changed - see `changes`.
   backend:
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -174,43 +177,55 @@ jobs:
           path: KhoiProjectManagementApp/playwright-report
           retention-days: 14
 
-  # Decides whether the API needs deploying: true if any file the published API is built from changed in
-  # this push. Fails SAFE - a manual dispatch, a new/force-pushed ref, an unreachable "before" commit or
-  # any git error all resolve to "true" (deploy), never to a silent skip. The frontend ships separately
-  # via Vercel, so KhoiProjectManagementApp/, tests/, docs/ and other non-API paths do not count.
+  # Decides which parts of the pipeline have work to do, from the files this push / pull request changed.
+  #   api     - a file the published API is built from changed -> the deploy job may run.
+  #   backend - api OR the backend tests/benchmarks/coverage config changed -> the backend job runs.
+  # Fails SAFE: a manual dispatch, a new/force-pushed ref, an unreachable base commit or any git error
+  # resolves to "true" for both, never to a silent skip. The frontend (KhoiProjectManagementApp/), docs and
+  # other non-backend paths do not count; the frontend job and its Vercel deploy are independent of this.
   changes:
     runs-on: ubuntu-latest
     outputs:
       api: ${{ steps.detect.outputs.api }}
+      backend: ${{ steps.detect.outputs.backend }}
     steps:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
-      - name: Detect API changes
+      - name: Detect backend / API changes
         id: detect
         env:
           EVENT_NAME: ${{ github.event_name }}
           BEFORE: ${{ github.event.before }}
           AFTER: ${{ github.sha }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
         run: |
-          if [ "$EVENT_NAME" != "push" ]; then
-            echo "Event is $EVENT_NAME - deploying."; echo "api=true" >> "$GITHUB_OUTPUT"; exit 0
-          fi
-          if [ -z "$BEFORE" ] || [ "$BEFORE" = "0000000000000000000000000000000000000000" ] || ! git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
-            echo "No usable previous commit - deploying."; echo "api=true" >> "$GITHUB_OUTPUT"; exit 0
-          fi
-          if ! CHANGED=$(git diff --name-only "$BEFORE" "$AFTER"); then
-            echo "git diff failed - deploying."; echo "api=true" >> "$GITHUB_OUTPUT"; exit 0
-          fi
+          all_true() { echo "$1 - running everything."; { echo "api=true"; echo "backend=true"; } >> "$GITHUB_OUTPUT"; exit 0; }
+          ZERO=0000000000000000000000000000000000000000
+          case "$EVENT_NAME" in
+            push)
+              if [ -z "$BEFORE" ] || [ "$BEFORE" = "$ZERO" ] || ! git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+                all_true "No usable previous commit"
+              fi
+              RANGE="$BEFORE $AFTER" ;;
+            pull_request)
+              if [ -z "$PR_BASE" ] || [ -z "$PR_HEAD" ]; then all_true "Pull request refs missing"; fi
+              RANGE="$PR_BASE...$PR_HEAD" ;;
+            *) all_true "Event is $EVENT_NAME" ;;
+          esac
+          if ! CHANGED=$(git diff --name-only $RANGE); then all_true "git diff failed"; fi
           echo "Changed files:"; echo "$CHANGED"
-          # Everything the API publish depends on: the five backend projects, central package/build props,
-          # the solution, any SDK pin, and this workflow itself (so a deploy-step change is exercised).
-          if echo "$CHANGED" | grep -qE '^(KhoiProjectManagement\.(Domain|Application|Infrastructure|Quartz)/|KhoiProjectManagementApi/|Directory\.(Packages|Build)\.props$|KhoiProjectManagement\.sln$|global\.json$|\.github/workflows/ci\.yml$)'; then
-            echo "API-affecting changes found - deploying."; echo "api=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "No API changes - skipping deploy."; echo "api=false" >> "$GITHUB_OUTPUT"
-          fi
+          # Everything the API publish depends on: the backend projects, central package/build props, the
+          # solution, any SDK pin, and this workflow itself (so a pipeline change is always exercised).
+          API_RE='^(KhoiProjectManagement\.(Domain|Application|Infrastructure|Quartz)/|KhoiProjectManagementApi/|Directory\.(Packages|Build)\.props$|KhoiProjectManagement\.sln$|global\.json$|\.github/workflows/ci\.yml$)'
+          # Backend CI additionally depends on the tests, benchmarks (built with the solution) and coverage config.
+          BACKEND_RE='^(tests/|KhoiProjectManagement\.Benchmarks/|coverlet\.runsettings$)'
+          if echo "$CHANGED" | grep -qE "$API_RE"; then API=true; else API=false; fi
+          if [ "$API" = true ] || echo "$CHANGED" | grep -qE "$BACKEND_RE"; then BACKEND=true; else BACKEND=false; fi
+          echo "api=$API / backend=$BACKEND"
+          { echo "api=$API"; echo "backend=$BACKEND"; } >> "$GITHUB_OUTPUT"
 
   # Deploys the backend to the Linux production server once every prior job on this push to master
   # has passed. Mirrors the (now-retired) manual process exactly: stop the service, wipe the old
