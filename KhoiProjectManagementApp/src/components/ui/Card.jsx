@@ -1,8 +1,8 @@
 import React from 'react';
 import { cn } from './cn';
 
-export function Card({ className, ...props }) {
-  return <div className={cn('rounded-2xl border border-border bg-card text-card-foreground shadow-xs', className)} {...props} />;
+export function Card({ as: Tag = 'div', className, ...props }) {
+  return <Tag className={cn('rounded-2xl border border-border bg-card text-card-foreground shadow-xs', className)} {...props} />;
 }
 export function CardHeader({ className, ...props }) {
   return <div className={cn('flex flex-col gap-1 p-6 pb-0', className)} {...props} />;

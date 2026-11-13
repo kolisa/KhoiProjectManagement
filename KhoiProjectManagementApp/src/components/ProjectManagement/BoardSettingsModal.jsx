@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X, ArrowUp, ArrowDown } from 'lucide-react';
-import { Button, Modal } from '../ui';
+import { Button, Input, Modal } from '../ui';
 import { statusLabel } from './pmConstants';
 
 // Rename, reorder and set WIP limits on the board's columns. Each column is bound to a status (the
@@ -55,12 +55,10 @@ const BoardSettingsModal = ({ columns, onSave, onClose }) => {
                 <button type="button" aria-label={`Move ${row.name} column left`} disabled={i === 0} onClick={() => swap(i, i - 1)} className="hover:text-blue-600 disabled:opacity-30"><ArrowUp className="h-3.5 w-3.5" /></button>
                 <button type="button" aria-label={`Move ${row.name} column right`} disabled={i === rows.length - 1} onClick={() => swap(i, i + 1)} className="hover:text-blue-600 disabled:opacity-30"><ArrowDown className="h-3.5 w-3.5" /></button>
               </div>
-              <input aria-label={`Name for the ${statusLabel(row.status)} column`} value={row.name} maxLength={40}
-                onChange={(e) => update(i, { name: e.target.value })}
-                className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500" />
-              <input aria-label={`WIP limit for ${row.name}`} type="number" min="1" max="100" placeholder="No limit" value={row.wipLimit}
-                onChange={(e) => update(i, { wipLimit: e.target.value })}
-                className="w-24 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500" />
+              <Input aria-label={`Name for the ${statusLabel(row.status)} column`} value={row.name} maxLength={40}
+                onChange={(e) => update(i, { name: e.target.value })} className="flex-1" />
+              <Input aria-label={`WIP limit for ${row.name}`} type="number" min="1" max="100" placeholder="No limit" value={row.wipLimit}
+                onChange={(e) => update(i, { wipLimit: e.target.value })} className="w-24" />
             </div>
           ))}
           <div className="flex justify-end gap-2 pt-2">

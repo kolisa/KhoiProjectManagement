@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
-import { Button, Modal } from '../ui';
+import { Alert, Button, Input, Label, Modal, Select } from '../ui';
 import { WORK_ITEM_TYPES, STATUSES, TYPE_STYLES, allowedParentTypes, can, denyReason } from './pmConstants';
 import WorkItemCollab from './WorkItemCollab';
 import RichTextEditor from './RichTextEditor';
@@ -9,7 +9,6 @@ import SubtasksPanel from './SubtasksPanel';
 import EffortEditor from './EffortEditor';
 import { isEmptyHtml } from './richText';
 
-const fieldClass = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed';
 const labelClass = 'block text-xs font-medium text-gray-600 mb-1';
 
 // Create/edit a backlog work item. `item` is null for create. `items` is the project's current backlog (for the parent
@@ -101,11 +100,11 @@ const WorkItemModal = ({ item, items, members, canEdit, onSave, onClose, apiServ
         <form id="work-item-form" onSubmit={submit} noValidate>
           <div className="grid gap-6 p-6 lg:grid-cols-[minmax(0,1fr)_17rem]">
             <div className="space-y-5 min-w-0">
-              {error && <div role="alert" className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</div>}
+              {error && <Alert variant="destructive">{error}</Alert>}
 
               <div>
-                <label htmlFor="wi-title" className={labelClass}>Title</label>
-                <input id="wi-title" className={`${fieldClass} text-base font-medium`} value={form.title} onChange={set('title')} maxLength={200} disabled={disabled} title={disabled ? editReason || undefined : undefined} />
+                <Label htmlFor="wi-title" className={labelClass}>Title</Label>
+                <Input id="wi-title" className="h-auto py-2 text-base font-medium" value={form.title} onChange={set('title')} maxLength={200} disabled={disabled} title={disabled ? editReason || undefined : undefined} />
               </div>
 
               <RichTextEditor id="wi-desc" label="Description" value={item?.description || ''} onChange={setDescription} disabled={disabled} reason={editReason} />
@@ -121,45 +120,45 @@ const WorkItemModal = ({ item, items, members, canEdit, onSave, onClose, apiServ
             <aside aria-label="Details" className="space-y-3 lg:border-l lg:border-gray-100 lg:pl-6">
               <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500">Details</h3>
               <div>
-                <label htmlFor="wi-status" className={labelClass}>Status</label>
-                <select id="wi-status" className={fieldClass} value={form.status} onChange={set('status')} disabled={disabled}>
+                <Label htmlFor="wi-status" className={labelClass}>Status</Label>
+                <Select id="wi-status" value={form.status} onChange={set('status')} disabled={disabled}>
                   {STATUSES.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
-                </select>
+                </Select>
               </div>
               <div>
-                <label htmlFor="wi-type" className={labelClass}>Type</label>
-                <select id="wi-type" className={fieldClass} value={form.type} onChange={changeType} disabled={disabled}>
+                <Label htmlFor="wi-type" className={labelClass}>Type</Label>
+                <Select id="wi-type" value={form.type} onChange={changeType} disabled={disabled}>
                   {WORK_ITEM_TYPES.map((t) => <option key={t}>{t}</option>)}
                   {/* Legacy task types stay visible so editing one doesn't silently retype it. */}
                   {item && !WORK_ITEM_TYPES.includes(item.type) && <option>{item.type}</option>}
-                </select>
+                </Select>
               </div>
               <div>
-                <label htmlFor="wi-assignee" className={labelClass}>Assignee</label>
+                <Label htmlFor="wi-assignee" className={labelClass}>Assignee</Label>
                 <Combobox id="wi-assignee" value={form.assignedToId} onChange={(v) => setForm((f) => ({ ...f, assignedToId: v }))}
                   options={peopleOptions(members)} emptyLabel="Unassigned" disabled={disabled} searchPlaceholder="Search people…" />
               </div>
               <div>
-                <label htmlFor="wi-priority" className={labelClass}>Priority</label>
-                <select id="wi-priority" className={fieldClass} value={form.priority} onChange={set('priority')} disabled={disabled}>
+                <Label htmlFor="wi-priority" className={labelClass}>Priority</Label>
+                <Select id="wi-priority" value={form.priority} onChange={set('priority')} disabled={disabled}>
                   <option value="low">Low</option>
                   <option value="medium">Medium</option>
                   <option value="high">High</option>
-                </select>
+                </Select>
               </div>
               <div>
-                <label htmlFor="wi-due" className={labelClass}>Due date</label>
-                <input id="wi-due" type="date" className={fieldClass} value={form.dueDate} onChange={set('dueDate')} disabled={disabled} />
+                <Label htmlFor="wi-due" className={labelClass}>Due date</Label>
+                <Input id="wi-due" type="date" value={form.dueDate} onChange={set('dueDate')} disabled={disabled} />
               </div>
               <div>
-                <label htmlFor="wi-parent" className={labelClass}>Parent</label>
+                <Label htmlFor="wi-parent" className={labelClass}>Parent</Label>
                 <Combobox id="wi-parent" value={form.parentId} onChange={(v) => setForm((f) => ({ ...f, parentId: v }))}
                   options={parentOptions.map((p) => ({ value: p.id, label: p.title, description: `${p.type} #${p.id}` }))}
                   emptyLabel={form.type === 'Subtask' ? 'Select a parent…' : 'None'} disabled={disabled || form.type === 'Epic'} searchPlaceholder="Search items…" />
               </div>
               <div>
-                <label htmlFor="wi-points" className={labelClass}>Story points</label>
-                <input id="wi-points" type="number" min="0" max="100" className={fieldClass} value={form.storyPoints} onChange={set('storyPoints')} disabled={disabled} />
+                <Label htmlFor="wi-points" className={labelClass}>Story points</Label>
+                <Input id="wi-points" type="number" min="0" max="100" value={form.storyPoints} onChange={set('storyPoints')} disabled={disabled} />
                 <p className="mt-1 text-[11px] text-gray-500">A single estimate for the item. Points per person are set under Effort.</p>
               </div>
             </aside>

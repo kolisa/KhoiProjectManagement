@@ -24,7 +24,7 @@ const Button = React.forwardRef(function Button(
       className={cn(
         'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg font-medium transition-colors',
         'focus:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2',
-        'disabled:pointer-events-none disabled:opacity-50',
+        'disabled:cursor-not-allowed disabled:opacity-50',
         VARIANTS[variant], icon ? cn(ICON_SIZES[size], 'p-0') : SIZES[size], className)}
       {...props}
     />
